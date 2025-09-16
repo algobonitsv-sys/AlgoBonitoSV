@@ -47,8 +47,10 @@ export default function FeaturedProducts() {
         </div>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {products.map((product) => (
-            <Link href="#" key={product.name}>
+          {products.map((product) => {
+            const slug = product.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+            return (
+            <Link href={`/products/${slug}`} key={product.name}>
                 <Card className="group overflow-hidden transition-shadow duration-300 border-none bg-transparent shadow-none rounded-none">
                     <CardContent className="p-0">
                         <div className="aspect-[9/16] overflow-hidden relative">
@@ -80,7 +82,8 @@ export default function FeaturedProducts() {
                     </div>
                 </Card>
             </Link>
-          ))}
+          );
+          })}
         </div>
     </section>
   );

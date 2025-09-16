@@ -12,7 +12,7 @@
       } from "lucide-react";
       import { Button } from "@/components/ui/button";
       import { Input } from "@/components/ui/input";
-  import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+  import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
       import OrderCart from "@/components/cart/OrderCart";
       import { usePathname } from "next/navigation";
       import { cn } from "@/lib/utils";
@@ -151,15 +151,19 @@ export default function Header() {
               <Search className="h-5 w-5" />
               <span className="sr-only">Abrir búsqueda</span>
             </Button>
-            <Sheet>
+            <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="hover:bg-transparent">
+                <Button variant="ghost" size="icon" className="relative hover:bg-transparent" aria-label="Pedido" onClick={() => setSheetOpen(true)}>
                   <ShoppingBag className="h-5 w-5" />
+                  <CartBadge />
                   <span className="sr-only">Pedido</span>
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-full sm:max-w-md p-6 flex flex-col">
                 <SheetTitle className="sr-only">Pedido</SheetTitle>
+                <SheetDescription className="sr-only">
+                  Resumen del pedido actual. Ajusta cantidades, elige envío y método de pago y confirma tu pedido por WhatsApp.
+                </SheetDescription>
                 <OrderCart />
               </SheetContent>
             </Sheet>
@@ -266,8 +270,37 @@ export default function Header() {
           </div>
         </div>
       )}
+      {/* Listen for open-cart event globally */}
+      <CartOpenListener onOpen={() => setSheetOpen(true)} />
     </>
   );
+}
+
+function CartBadge() {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { count?: number } | undefined;
+      if (detail && typeof detail.count === 'number') setCount(detail.count);
+    };
+    window.addEventListener('cart-state', handler as EventListener);
+    return () => window.removeEventListener('cart-state', handler as EventListener);
+  }, []);
+  if (count <= 0) return null;
+  return (
+    <span className="absolute -top-1 -right-1 min-w-[1.15rem] h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-medium flex items-center justify-center animate-in fade-in zoom-in">
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
+
+function CartOpenListener({ onOpen }: { onOpen: () => void }) {
+  useEffect(() => {
+    const handler = () => onOpen();
+    window.addEventListener('open-cart', handler);
+    return () => window.removeEventListener('open-cart', handler);
+  }, [onOpen]);
+  return null;
 }
 
     

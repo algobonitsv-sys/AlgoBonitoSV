@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -63,6 +63,8 @@ export default function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="pr-0">
+              <SheetTitle className="sr-only">Menú principal</SheetTitle>
+              <SheetDescription className="sr-only">Lista de enlaces de navegación principales del sitio.</SheetDescription>
               <Link href="/" className="flex items-center" onClick={() => setSheetOpen(false)}>
                 <span className="font-bold font-headline text-xl tracking-wide">
                   Algo Bonito SV
@@ -107,37 +109,31 @@ export default function Header() {
             <NavigationMenuList>
                 <NavigationMenuItem>
                     <NavigationMenuTrigger 
-                        className={cn(navigationMenuTriggerStyle(), "bg-transparent", {
-                            "text-foreground": pathname.startsWith("/products"),
-                            "text-foreground/60": !pathname.startsWith("/products"),
-                        })}
+            className={cn(navigationMenuTriggerStyle(), "bg-transparent", {
+              "text-foreground": pathname?.startsWith("/products"),
+              "text-foreground/60": !(pathname?.startsWith("/products")),
+            })}
                     >
                       Productos
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
                       <div className="grid grid-cols-5 gap-4 p-4 w-full">
-                          <div className="col-span-5 mb-4 pb-4 border-b">
-                              <NavigationMenuLink asChild>
-                                  <Link href="/products" className="font-bold text-lg hover:underline">
-                                      Ver todos los productos
-                                  </Link>
-                              </NavigationMenuLink>
-                          </div>
+              <div className="col-span-5 mb-4 pb-4 border-b">
+                <NavigationMenuLink href="/products" className="font-bold text-lg hover:underline">
+                Ver todos los productos
+                </NavigationMenuLink>
+              </div>
                           {Object.entries(productCategories).map(([category, subcategories]) => (
-                              <div key={category} className="flex flex-col">
-                                  <NavigationMenuLink asChild>
-                                      <Link href={`/products?category=${category.toLowerCase().replace(/\s/g, '-')}`} className="font-headline font-bold text-lg mb-2 hover:underline">
-                                          {category}
-                                      </Link>
-                                  </NavigationMenuLink>
+                <div key={category} className="flex flex-col">
+                  <NavigationMenuLink href={`/products?category=${category.toLowerCase().replace(/\s/g, '-')}`} className="font-headline font-bold text-lg mb-2 hover:underline">
+                  {category}
+                  </NavigationMenuLink>
                                   <ul className="space-y-1">
                                       {subcategories.map(subcategory => (
                                           <li key={subcategory}>
-                                              <NavigationMenuLink asChild>
-                                                  <Link href={`/products?category=${category.toLowerCase().replace(/\s/g, '-')}&material=${subcategory.toLowerCase().replace(/\s/g, '-')}`} className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                                      {subcategory}
-                                                  </Link>
-                                              </NavigationMenuLink>
+                        <NavigationMenuLink href={`/products?category=${category.toLowerCase().replace(/\s/g, '-')}&material=${subcategory.toLowerCase().replace(/\s/g, '-')}`} className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors">
+                        {subcategory}
+                        </NavigationMenuLink>
                                           </li>
                                       ))}
                                   </ul>
@@ -146,11 +142,9 @@ export default function Header() {
                            <div className="flex flex-col col-span-1 grid grid-cols-1 gap-4">
                               {singleProductLinks.map((item) => (
                                   <div key={item.title}>
-                                      <NavigationMenuLink asChild>
-                                          <Link href={item.href} className="font-headline font-bold text-lg mb-2 hover:underline">
-                                              {item.title}
-                                          </Link>
-                                      </NavigationMenuLink>
+                    <NavigationMenuLink href={item.href} className="font-headline font-bold text-lg mb-2 hover:underline">
+                    {item.title}
+                    </NavigationMenuLink>
                                       <p className="font-body text-sm text-muted-foreground">
                                         {item.description}
                                       </p>
@@ -162,16 +156,15 @@ export default function Header() {
                 </NavigationMenuItem>
                 {navLinks.map(({ href, label }) => (
                   <NavigationMenuItem key={label}>
-                    <Link href={href} legacyBehavior passHref>
-                        <NavigationMenuLink
-                          className={cn(navigationMenuTriggerStyle(), "bg-transparent", {
-                            "text-foreground": pathname.startsWith(href),
-                            "text-foreground/60": !pathname.startsWith(href)
-                          })}
-                        >
-                          {label}
-                        </NavigationMenuLink>
-                    </Link>
+                    <NavigationMenuLink
+                      href={href}
+                      className={cn(navigationMenuTriggerStyle(), "bg-transparent", {
+                        "text-foreground": pathname?.startsWith(href),
+                        "text-foreground/60": !(pathname?.startsWith(href))
+                      })}
+                    >
+                      {label}
+                    </NavigationMenuLink>
                   </NavigationMenuItem>
                 ))}
             </NavigationMenuList>

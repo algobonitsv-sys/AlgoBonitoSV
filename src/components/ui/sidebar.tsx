@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -207,6 +207,11 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
+            {/* Hidden title & description for accessibility (Radix requires at least one) */}
+            <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
+            <SheetDescription className="sr-only">
+              Panel lateral con enlaces de navegación de la aplicación.
+            </SheetDescription>
             <div className="flex h-full w-full flex-col">{children}</div>
           </SheetContent>
         </Sheet>

@@ -60,8 +60,10 @@ export default function AllProducts() {
           </p>
         </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 bg-background">
-        {paginatedProducts.map((product) => (
-            <Link href="#" key={product.name}>
+    {paginatedProducts.map((product) => {
+      const slug = product.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+      return (
+      <Link href={`/products/${slug}`} key={product.name}>
               <Card className="group overflow-hidden transition-shadow duration-300 border-none bg-background shadow-none rounded-none h-full flex flex-col">
                   <CardContent className="p-0 flex-grow">
                       <div className="aspect-[9/16] overflow-hidden relative h-full">
@@ -93,7 +95,8 @@ export default function AllProducts() {
                   </div>
               </Card>
           </Link>
-        ))}
+        );
+        })}
       </div>
       <div className="container">
         <div className="mt-16">
