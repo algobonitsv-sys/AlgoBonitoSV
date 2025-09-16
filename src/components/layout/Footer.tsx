@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Instagram, MessageCircle } from "lucide-react";
+import { Instagram } from "lucide-react";
 import { TikTokIcon } from "@/components/icons/TikTokIcon";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 export default function Footer() {
   return (
@@ -13,7 +14,7 @@ export default function Footer() {
               <Instagram className="h-6 w-6 text-foreground/80 hover:text-foreground transition-colors" />
             </Link>
             <Link href="#" aria-label="WhatsApp">
-              <MessageCircle className="h-6 w-6 text-foreground/80 hover:text-foreground transition-colors" />
+              <WhatsAppIcon className="h-6 w-6 text-foreground/80 hover:text-foreground transition-colors" />
             </Link>
             <Link href="#" aria-label="TikTok">
               <TikTokIcon className="h-6 w-6 text-foreground/80 hover:text-foreground transition-colors" />

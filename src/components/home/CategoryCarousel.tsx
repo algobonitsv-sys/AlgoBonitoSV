@@ -57,58 +57,55 @@ const categories = [
 
 export default function CategoryCarousel() {
   return (
-    <section className="py-12 sm:py-16 bg-primary/10">
+    <section className="py-10 sm:py-16 bg-primary/10">
       <div className="container">
-        <div className="text-center mb-12">
-          <h2 className="font-headline text-3xl sm:text-4xl font-bold tracking-tight">
+        <div className="text-center mb-8 sm:mb-12 px-2">
+          <h2 className="font-headline text-2xl sm:text-4xl font-bold tracking-tight">
             Nuestras Categorías
           </h2>
-          <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
+          <p className="mt-3 sm:mt-4 max-w-2xl mx-auto text-sm sm:text-lg text-muted-foreground">
             Encuentra la joya perfecta para cada estilo.
           </p>
         </div>
         <Carousel
-          opts={{
-            align: "start",
-            loop: true,
-          }}
+          opts={{ align: "start", loop: true }}
           className="w-full"
         >
           <CarouselContent>
             {categories.map((category) => (
-              <CarouselItem key={category.name} className="basis-[28%] sm:basis-1/4 md:basis-1/5 lg:basis-1/6">
+              <CarouselItem key={category.name} className="basis-1/4 sm:basis-1/4 md:basis-1/5 lg:basis-1/6 px-1 sm:px-2">
                 <Link href={category.href}>
-                    <div className="flex flex-col items-center gap-2 sm:gap-4 group">
-                         <div className="w-20 h-20 sm:w-32 sm:h-32 rounded-full flex items-center justify-center border-2 sm:border-4 border-accent transition-all duration-300">
-                             <div className="w-16 h-16 sm:w-28 sm:h-28 rounded-full overflow-hidden relative transition-all duration-300 group-hover:scale-105">
-                                <Image
-                                    src={category.image}
-                                    alt={`Categoría ${category.name}`}
-                                    width={200}
-                                    height={200}
-                                    className="w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-0"
-                                    data-ai-hint={category.dataAiHint}
-                                />
-                                <Image
-                                    src={category.hoverImage}
-                                    alt={`Categoría ${category.name}`}
-                                    width={200}
-                                    height={200}
-                                    className="w-full h-full object-cover absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                                    data-ai-hint={category.dataAiHint}
-                                />
-                            </div>
-                        </div>
-                        <h3 className="font-headline text-sm sm:text-xl text-center font-semibold">
-                            {category.name}
-                        </h3>
+                  <div className="flex flex-col items-center gap-1.5 sm:gap-4 group">
+                    <div className="w-14 h-14 sm:w-32 sm:h-32 rounded-full flex items-center justify-center border border-accent sm:border-4 transition-all duration-300">
+                      <div className="w-12 h-12 sm:w-28 sm:h-28 rounded-full overflow-hidden relative transition-all duration-300 group-hover:scale-105">
+                        <Image
+                          src={category.image}
+                          alt={`Categoría ${category.name}`}
+                          width={200}
+                          height={200}
+                          className="w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-0"
+                          data-ai-hint={category.dataAiHint}
+                        />
+                        <Image
+                          src={category.hoverImage}
+                          alt={`Categoría ${category.name}`}
+                          width={200}
+                          height={200}
+                          className="w-full h-full object-cover absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                          data-ai-hint={category.dataAiHint}
+                        />
+                      </div>
                     </div>
+                    <h3 className="font-headline text-[10px] leading-tight sm:text-xl text-center font-semibold tracking-tight">
+                      {category.name}
+                    </h3>
+                  </div>
                 </Link>
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious variant="ghost" className="top-[40%] -left-6" />
-          <CarouselNext variant="ghost" className="top-[40%] -right-6" />
+          <CarouselPrevious variant="ghost" className="top-[40%] -left-4 sm:-left-6" />
+          <CarouselNext variant="ghost" className="top-[40%] -right-4 sm:-right-6" />
         </Carousel>
       </div>
     </section>

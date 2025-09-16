@@ -71,7 +71,7 @@ export default function FullWidthCategoryCarousel() {
         <CarouselContent className="-ml-2 sm:-ml-4">
           {categories.map((category) => (
             <CarouselItem key={category.name} className="basis-full sm:basis-1/2 md:basis-1/3 pl-2 sm:pl-4">
-              <Link href={category.href} className="group block overflow-hidden">
+              <Link href={category.href} className="group block overflow-hidden relative">
                 <div className="relative aspect-video">
                   <Image
                     src={category.image}
@@ -82,11 +82,17 @@ export default function FullWidthCategoryCarousel() {
                     data-ai-hint={category.dataAiHint}
                   />
                   <div className="absolute inset-0 bg-black/30" />
-                  <div className="absolute bottom-0 left-0 p-4 flex items-center justify-between w-full">
-                      <h3 className="font-headline text-xl text-white font-semibold">
-                          {category.name}
-                      </h3>
-                      <ArrowRight className="h-5 w-5 text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  <div className="absolute bottom-0 left-0 p-4 pr-16 flex items-center justify-start w-full">
+                    <h3 className="font-headline text-xl text-white font-semibold drop-shadow">
+                      {category.name}
+                    </h3>
+                  </div>
+                  {/* Fixed arrow button */}
+                  <div className="absolute bottom-3 right-3">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white transition group-hover:scale-110">
+                      <ArrowRight className="h-5 w-5" />
+                      <span className="sr-only">Ir a {category.name}</span>
+                    </span>
                   </div>
                 </div>
               </Link>

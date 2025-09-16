@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Instagram, Phone } from "lucide-react";
+import { Instagram } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -16,7 +17,7 @@ export default function FloatingButtons() {
           <TooltipTrigger asChild>
             <Button asChild size="icon" className="rounded-full h-14 w-14 bg-accent hover:bg-accent/90 shadow-lg">
               <Link href="#" aria-label="WhatsApp">
-                <Phone className="h-7 w-7 text-accent-foreground" />
+                <WhatsAppIcon className="h-7 w-7 text-accent-foreground" />
               </Link>
             </Button>
           </TooltipTrigger>
