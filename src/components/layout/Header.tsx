@@ -1,15 +1,14 @@
       "use client";
 
       import Link from "next/link";
-      import { useState, useEffect } from "react";
+      import { useState, useEffect, useRef } from "react";
       import { useRouter } from "next/navigation";
       import {
-        Menu,
-        Search,
-        ShoppingBag,
-        X,
-        ChevronLeft,
-      } from "lucide-react";
+              Menu,
+              Search,
+              X,
+              ChevronLeft,
+            } from "lucide-react";
       import { Button } from "@/components/ui/button";
       import { Input } from "@/components/ui/input";
   import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -54,6 +53,7 @@ export default function Header() {
   const [isSheetOpen, setSheetOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const categoriesRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -154,7 +154,7 @@ export default function Header() {
             <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative hover:bg-transparent" aria-label="Pedido" onClick={() => setSheetOpen(true)}>
-                  <ShoppingBag className="h-5 w-5" />
+                  <BagIcon />
                   <CartBadge />
                   <span className="sr-only">Pedido</span>
                 </Button>
@@ -198,6 +198,7 @@ export default function Header() {
       {/* Panel de categorías tipo acordeón */}
       {showCategories && (
         <div
+          ref={categoriesRef}
           className="w-full fixed left-0 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/50 shadow-xl border-b z-40 flex flex-col items-center transition-colors"
           style={{ top: 'calc(var(--announcement-bar-height, 0px) + 5rem)' }}
         >
@@ -272,6 +273,8 @@ export default function Header() {
       )}
       {/* Listen for open-cart event globally */}
       <CartOpenListener onOpen={() => setSheetOpen(true)} />
+      {/* Outside click / escape handler for categories panel */}
+      {showCategories && <OutsideCategoriesCloser targetRef={categoriesRef} onClose={() => setShowCategories(false)} />}
     </>
   );
 }
@@ -301,6 +304,45 @@ function CartOpenListener({ onOpen }: { onOpen: () => void }) {
     return () => window.removeEventListener('open-cart', handler);
   }, [onOpen]);
   return null;
+}
+
+function OutsideCategoriesCloser({ targetRef, onClose }: { targetRef: React.RefObject<HTMLElement>, onClose: () => void }) {
+  useEffect(() => {
+    function handlePointer(e: MouseEvent | TouchEvent) {
+      const el = targetRef.current;
+      if (!el) return;
+      if (e.target instanceof Node && !el.contains(e.target)) {
+        onClose();
+      }
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('mousedown', handlePointer);
+    document.addEventListener('touchstart', handlePointer);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handlePointer);
+      document.removeEventListener('touchstart', handlePointer);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [targetRef, onClose]);
+  return null;
+}
+
+function BagIcon() {
+  return (
+    <span className="relative inline-flex items-center justify-center h-7 w-7">
+      <img
+        src="/bag.png"
+        alt="Carrito"
+        className="h-7 w-7 object-contain"
+        loading="lazy"
+        decoding="async"
+      />
+      <span className="sr-only">Carrito</span>
+    </span>
+  );
 }
 
     
