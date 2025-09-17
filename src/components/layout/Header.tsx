@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Search, X, ChevronLeft, ChevronDown, Menu } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronDown, Menu, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -42,6 +42,9 @@ export default function Header() {
   const categoriesRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
   const pathname = usePathname();
+  
+  // Check if we're in admin panel
+  const isAdminPanel = pathname?.startsWith('/admin');
 
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -76,7 +79,7 @@ export default function Header() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container relative flex h-16 md:h-20 items-center">
           {/* Mobile: Hamburger menu */}
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center gap-2">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="hover:bg-transparent">
@@ -84,6 +87,23 @@ export default function Header() {
                   <span className="sr-only">Abrir menú</span>
                 </Button>
               </SheetTrigger>
+              
+              {/* Admin Panel Sidebar Toggle - only visible in admin */}
+              {isAdminPanel && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="hover:bg-transparent"
+                  onClick={() => {
+                    // Trigger sidebar toggle for admin panel
+                    const event = new CustomEvent('admin-sidebar-toggle');
+                    window.dispatchEvent(event);
+                  }}
+                >
+                  <PanelLeft className="h-5 w-5" />
+                  <span className="sr-only">Toggle Sidebar</span>
+                </Button>
+              )}
               <SheetContent side="left" className="w-80 p-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-r" hideClose>
                 <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
                 <SheetDescription className="sr-only">Navegación principal del sitio</SheetDescription>
