@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Search, X, ChevronLeft } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronDown, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -33,8 +33,10 @@ const navLinks = [
 
 export default function Header() {
   const [showCategories, setShowCategories] = useState(false);
-  const [isSheetOpen, setSheetOpen] = useState(false); // cart OR mobile menu (separate state below)
-  const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mobileProductsExpanded, setMobileProductsExpanded] = useState(false);
+  const [mobileExpandedCategory, setMobileExpandedCategory] = useState<string | null>(null);
+  const [isSheetOpen, setSheetOpen] = useState(false); // cart only
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const categoriesRef = useRef<HTMLDivElement | null>(null);
@@ -73,93 +75,158 @@ export default function Header() {
     <>
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container relative flex h-16 md:h-20 items-center">
-          {/* Mobile: Left hamburger */}
-          <div className="flex md:hidden items-center">
-            <Sheet open={isMobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          {/* Mobile: Hamburger menu */}
+          <div className="md:hidden">
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
-                <button aria-label="Abrir menú" className="inline-flex items-center justify-center h-10 w-10 -ml-2 rounded-md text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition">
-                  {/* Custom SVG with three lines */}
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="3" y1="6" x2="21" y2="6" />
-                    <line x1="3" y1="12" x2="21" y2="12" />
-                    <line x1="3" y1="18" x2="21" y2="18" />
-                  </svg>
-                </button>
+                <Button variant="ghost" size="icon" className="hover:bg-transparent">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Abrir menú</span>
+                </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-full max-w-xs flex flex-col">
-                <SheetTitle className="sr-only">Menú principal</SheetTitle>
-                <SheetDescription className="sr-only">Navegación del sitio</SheetDescription>
-                <div className="flex items-center justify-between h-16 px-4 border-b">
-                  <Link href="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2">
-                    <img src="/logo.png" alt="Algo Bonito SV" className="h-10" />
-                  </Link>
-                  <button onClick={() => setMobileMenuOpen(false)} aria-label="Cerrar" className="h-9 w-9 inline-flex items-center justify-center rounded-md hover:bg-foreground/5">
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-                <nav className="flex-1 overflow-y-auto py-4 px-4">
-                  <ul className="space-y-1">
-                    <li>
-                      <button
-                        onClick={() => setShowCategories(v => !v)}
-                        className="w-full text-left px-3 py-2 rounded-md text-sm font-medium flex items-center justify-between hover:bg-foreground/5"
-                        aria-expanded={showCategories}
-                      >
-                        <span>Productos</span>
-                        <svg className={cn("h-4 w-4 transition-transform", showCategories && "rotate-180") } viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.64645 6.64645C4.84171 6.45118 5.15829 6.45118 5.35355 6.64645L8 9.29289L10.6464 6.64645C10.8417 6.45118 11.1583 6.45118 11.3536 6.64645C11.5488 6.84171 11.5488 7.15829 11.3536 7.35355L8.35355 10.3536C8.15829 10.5488 7.84171 10.5488 7.64645 10.3536L4.64645 7.35355C4.45118 7.15829 4.45118 6.84171 4.64645 6.64645Z" fill="currentColor"/></svg>
-                      </button>
-                      {showCategories && (
-                        <div className="mt-2 mb-4 ml-2 border-l border-border/50 pl-3 space-y-3">
-                          {Object.entries(productCategories).map(([category, subs]) => (
-                            <div key={category}>
-                              <p className="text-sm font-semibold mb-1">{category}</p>
-                              <ul className="space-y-1">
-                                {subs.map(s => (
-                                  <li key={s}>
-                                    <Link
-                                      href={`/products?category=${category.toLowerCase().replace(/\s/g,'-')}&material=${s.toLowerCase().replace(/\s/g,'-')}`}
-                                      className="text-xs text-muted-foreground hover:text-foreground"
-                                      onClick={() => setMobileMenuOpen(false)}
-                                    >
-                                      {s}
-                                    </Link>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          ))}
-                          {singleProductLinks.map(item => (
-                            <div key={item.title}>
+              <SheetContent side="left" className="w-80 p-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-r" hideClose>
+                <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
+                <SheetDescription className="sr-only">Navegación principal del sitio</SheetDescription>
+                <div className="flex flex-col h-full">
+                  {/* Header with logo */}
+                  <div className="flex items-center justify-center p-4 border-b relative">
+                    <Link href="/" onClick={() => setIsMobileMenuOpen(false)}>
+                      <img src="/logo.png" alt="Algo Bonito SV" className="h-8" />
+                    </Link>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="hover:bg-transparent absolute right-4"
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
+                  
+                  {/* Navigation content */}
+                  <nav className="flex-1 overflow-y-auto p-4">
+                    <div className="space-y-2">
+                      {/* Productos section - expandable */}
+                      <div>
+                        <button
+                          onClick={() => setMobileProductsExpanded(!mobileProductsExpanded)}
+                          className="w-full flex items-center justify-between p-3 text-left font-medium hover:bg-muted/50 rounded-md transition-colors"
+                          aria-expanded={mobileProductsExpanded}
+                        >
+                          <span>Productos</span>
+                          <ChevronDown 
+                            className={`h-3 w-3 transition-transform ${mobileProductsExpanded ? 'rotate-180' : ''}`}
+                          />
+                        </button>
+                        
+                        {mobileProductsExpanded && (
+                          <div className="ml-4 mt-2 space-y-2">
+                            {/* Category buttons */}
+                            {Object.entries(productCategories).map(([category, subcategories]) => {
+                              const categorySlug = category.toLowerCase().replace(/\s/g, '-');
+                              const isExpanded = mobileExpandedCategory === category;
+                              
+                              return (
+                                <div key={category}>
+                                  <button
+                                    onClick={() => setMobileExpandedCategory(isExpanded ? null : category)}
+                                    className="w-full flex items-center justify-between p-2 text-left text-sm hover:bg-muted/30 rounded-md transition-colors"
+                                    aria-expanded={isExpanded}
+                                  >
+                                    <span>{category}</span>
+                                    <ChevronDown 
+                                      className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                                    />
+                                  </button>
+                                  
+                                  {isExpanded && (
+                                    <div className="ml-4 mt-1 space-y-1">
+                                      <Link
+                                        href={`/products?category=${categorySlug}`}
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        className="block p-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/20 rounded-md transition-colors"
+                                      >
+                                        Ver todos los {category.toLowerCase()}
+                                      </Link>
+                                      {subcategories.map((subcategory) => (
+                                        <Link
+                                          key={subcategory}
+                                          href={`/products?category=${categorySlug}&material=${subcategory.toLowerCase().replace(/\s/g, '-')}`}
+                                          onClick={() => setIsMobileMenuOpen(false)}
+                                          className="block p-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/20 rounded-md transition-colors"
+                                        >
+                                          {subcategory}
+                                        </Link>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                            
+                            {/* Single product links */}
+                            {singleProductLinks.map((item) => (
                               <Link
+                                key={item.title}
                                 href={item.href}
-                                className="text-sm font-semibold hover:underline"
-                                onClick={() => setMobileMenuOpen(false)}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="block p-2 text-sm hover:bg-muted/30 rounded-md transition-colors"
                               >
                                 {item.title}
                               </Link>
-                            </div>
-                          ))}
-                          <div>
-                            <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="text-sm font-semibold text-primary hover:underline">
+                            ))}
+                            
+                            {/* View all products */}
+                            <Link
+                              href="/products"
+                              onClick={() => setIsMobileMenuOpen(false)}
+                              className="block p-2 text-sm font-medium text-primary hover:bg-muted/30 rounded-md transition-colors"
+                            >
                               Ver todos los productos
                             </Link>
                           </div>
-                        </div>
-                      )}
-                    </li>
-                    {navLinks.map(link => (
-                      <li key={link.href}>
+                        )}
+                      </div>
+                      
+                      {/* Regular navigation links */}
+                      {navLinks.map((link) => (
                         <Link
+                          key={link.href}
                           href={link.href}
-                          onClick={() => setMobileMenuOpen(false)}
-                          className={cn("block px-3 py-2 rounded-md text-sm font-medium hover:bg-foreground/5", pathname?.startsWith(link.href) && "bg-foreground/5")}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className={`block p-3 font-medium hover:bg-muted/50 rounded-md transition-colors ${
+                            pathname?.startsWith(link.href) ? 'bg-muted/50 text-foreground' : 'text-foreground/80'
+                          }`}
                         >
                           {link.label}
                         </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </nav>
+                      ))}
+                    </div>
+                  </nav>
+                  
+                  {/* Social media footer */}
+                  <div className="border-t p-4">
+                    <div className="flex items-center justify-center gap-4 text-foreground/70">
+                      <a href="https://www.instagram.com" aria-label="Instagram" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                          <line x1="17.5" y1="6.5" x2="17.5" y2="6.5"/>
+                        </svg>
+                      </a>
+                      <a href="https://www.facebook.com" aria-label="Facebook" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M22 12a10 10 0 1 0-11.5 9.87v-6.99H8.9V12h1.6V9.8c0-1.58.94-2.46 2.38-2.46.69 0 1.41.12 1.41.12v1.55h-.8c-.79 0-1.04.49-1.04 1V12h1.77l-.28 2.88h-1.5v6.99A10 10 0 0 0 22 12"/>
+                        </svg>
+                      </a>
+                      <a href="https://www.tiktok.com" aria-label="TikTok" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M13.5 3a7.5 7.5 0 0 0 .11 1.3 4.8 4.8 0 0 0 3.39 3.73 8 8 0 0 1-.06 1.5 6.3 6.3 0 0 1-3.06-.9v5.07a5.7 5.7 0 1 1-5-5.66v2.05a3.67 3.67 0 1 0 2.55 3.5V3h2.07Z"/>
+                        </svg>
+                      </a>
+                    </div>
+                  </div>
+                </div>
               </SheetContent>
             </Sheet>
           </div>
@@ -172,8 +239,8 @@ export default function Header() {
           </div>
 
           {/* Absolute centered mobile logo */}
-          <div className="md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-            <Link href="/" className="pointer-events-auto flex items-center">
+          <div className="md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <Link href="/" className="flex items-center">
               <img src="/logo.png" alt="Algo Bonito SV" className="h-10" />
             </Link>
           </div>
@@ -333,6 +400,15 @@ export default function Header() {
       )}
       <CartOpenListener onOpen={() => setSheetOpen(true)} />
       {showCategories && <OutsideCategoriesCloser targetRef={categoriesRef} onClose={() => setShowCategories(false)} />}
+      
+      {/* Cart Sheet */}
+      <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent side="right" className="w-96">
+          <SheetTitle className="sr-only">Carrito de compras</SheetTitle>
+          <SheetDescription className="sr-only">Productos en tu carrito</SheetDescription>
+          <OrderCart />
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
@@ -342,7 +418,10 @@ function CartBadge() {
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as { count?: number } | undefined;
-      if (detail && typeof detail.count === 'number') setCount(detail.count);
+      if (detail && typeof detail.count === 'number') {
+        // Defer the state update to avoid updating during render
+        setTimeout(() => setCount(detail.count!), 0);
+      }
     };
     window.addEventListener('cart-state', handler as EventListener);
     return () => window.removeEventListener('cart-state', handler as EventListener);
