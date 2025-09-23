@@ -136,15 +136,22 @@ export default function Header() {
 
   const performSearch = () => {
     const value = searchQuery.trim();
+    console.log('🔍 Performing search with value:', value);
+    
     if (!value) {
       setIsSearchOpen(false);
       return;
     }
-    if (value.toUpperCase() === 'ADMIN') {
+    
+    // Check for admin access (case insensitive)
+    if (value.toLowerCase() === 'admin') {
+      console.log('🚀 Admin detected, redirecting to /admin');
       router.push('/admin');
     } else {
+      console.log('🔍 Regular search, redirecting to search page');
       router.push(`/search?q=${encodeURIComponent(value)}`);
     }
+    
     setIsSearchOpen(false);
     setSearchQuery(''); // Clear search after navigating
   };

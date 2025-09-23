@@ -120,6 +120,26 @@ export interface Database {
         Insert: NovedadInsert;
         Update: NovedadUpdate;
       };
+      customer_testimonials: {
+        Row: CustomerTestimonial;
+        Insert: CustomerTestimonialInsert;
+        Update: CustomerTestimonialUpdate;
+      };
+      website_materials: {
+        Row: WebsiteMaterial;
+        Insert: WebsiteMaterialInsert;
+        Update: WebsiteMaterialUpdate;
+      };
+      materials_content: {
+        Row: MaterialsContent;
+        Insert: MaterialsContentInsert;
+        Update: MaterialsContentUpdate;
+      };
+      about_content: {
+        Row: AboutContent;
+        Insert: AboutContentInsert;
+        Update: AboutContentUpdate;
+      };
     };
     Views: {
       sales_summary: {
@@ -1244,4 +1264,144 @@ export interface NovedadUpdate {
   enlace_texto?: string;
   imagen?: string;
   is_active?: boolean;
+}
+
+// =====================================================
+// CUSTOMER TESTIMONIALS (GALLERY)
+// =====================================================
+
+export interface CustomerTestimonial {
+  id: string;
+  customer_name: string;
+  customer_location: string;
+  image_url: string;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+}
+
+export interface CustomerTestimonialInsert {
+  customer_name: string;
+  customer_location: string;
+  image_url: string;
+  is_active?: boolean;
+  display_order?: number;
+  created_by?: string;
+}
+
+export interface CustomerTestimonialUpdate {
+  customer_name?: string;
+  customer_location?: string;
+  image_url?: string;
+  is_active?: boolean;
+  display_order?: number;
+}
+
+// =====================================================
+// WEBSITE MATERIALS TYPES
+// =====================================================
+
+export interface WebsiteMaterial {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+}
+
+export interface WebsiteMaterialInsert {
+  title: string;
+  description: string;
+  image_url: string;
+  is_active?: boolean;
+  display_order?: number;
+  created_by?: string;
+}
+
+export interface WebsiteMaterialUpdate {
+  title?: string;
+  description?: string;
+  image_url?: string;
+  is_active?: boolean;
+  display_order?: number;
+}
+
+export interface MaterialsContent {
+  id: string;
+  section_type: 'care_tips' | 'maintenance';
+  title: string;
+  content: string;
+  icon_name?: string;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+}
+
+export interface MaterialsContentInsert {
+  section_type: 'care_tips' | 'maintenance';
+  title: string;
+  content: string;
+  icon_name?: string;
+  is_active?: boolean;
+  display_order?: number;
+  created_by?: string;
+}
+
+export interface MaterialsContentUpdate {
+  section_type?: 'care_tips' | 'maintenance';
+  title?: string;
+  content?: string;
+  icon_name?: string;
+  is_active?: boolean;
+  display_order?: number;
+}
+
+// About Content interfaces
+export interface AboutContent {
+  id: string;
+  section_type: 'hero' | 'mission' | 'shipping' | 'payment' | 'returns';
+  title: string;
+  subtitle?: string;
+  content?: string;
+  image_url?: string;
+  background_image_url?: string;
+  extra_data?: Record<string, any>;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+}
+
+export interface AboutContentInsert {
+  section_type: 'hero' | 'mission' | 'shipping' | 'payment' | 'returns';
+  title: string;
+  subtitle?: string;
+  content?: string;
+  image_url?: string;
+  background_image_url?: string;
+  extra_data?: Record<string, any>;
+  is_active?: boolean;
+  display_order?: number;
+  created_by?: string;
+}
+
+export interface AboutContentUpdate {
+  section_type?: 'hero' | 'mission' | 'shipping' | 'payment' | 'returns';
+  title?: string;
+  subtitle?: string;
+  content?: string;
+  image_url?: string;
+  background_image_url?: string;
+  extra_data?: Record<string, any>;
+  is_active?: boolean;
+  display_order?: number;
 }

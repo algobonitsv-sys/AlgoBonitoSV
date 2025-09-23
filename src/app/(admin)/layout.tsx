@@ -9,8 +9,11 @@ import {
   MessageSquareQuote,
   GalleryHorizontal,
   Sparkles,
+  UserCheck,
+  Gem,
   CircleDollarSign,
   ShoppingCart,
+  Info,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -25,6 +28,9 @@ const navItems = [
   { href: '/admin/faq', label: 'Preguntas frecuentes', icon: MessageSquareQuote },
   { href: '/admin/carousel', label: 'Carrusel', icon: GalleryHorizontal },
   { href: '/admin/novedad', label: 'Novedad', icon: Sparkles },
+  { href: '/admin/about', label: 'Sobre Nosotros', icon: Info },
+  { href: '/admin/materials', label: 'Materiales', icon: Gem },
+  { href: '/admin/testimonials', label: 'Nuestros clientes', icon: UserCheck },
   { href: '/admin/finances', label: 'Finanzas', icon: CircleDollarSign },
   { href: '/admin/orders', label: 'Pedidos', icon: ShoppingCart },
 ];

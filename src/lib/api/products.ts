@@ -46,6 +46,18 @@ import type {
   Novedad,
   NovedadInsert,
   NovedadUpdate,
+  CustomerTestimonial,
+  CustomerTestimonialInsert,
+  CustomerTestimonialUpdate,
+  WebsiteMaterial,
+  WebsiteMaterialInsert,
+  WebsiteMaterialUpdate,
+  MaterialsContent,
+  MaterialsContentInsert,
+  MaterialsContentUpdate,
+  AboutContent,
+  AboutContentInsert,
+  AboutContentUpdate,
 } from '@/types/database';
 
 // =====================================================
@@ -2057,6 +2069,931 @@ export const novedadApi = {
   },
 };
 
+// =====================================================
+// CUSTOMER TESTIMONIALS API
+// =====================================================
+
+export const testimonialsApi = {
+  // Get all testimonials with optional filters
+  async getAll(options?: {
+    includeInactive?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<ApiResponse<CustomerTestimonial[]>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, using fallback testimonials data');
+        
+        // Create some fallback testimonials for development
+        const fallbackTestimonials: CustomerTestimonial[] = [
+          {
+            id: '1',
+            customer_name: 'María González',
+            customer_location: 'San Salvador, El Salvador',
+            image_url: 'https://picsum.photos/800/600?v=1',
+            is_active: true,
+            display_order: 1,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          {
+            id: '2',
+            customer_name: 'Carlos Martínez',
+            customer_location: 'Santa Ana, El Salvador',
+            image_url: 'https://picsum.photos/800/600?v=2',
+            is_active: true,
+            display_order: 2,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          {
+            id: '3',
+            customer_name: 'Ana Rodríguez',
+            customer_location: 'La Libertad, El Salvador',
+            image_url: 'https://picsum.photos/800/600?v=3',
+            is_active: true,
+            display_order: 3,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ];
+
+        return createResponse(fallbackTestimonials, null);
+      }
+
+      const limit = options?.limit || 50;
+      const offset = options?.offset || 0;
+      const includeInactive = options?.includeInactive || false;
+
+      let query = supabase!
+        .from('customer_testimonials')
+        .select('*');
+
+      if (!includeInactive) {
+        query = query.eq('is_active', true);
+      }
+
+      query = query
+        .order('display_order', { ascending: true })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return createResponse(data || [], null);
+    } catch (error) {
+      return createResponse([] as CustomerTestimonial[], handleError(error));
+    }
+  },
+
+  // Get testimonial by ID
+  async getById(id: string): Promise<ApiResponse<CustomerTestimonial | null>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock testimonial');
+        const mockTestimonial: CustomerTestimonial = {
+          id,
+          customer_name: 'Mock Customer',
+          customer_location: 'Mock Location',
+          image_url: 'https://picsum.photos/800/600?v=1',
+          customer_rating: 5,
+          testimonial_text: 'Mock testimonial text',
+          is_active: true,
+          display_order: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        return createResponse(mockTestimonial, null);
+      }
+
+      const { data, error } = await supabase!
+        .from('customer_testimonials')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse(null, handleError(error));
+    }
+  },
+
+  // Create new testimonial
+  async create(testimonial: CustomerTestimonialInsert): Promise<ApiResponse<CustomerTestimonial>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock created testimonial');
+        const mockTestimonial: CustomerTestimonial = {
+          id: Date.now().toString(),
+          ...testimonial,
+          is_active: testimonial.is_active ?? true,
+          display_order: testimonial.display_order ?? 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        return createResponse(mockTestimonial, null);
+      }
+
+      const { data, error } = await supabase!
+        .from('customer_testimonials')
+        .insert(testimonial)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse({} as CustomerTestimonial, handleError(error));
+    }
+  },
+
+  // Update testimonial
+  async update(id: string, updates: CustomerTestimonialUpdate): Promise<ApiResponse<CustomerTestimonial>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock updated testimonial');
+        const mockTestimonial: CustomerTestimonial = {
+          id,
+          customer_name: updates.customer_name || 'Mock Customer',
+          customer_location: updates.customer_location || 'Mock Location',
+          image_url: updates.image_url || 'https://picsum.photos/800/600?v=1',
+          is_active: updates.is_active ?? true,
+          display_order: updates.display_order ?? 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        return createResponse(mockTestimonial, null);
+      }
+
+      const { data, error } = await supabase!
+        .from('customer_testimonials')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse({} as CustomerTestimonial, handleError(error));
+    }
+  },
+
+  // Delete testimonial
+  async delete(id: string): Promise<ApiResponse<boolean>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock delete success');
+        return createResponse(true, null);
+      }
+
+      const { error } = await supabase!
+        .from('customer_testimonials')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return createResponse(true, null);
+    } catch (error) {
+      return createResponse(false, handleError(error));
+    }
+  },
+
+  // Activate testimonial
+  async activate(id: string): Promise<ApiResponse<boolean>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock activate success');
+        return createResponse(true, null);
+      }
+
+      const { error } = await supabase!
+        .from('customer_testimonials')
+        .update({ is_active: true })
+        .eq('id', id);
+
+      if (error) throw error;
+      return createResponse(true, null);
+    } catch (error) {
+      return createResponse(false, handleError(error));
+    }
+  },
+
+  // Deactivate testimonial
+  async deactivate(id: string): Promise<ApiResponse<boolean>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock deactivate success');
+        return createResponse(true, null);
+      }
+
+      const { error } = await supabase!
+        .from('customer_testimonials')
+        .update({ is_active: false })
+        .eq('id', id);
+
+      if (error) throw error;
+      return createResponse(true, null);
+    } catch (error) {
+      return createResponse(false, handleError(error));
+    }
+  },
+
+  // Update display order
+  async updateOrder(id: string, newOrder: number): Promise<ApiResponse<boolean>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock order update success');
+        return createResponse(true, null);
+      }
+
+      const { error } = await supabase!
+        .from('customer_testimonials')
+        .update({ display_order: newOrder })
+        .eq('id', id);
+
+      if (error) throw error;
+      return createResponse(true, null);
+    } catch (error) {
+      return createResponse(false, handleError(error));
+    }
+  },
+};
+
+// =====================================================
+// WEBSITE MATERIALS API
+// =====================================================
+
+const websiteMaterialsApi = {
+  // Get all website materials
+  async getAll(options: { includeInactive?: boolean } = {}): Promise<ApiResponse<WebsiteMaterial[]>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock website materials');
+        
+        // Create some fallback materials for development
+        const fallbackMaterials: WebsiteMaterial[] = [
+          {
+            id: '1',
+            title: 'Oro de Calidad',
+            description: 'Utilizamos oro de 14k y 18k, conocido por su durabilidad y brillo atemporal. Perfecto para piezas que durarán toda la vida.',
+            image_url: 'https://picsum.photos/500/300?v=20',
+            is_active: true,
+            display_order: 1,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          {
+            id: '2',
+            title: 'Plata de Ley 925',
+            description: 'Nuestra plata de ley es 92.5% plata pura, ofreciendo un balance ideal entre belleza y resistencia. Ideal para diseños modernos y elegantes.',
+            image_url: 'https://picsum.photos/500/300?v=21',
+            is_active: true,
+            display_order: 2,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          {
+            id: '3',
+            title: 'Piedras Preciosas y Semipreciosas',
+            description: 'Seleccionamos cuidadosamente cada gema, desde diamantes hasta cuarzos, por su color, corte y claridad para añadir un toque especial a cada joya.',
+            image_url: 'https://picsum.photos/500/300?v=22',
+            is_active: true,
+            display_order: 3,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ];
+
+        return createResponse(fallbackMaterials, null);
+      }
+
+      let query = supabase!.from('website_materials').select('*');
+      
+      if (!options.includeInactive) {
+        query = query.eq('is_active', true);
+      }
+      
+      const { data, error } = await query.order('display_order', { ascending: true });
+
+      if (error) throw error;
+      return createResponse(data || [], null);
+    } catch (error) {
+      return createResponse([], handleError(error));
+    }
+  },
+
+  // Create new website material
+  async create(material: WebsiteMaterialInsert): Promise<ApiResponse<WebsiteMaterial>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock website material');
+        
+        const mockMaterial: WebsiteMaterial = {
+          id: `mock_${Date.now()}`,
+          title: material.title,
+          description: material.description,
+          image_url: material.image_url,
+          is_active: material.is_active !== false,
+          display_order: material.display_order || 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        
+        return createResponse(mockMaterial, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('website_materials')
+        .insert(material)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse({} as WebsiteMaterial, handleError(error));
+    }
+  },
+
+  // Update website material
+  async update(id: string, updates: WebsiteMaterialUpdate): Promise<ApiResponse<WebsiteMaterial>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock updated website material');
+        const mockMaterial: WebsiteMaterial = {
+          id,
+          title: updates.title || 'Mock Material',
+          description: updates.description || 'Mock Description',
+          image_url: updates.image_url || 'https://picsum.photos/500/300?v=1',
+          is_active: updates.is_active ?? true,
+          display_order: updates.display_order ?? 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        return createResponse(mockMaterial, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('website_materials')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse({} as WebsiteMaterial, handleError(error));
+    }
+  },
+
+  // Delete website material
+  async delete(id: string): Promise<ApiResponse<boolean>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock delete success');
+        return createResponse(true, null);
+      }
+
+      const { error } = await supabase!
+        .from('website_materials')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return createResponse(true, null);
+    } catch (error) {
+      return createResponse(false, handleError(error));
+    }
+  },
+
+  // Activate material
+  async activate(id: string): Promise<ApiResponse<WebsiteMaterial>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock activation');
+        return createResponse({} as WebsiteMaterial, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('website_materials')
+        .update({ is_active: true })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse({} as WebsiteMaterial, handleError(error));
+    }
+  },
+
+  // Deactivate material
+  async deactivate(id: string): Promise<ApiResponse<WebsiteMaterial>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock deactivation');
+        return createResponse({} as WebsiteMaterial, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('website_materials')
+        .update({ is_active: false })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse({} as WebsiteMaterial, handleError(error));
+    }
+  },
+
+  // Update display order
+  async updateOrder(id: string, newOrder: number): Promise<ApiResponse<boolean>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock order update success');
+        return createResponse(true, null);
+      }
+
+      const { error } = await (supabase! as any)
+        .from('website_materials')
+        .update({ display_order: newOrder })
+        .eq('id', id);
+
+      if (error) throw error;
+      return createResponse(true, null);
+    } catch (error) {
+      return createResponse(false, handleError(error));
+    }
+  },
+};
+
+// Materials Content API
+const materialsContentApi = {
+  // Get all materials content
+  async getAll(options: { includeInactive?: boolean } = {}): Promise<ApiResponse<MaterialsContent[]>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock materials content');
+        
+        // Create some fallback content for development
+        const fallbackContent: MaterialsContent[] = [
+          {
+            id: '1',
+            section_type: 'care_tips',
+            title: 'Cuidado de tus Joyas',
+            content: '• Guarda tus piezas individualmente para evitar que se rayen.\n• Evita el contacto con perfumes, cremas y productos de limpieza.\n• Quítate las joyas antes de nadar, bañarte o hacer ejercicio.\n• Límpialas suavemente con un paño seco y suave después de usarlas.',
+            icon_name: 'ShieldCheck',
+            is_active: true,
+            display_order: 1,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          {
+            id: '2',
+            section_type: 'maintenance',
+            title: 'Mantenimiento',
+            content: 'Para una limpieza más profunda, puedes usar agua tibia y un jabón neutro. Usa un cepillo de dientes suave para llegar a las zonas difíciles y seca completamente la pieza antes de guardarla. Para piezas con piedras preciosas, recomendamos una limpieza profesional una vez al año.',
+            icon_name: 'Wrench',
+            is_active: true,
+            display_order: 2,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ];
+
+        return createResponse(fallbackContent, null);
+      }
+
+      let query = supabase!.from('materials_content').select('*');
+      
+      if (!options.includeInactive) {
+        query = query.eq('is_active', true);
+      }
+      
+      const { data, error } = await query.order('display_order', { ascending: true });
+
+      if (error) throw error;
+      return createResponse(data || [], null);
+    } catch (error) {
+      return createResponse([], handleError(error));
+    }
+  },
+
+  // Create new materials content
+  async create(content: MaterialsContentInsert): Promise<ApiResponse<MaterialsContent>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock materials content');
+        
+        const mockContent: MaterialsContent = {
+          id: `mock_${Date.now()}`,
+          section_type: content.section_type,
+          title: content.title,
+          content: content.content,
+          icon_name: content.icon_name || '',
+          is_active: content.is_active !== false,
+          display_order: content.display_order || 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        
+        return createResponse(mockContent, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('materials_content')
+        .insert(content)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse({} as MaterialsContent, handleError(error));
+    }
+  },
+
+  // Update materials content
+  async update(id: string, updates: MaterialsContentUpdate): Promise<ApiResponse<MaterialsContent>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock updated materials content');
+        const mockContent: MaterialsContent = {
+          id,
+          section_type: updates.section_type || 'care_tips',
+          title: updates.title || 'Mock Title',
+          content: updates.content || 'Mock Content',
+          icon_name: updates.icon_name || '',
+          is_active: updates.is_active ?? true,
+          display_order: updates.display_order ?? 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        return createResponse(mockContent, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('materials_content')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse({} as MaterialsContent, handleError(error));
+    }
+  },
+
+  // Delete materials content
+  async delete(id: string): Promise<ApiResponse<boolean>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock delete success');
+        return createResponse(true, null);
+      }
+
+      const { error } = await supabase!
+        .from('materials_content')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return createResponse(true, null);
+    } catch (error) {
+      return createResponse(false, handleError(error));
+    }
+  },
+};
+
+// =====================================================
+// ABOUT CONTENT API
+// =====================================================
+
+const aboutContentApi = {
+  // Get all about content sections
+  async getAll(): Promise<ApiResponse<AboutContent[]>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock about content');
+        const mockData: AboutContent[] = [
+          {
+            id: '1',
+            section_type: 'hero',
+            title: 'Sobre Nosotros',
+            subtitle: 'Conoce la historia detrás de cada joya.',
+            content: '',
+            image_url: '',
+            background_image_url: '',
+            extra_data: {},
+            is_active: true,
+            display_order: 1,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          {
+            id: '2',
+            section_type: 'mission',
+            title: 'Nuestra Misión',
+            subtitle: '',
+            content: 'En Algo Bonito SV, creemos que la joyería es más que un simple accesorio; es una forma de expresión, un recuerdo y una celebración de los momentos especiales de la vida. Nacimos en el corazón de El Salvador con la misión de crear piezas atemporales y de alta calidad que te acompañen en tu día a día.\n\nCada una de nuestras joyas es diseñada y elaborada con una meticulosa atención al detalle, utilizando materiales nobles como el oro, la plata de ley y piedras preciosas. Nos inspiramos en la belleza de lo simple y en la elegancia de lo minimalista para ofrecerte diseños que perduren en el tiempo.\n\nSomos más que una marca; somos una comunidad de amantes de la belleza y el buen gusto. Gracias por ser parte de nuestra historia.',
+            image_url: 'https://picsum.photos/600/800',
+            background_image_url: '',
+            extra_data: {},
+            is_active: true,
+            display_order: 2,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          {
+            id: '3',
+            section_type: 'shipping',
+            title: 'Envíos a todo el país y más allá',
+            subtitle: 'Llevamos nuestras joyas hasta la puerta de tu casa. Rápido, seguro y con el cuidado que tus piezas merecen.',
+            content: '',
+            image_url: '',
+            background_image_url: 'https://picsum.photos/1200/400?v=60',
+            extra_data: {
+              national: {
+                title: 'Envíos Nacionales (El Salvador)',
+                delivery_time: '2-3 días hábiles',
+                cost: '$3.50 tarifa estándar',
+                packaging: 'Tus joyas viajan seguras en nuestro empaque de regalo'
+              },
+              international: {
+                title: 'Envíos Internacionales',
+                description: '¿Vives fuera de El Salvador? ¡No hay problema! Contáctanos directamente por WhatsApp para cotizar tu envío a cualquier parte del mundo.'
+              }
+            },
+            is_active: true,
+            display_order: 3,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          {
+            id: '4',
+            section_type: 'payment',
+            title: 'Paga con total seguridad y comodidad',
+            subtitle: 'Ofrecemos múltiples métodos de pago para que elijas el que mejor se adapte a ti. Todas las transacciones son 100% seguras.',
+            content: '',
+            image_url: '',
+            background_image_url: 'https://picsum.photos/1200/400?v=61',
+            extra_data: {
+              methods: [
+                'Tarjetas de Crédito/Débito',
+                'Transferencia Bancaria',
+                'Pago Contra Entrega (San Salvador)'
+              ]
+            },
+            is_active: true,
+            display_order: 4,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          {
+            id: '5',
+            section_type: 'returns',
+            title: 'Tu satisfacción es nuestra prioridad',
+            subtitle: 'Queremos que ames tus joyas. Si por alguna razón no estás completamente satisfecha, te facilitamos el proceso de cambio o devolución.',
+            content: '',
+            image_url: '',
+            background_image_url: 'https://picsum.photos/1200/400?v=62',
+            extra_data: {
+              policy: {
+                title: 'Política de Cambios y Devoluciones',
+                rules: [
+                  'Tienes 7 días desde que recibes tu pedido para solicitar un cambio o devolución.',
+                  'La pieza debe estar en perfectas condiciones, sin uso y en su empaque original.',
+                  'Los costos de envío para devoluciones corren por cuenta del cliente, a menos que se trate de un defecto de fábrica.',
+                  'Para iniciar el proceso, simplemente contáctanos con tu número de orden.'
+                ]
+              }
+            },
+            is_active: true,
+            display_order: 5,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ];
+        return createResponse(mockData, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('about_content')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+      return createResponse(data || [], null);
+    } catch (error) {
+      return createResponse([], handleError(error));
+    }
+  },
+
+  // Get about content by section type
+  async getBySection(sectionType: string): Promise<ApiResponse<AboutContent | null>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock about content section');
+        const mockData: AboutContent = {
+          id: '1',
+          section_type: sectionType as any,
+          title: 'Mock Section',
+          subtitle: 'Mock subtitle',
+          content: 'Mock content',
+          image_url: 'https://picsum.photos/600/400',
+          background_image_url: '',
+          extra_data: {},
+          is_active: true,
+          display_order: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        return createResponse(mockData, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('about_content')
+        .select('*')
+        .eq('section_type', sectionType)
+        .eq('is_active', true)
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse(null, handleError(error));
+    }
+  },
+
+  // Create new about content section
+  async create(content: AboutContentInsert): Promise<ApiResponse<AboutContent>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock created about content');
+        
+        const mockContent: AboutContent = {
+          id: `mock_${Date.now()}`,
+          section_type: content.section_type,
+          title: content.title,
+          subtitle: content.subtitle || '',
+          content: content.content || '',
+          image_url: content.image_url || '',
+          background_image_url: content.background_image_url || '',
+          extra_data: content.extra_data || {},
+          is_active: content.is_active !== false,
+          display_order: content.display_order || 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        
+        return createResponse(mockContent, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('about_content')
+        .insert(content)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse({} as AboutContent, handleError(error));
+    }
+  },
+
+  // Update about content section
+  async update(id: string, updates: AboutContentUpdate): Promise<ApiResponse<AboutContent>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock updated about content');
+        const mockContent: AboutContent = {
+          id,
+          section_type: updates.section_type || 'hero',
+          title: updates.title || 'Mock Title',
+          subtitle: updates.subtitle || 'Mock Subtitle',
+          content: updates.content || 'Mock Content',
+          image_url: updates.image_url || 'https://picsum.photos/600/400',
+          background_image_url: updates.background_image_url || '',
+          extra_data: updates.extra_data || {},
+          is_active: updates.is_active ?? true,
+          display_order: updates.display_order ?? 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        return createResponse(mockContent, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('about_content')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse({} as AboutContent, handleError(error));
+    }
+  },
+
+  // Delete about content section
+  async delete(id: string): Promise<ApiResponse<boolean>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock deletion');
+        return createResponse(true, null);
+      }
+
+      const { error } = await (supabase! as any)
+        .from('about_content')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return createResponse(true, null);
+    } catch (error) {
+      return createResponse(false, handleError(error));
+    }
+  },
+
+  // Activate about content section
+  async activate(id: string): Promise<ApiResponse<AboutContent>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock activation');
+        return createResponse({} as AboutContent, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('about_content')
+        .update({ is_active: true })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse({} as AboutContent, handleError(error));
+    }
+  },
+
+  // Deactivate about content section
+  async deactivate(id: string): Promise<ApiResponse<AboutContent>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock deactivation');
+        return createResponse({} as AboutContent, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('about_content')
+        .update({ is_active: false })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse({} as AboutContent, handleError(error));
+    }
+  },
+
+  // Update display order
+  async updateOrder(id: string, newOrder: number): Promise<ApiResponse<boolean>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock order update');
+        return createResponse(true, null);
+      }
+
+      const { error } = await (supabase! as any)
+        .from('about_content')
+        .update({ display_order: newOrder })
+        .eq('id', id);
+
+      if (error) throw error;
+      return createResponse(true, null);
+    } catch (error) {
+      return createResponse(false, handleError(error));
+    }
+  },
+};
+
 export const api = {
   categories: categoriesApi,
   subcategories: subcategoriesApi,
@@ -2070,4 +3007,8 @@ export const api = {
   orders: ordersApi,
   productSales: productSalesApi,
   novedad: novedadApi,
+  testimonials: testimonialsApi,
+  websiteMaterials: websiteMaterialsApi,
+  materialsContent: materialsContentApi,
+  aboutContent: aboutContentApi,
 };
