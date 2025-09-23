@@ -7,6 +7,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import FloatingButtons from "@/components/layout/FloatingButtons";
 import AnnouncementBar from "@/components/layout/AnnouncementBar";
+import { CartProvider } from "@/contexts/CartContext";
 
 const metadata: Metadata = {
   title: "Algo Bonito SV - Joyería Exclusiva",
@@ -32,12 +33,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <style>{`:root { --announcement-bar-height: 36px; } body[data-admin="true"] { --announcement-bar-height: 0px; } body[data-admin="true"] .announcement-bar{display:none;} body[data-admin="true"] header.sticky{top:0!important;}`}</style>
       </head>
       <body data-admin={isAdmin ? 'true' : 'false'} className="font-body bg-background text-foreground antialiased overflow-x-hidden">
-  {!isAdmin && <AnnouncementBar />}
-        <Header />
-        <main>{children}</main>
-        {!isAdmin && <FloatingButtons />}
-        <Footer />
-        <Toaster />
+        <CartProvider>
+          {!isAdmin && <AnnouncementBar />}
+          <Header />
+          <main>{children}</main>
+          {!isAdmin && <FloatingButtons />}
+          <Footer />
+          <Toaster />
+        </CartProvider>
       </body>
     </html>
   );

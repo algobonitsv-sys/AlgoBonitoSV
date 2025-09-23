@@ -1,154 +1,378 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Image from "next/image";
 import Link from "next/link";
 import { ProductsControlsClient } from "@/components/products/ProductsControlsClient";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-
-const allProducts = [
-  { name: "Collar 'Luna'", category: 'Collares', material: 'Acero quirúrgico', price: "$45.00", image: "https://picsum.photos/900/1600?v=10", hoverImage: "https://picsum.photos/900/1600?v=20", dataAiHint: "gold necklace" },
-  { name: "Anillo 'Estelar'", category: 'Anillos', material: 'Plata 925', price: "$35.00", image: "https://picsum.photos/900/1600?v=11", hoverImage: "https://picsum.photos/900/1600?v=21", dataAiHint: "silver ring" },
-  { name: "Aretes 'Gota'", category: 'Aretes', material: 'Acero dorado', price: "$25.00", image: "https://picsum.photos/900/1600?v=12", hoverImage: "https://picsum.photos/900/1600?v=22", dataAiHint: "pearl earrings" },
-  { name: "Pulsera 'Infinito'", category: 'Pulseras', material: 'Acero blanco', price: "$40.00", image: "https://picsum.photos/900/1600?v=13", hoverImage: "https://picsum.photos/900/1600?v=23", dataAiHint: "charm bracelet" },
-  { name: "Collar 'Sol'", category: 'Collares', material: 'Acero dorado', price: "$48.00", image: "https://picsum.photos/900/1600?v=14", hoverImage: "https://picsum.photos/900/1600?v=24", dataAiHint: "sun pendant" },
-  { name: "Anillo 'Ondas'", category: 'Anillos', material: 'Acero quirúrgico', price: "$32.00", image: "https://picsum.photos/900/1600?v=15", hoverImage: "https://picsum.photos/900/1600?v=25", dataAiHint: "wave ring" },
-  { name: "Aretes 'Aro'", category: 'Aretes', material: 'Plata 925', price: "$28.00", image: "https://picsum.photos/900/1600?v=16", hoverImage: "https://picsum.photos/900/1600?v=26", dataAiHint: "hoop earrings" },
-  { name: "Pulsera 'Amor'", category: 'Pulseras', material: 'Acero dorado', price: "$38.00", image: "https://picsum.photos/900/1600?v=17", hoverImage: "https://picsum.photos/900/1600?v=27", dataAiHint: "heart bracelet" },
-  { name: "Collar 'Corazón'", category: 'Collares', material: 'Plata 925', price: "$52.00", image: "https://picsum.photos/900/1600?v=18", hoverImage: "https://picsum.photos/900/1600?v=28", dataAiHint: "heart necklace" },
-  { name: "Anillo 'Serpiente'", category: 'Anillos', material: 'Acero blanco', price: "$39.00", image: "https://picsum.photos/900/1600?v=19", hoverImage: "https://picsum.photos/900/1600?v=29", dataAiHint: "snake ring" },
-  { name: "Aretes 'Cascada'", category: 'Aretes', material: 'Acero quirúrgico', price: "$33.00", image: "https://picsum.photos/900/1600?v=30", hoverImage: "https://picsum.photos/900/1600?v=40", dataAiHint: "dangle earrings" },
-  { name: "Pulsera 'Clave de Sol'", category: 'Pulseras', material: 'Acero blanco', price: "$42.00", image: "https://picsum.photos/900/1600?v=31", hoverImage: "https://picsum.photos/900/1600?v=41", dataAiHint: "music bracelet" },
-  { name: "Collar 'Luna Nueva'", category: 'Collares', material: 'Acero blanco', price: "$45.00", image: "https://picsum.photos/900/1600?v=42", hoverImage: "https://picsum.photos/900/1600?v=52", dataAiHint: "gold necklace" },
-  { name: "Anillo 'Galaxia'", category: 'Anillos', material: 'Acero dorado', price: "$35.00", image: "https://picsum.photos/900/1600?v=43", hoverImage: "https://picsum.photos/900/1600?v=53", dataAiHint: "silver ring" },
-];
+import { Loader2 } from "lucide-react";
+import { productApi } from '@/lib/api/products_safe';
+import { toast } from 'sonner';
 
 const PRODUCTS_PER_PAGE = 12;
 
-export default async function ProductsPage({ searchParams }: { searchParams: Promise<{ page?: string; category?: string; material?: string; sort?: string; minPrice?: string; maxPrice?: string }> }) {
-  const { page, sort, category, material, minPrice, maxPrice } = await searchParams;
-  const slugify = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-  const categorySlug = (category || '').toLowerCase();
-  const materialSlug = (material || '').toLowerCase();
-  const rawPage = Number(page);
-  let currentPage = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
-  const numericPrices = allProducts.map(p => Number(p.price.replace(/[^0-9.]/g, '')) || 0);
-  const globalMinPrice = Math.min(...numericPrices);
-  const globalMaxPrice = Math.max(...numericPrices);
-  const minPriceNum = Math.max(globalMinPrice, Number(minPrice) || globalMinPrice);
-  const maxPriceNum = Math.min(globalMaxPrice, Number(maxPrice) || globalMaxPrice);
-  let filtered = allProducts.filter(p => {
-    const pCat = slugify(p.category);
-    const pMat = slugify(p.material);
-    const pPrice = Number(p.price.replace(/[^0-9.]/g, '')) || 0;
-    if (categorySlug && pCat !== categorySlug) return false;
-    if (materialSlug && pMat !== materialSlug) return false;
-    if (pPrice < minPriceNum || pPrice > maxPriceNum) return false;
-    return true;
-  });
-  const sortKey = (sort || '').toLowerCase();
-  const withMeta = filtered.map((p, idx) => ({
-    ...p,
-    _price: Number(p.price.replace(/[^0-9.]/g, '')) || 0,
-    _createdAt: new Date(Date.now() - (filtered.length - idx) * 86400000),
-  }));
-  switch (sortKey) {
-    case 'nombre':
-    case 'name':
-      filtered = [...withMeta].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
-      break;
-    case 'nuevo':
-    case 'newest':
-      filtered = [...withMeta].sort((a, b) => b._createdAt.getTime() - a._createdAt.getTime());
-      break;
-    case 'precio':
-    case 'price':
-      filtered = [...withMeta].sort((a, b) => a._price - b._price);
-      break;
-    default:
-      filtered = withMeta;
+// Map category names from URL to database
+const categoryMapping: Record<string, string> = {
+  'aros': 'aros',
+  'collares': 'collares', 
+  'anillos': 'anillos',
+  'pulseras': 'pulseras'
+};
+
+// Map material names from URL to database  
+const materialMapping: Record<string, string> = {
+  'acero-quirurgico': 'Acero quirúrgico',
+  'acero-blanco': 'blanco',
+  'acero-dorado': 'dorado', 
+  'plata-925': 'Plata 925'
+};
+
+export default function ProductsPage() {
+  const searchParams = useSearchParams();
+  
+  // State management
+  const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [subcategories, setSubcategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Get URL parameters
+  const categoryParam = searchParams?.get('category') || '';
+  const materialParam = searchParams?.get('material') || '';
+  const sortParam = searchParams?.get('sort') || '';
+  const pageParam = searchParams?.get('page') || '1';
+  const minPriceParam = searchParams?.get('minPrice') || '';
+  const maxPriceParam = searchParams?.get('maxPrice') || '';
+
+  // Load initial data
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Filter products when parameters change
+  useEffect(() => {
+    filterProducts();
+  }, [products, categoryParam, materialParam, sortParam, minPriceParam, maxPriceParam]);
+
+  // Update page when pageParam changes
+  useEffect(() => {
+    const page = parseInt(pageParam);
+    setCurrentPage(isNaN(page) || page < 1 ? 1 : page);
+  }, [pageParam]);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [productsRes, categoriesRes, subcategoriesRes] = await Promise.all([
+        productApi.products.getAll(),
+        productApi.categories.getAll(),
+        productApi.subcategories.getAll()
+      ]);
+
+      if (productsRes.success && productsRes.data) {
+        setProducts(productsRes.data);
+      }
+
+      if (categoriesRes.success && categoriesRes.data) {
+        setCategories(categoriesRes.data);
+      }
+
+      if (subcategoriesRes.success && subcategoriesRes.data) {
+        setSubcategories(subcategoriesRes.data);
+      }
+
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast.error('Error cargando datos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterProducts = () => {
+    let filtered = [...products];
+
+    // Filter by category
+    if (categoryParam) {
+      const categoryName = categoryMapping[categoryParam.toLowerCase()];
+      if (categoryName) {
+        const category = categories.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
+        if (category) {
+          filtered = filtered.filter(p => p.category_id === category.id);
+        }
+      }
+    }
+
+    // Filter by material/subcategory
+    if (materialParam) {
+      const materialName = materialMapping[materialParam.toLowerCase()] || materialParam;
+      const subcategory = subcategories.find(s => 
+        s.name.toLowerCase().includes(materialName.toLowerCase()) ||
+        materialName.toLowerCase().includes(s.name.toLowerCase())
+      );
+      if (subcategory) {
+        filtered = filtered.filter(p => p.subcategory_id === subcategory.id);
+      }
+    }
+
+    // Filter by price range
+    if (minPriceParam) {
+      const minPrice = parseFloat(minPriceParam);
+      if (!isNaN(minPrice)) {
+        filtered = filtered.filter(p => (p.price || 0) >= minPrice);
+      }
+    }
+
+    if (maxPriceParam) {
+      const maxPrice = parseFloat(maxPriceParam);
+      if (!isNaN(maxPrice)) {
+        filtered = filtered.filter(p => (p.price || 0) <= maxPrice);
+      }
+    }
+
+    // Sort products
+    const sortKey = sortParam.toLowerCase();
+    switch (sortKey) {
+      case 'nombre':
+      case 'name':
+        filtered.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base' }));
+        break;
+      case 'nuevo':
+      case 'newest':
+        filtered.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+        break;
+      case 'precio':
+      case 'price':
+        filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
+        break;
+      default:
+        // Default sort by newest
+        filtered.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+    }
+
+    setFilteredProducts(filtered);
+  };
+
+  const getCategoryName = (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    return category?.name || '';
+  };
+
+  const getSubcategoryName = (subcategoryId: string) => {
+    const subcategory = subcategories.find(s => s.id === subcategoryId);
+    return subcategory?.name || '';
+  };
+
+  // Calculate pagination
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE));
+  const validCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (validCurrentPage - 1) * PRODUCTS_PER_PAGE;
+  const paginatedProducts = filteredProducts.slice(startIndex, startIndex + PRODUCTS_PER_PAGE);
+
+  // Calculate price range for filters
+  const allPrices = products.map(p => p.price || 0).filter(p => p > 0);
+  const globalMinPrice = allPrices.length > 0 ? Math.min(...allPrices) : 0;
+  const globalMaxPrice = allPrices.length > 0 ? Math.max(...allPrices) : 100;
+
+  // Get unique categories and materials for filters
+  const availableCategories = categories.map(c => c.name);
+  const availableMaterials = subcategories.map(s => s.name);
+
+  // Generate page title based on filters
+  const getPageTitle = () => {
+    if (categoryParam) {
+      const categoryName = categoryMapping[categoryParam.toLowerCase()];
+      if (categoryName) {
+        const capitalizedCategory = categoryName.charAt(0).toUpperCase() + categoryName.slice(1);
+        if (materialParam) {
+          const materialName = materialMapping[materialParam.toLowerCase()] || materialParam;
+          return `${capitalizedCategory} - ${materialName}`;
+        }
+        return capitalizedCategory;
+      }
+    }
+    return 'Nuestra Colección';
+  };
+
+  const getPageDescription = () => {
+    if (categoryParam) {
+      const categoryName = categoryMapping[categoryParam.toLowerCase()];
+      if (categoryName) {
+        return `Explora nuestra colección completa de ${categoryName.toLowerCase()}`;
+      }
+    }
+    return 'Explora todas nuestras piezas, diseñadas con amor y cuidado para ti.';
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-background">
+        <div className="container pt-12 sm:pt-16 pb-8 sm:pb-12">
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        </div>
+      </div>
+    );
   }
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PRODUCTS_PER_PAGE));
-  if (currentPage > totalPages) currentPage = totalPages;
-  const paginated = filtered.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE);
+
   return (
     <div className="bg-background">
       <div className="container pt-12 sm:pt-16 pb-8 sm:pb-12">
         <div className="mb-8 flex flex-col gap-6">
           <div className="text-center">
-            <h1 className="font-headline text-4xl sm:text-5xl font-bold tracking-tight">Nuestra Colección</h1>
-            <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">Explora todas nuestras piezas, diseñadas con amor y cuidado para ti.</p>
+            <h1 className="font-headline text-4xl sm:text-5xl font-bold tracking-tight">
+              {getPageTitle()}
+            </h1>
+            <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
+              {getPageDescription()}
+            </p>
+            {filteredProducts.length > 0 && (
+              <p className="mt-2 text-sm text-muted-foreground">
+                {filteredProducts.length} {filteredProducts.length === 1 ? 'producto encontrado' : 'productos encontrados'}
+              </p>
+            )}
           </div>
+          
           <div className="flex flex-col gap-4">
             <ProductsControlsClient
-              categories={[...new Set(allProducts.map(p => p.category))]}
-              materials={[...new Set(allProducts.map(p => p.material))]}
-              currentCategory={categorySlug}
-              currentMaterial={materialSlug}
-              currentMin={minPriceNum}
-              currentMax={maxPriceNum}
+              categories={availableCategories}
+              materials={availableMaterials}
+              currentCategory={categoryParam}
+              currentMaterial={materialParam}
+              currentMin={parseFloat(minPriceParam) || globalMinPrice}
+              currentMax={parseFloat(maxPriceParam) || globalMaxPrice}
               globalMin={globalMinPrice}
               globalMax={globalMaxPrice}
-              currentSort={sortKey}
+              currentSort={sortParam}
             />
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 bg-background">
-        {paginated.map(product => {
-          const slug = product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-          return (
-            <Link href={`/products/${slug}`} key={product.name}>
-              <Card className="group overflow-hidden transition-shadow duration-300 border-none bg-background shadow-none rounded-none h-full flex flex-col">
-                <CardContent className="p-0 flex-grow">
-                  <div className="aspect-[9/16] overflow-hidden relative h-full">
-                    <Image src={product.image} alt={product.name} width={900} height={1600} className="w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-0" data-ai-hint={product.dataAiHint} />
-                    <Image src={product.hoverImage} alt={`${product.name} (hover)`} width={900} height={1600} className="w-full h-full object-cover absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" data-ai-hint={product.dataAiHint} />
+
+      {/* Products Grid */}
+      <div className="px-0 md:container">
+        {paginatedProducts.length === 0 ? (
+          <div className="text-center py-12 px-4">
+            <h3 className="text-lg font-semibold mb-2">No se encontraron productos</h3>
+            <p className="text-muted-foreground">
+              Intenta ajustar los filtros o explora otras categorías
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-0 md:gap-6 bg-background mb-8">
+              {paginatedProducts.map((product, index) => {
+                const slug = (product.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                const categoryName = getCategoryName(product.category_id);
+                const subcategoryName = getSubcategoryName(product.subcategory_id);
+                
+                // Calculate padding based on position in grid for mobile
+                const isLeftColumn = index % 2 === 0; // For mobile 2-column layout
+                const paddingClasses = `md:p-0 ${isLeftColumn ? 'pr-1' : 'pl-1'}`; // Only apply padding on mobile
+                
+                return (
+                  <div key={product.id} className={paddingClasses}>
+                    <Link href={`/products/${slug}`} className="block">
+                      <Card className="group overflow-hidden transition-shadow duration-300 border-none bg-background shadow-none rounded-none h-full flex flex-col">
+                        <CardContent className="p-0 flex-grow">
+                        <div className="aspect-[9/16] overflow-hidden relative h-full">
+                          {product.cover_image ? (
+                            <>
+                              <Image
+                                src={product.cover_image}
+                                alt={product.name || 'Producto'}
+                                width={900}
+                                height={1600}
+                                className="w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-0"
+                                sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                              />
+                              {product.product_images && product.product_images.length > 1 && (
+                                <Image
+                                  src={product.product_images[1]}
+                                  alt={`${product.name} - vista alternativa`}
+                                  width={900}
+                                  height={1600}
+                                  className="w-full h-full object-cover absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                                />
+                              )}
+                            </>
+                          ) : (
+                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                              <span className="text-gray-400">Sin imagen</span>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                      <div className="py-3 sm:py-4 px-1.5 sm:px-2 bg-background">
+                        <CardHeader className="p-0">
+                          <CardTitle className="font-headline text-sm sm:text-xl tracking-normal text-left leading-snug line-clamp-2">
+                            {product.name}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardFooter className="p-0 pt-1.5 sm:pt-2 justify-start">
+                          <p className="text-sm sm:text-lg font-semibold">
+                            ${(product.price || 0).toFixed(2)}
+                          </p>
+                        </CardFooter>
+                      </div>
+                    </Card>
+                  </Link>
                   </div>
-                </CardContent>
-                <div className="py-4 px-2 bg-background">
-                  <CardHeader className="p-0">
-                    <CardTitle className="font-headline text-xl tracking-normal text-left">{product.name}</CardTitle>
-                  </CardHeader>
-                  <CardFooter className="p-0 pt-2 justify-start">
-                    <p className="text-lg font-semibold">{product.price}</p>
-                  </CardFooter>
-                </div>
-              </Card>
-            </Link>
-          );
-        })}
-      </div>
-      <div className="container">
-        <div className="my-16">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious href={currentPage > 1 ? buildProductsHref({ page: currentPage - 1, sort: sortKey, category: categorySlug, material: materialSlug, minPrice: minPriceNum, maxPrice: maxPriceNum, globalMin: globalMinPrice, globalMax: globalMaxPrice }) : '#'} />
-              </PaginationItem>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                <PaginationItem key={p}>
-                  <PaginationLink href={buildProductsHref({ page: p, sort: sortKey, category: categorySlug, material: materialSlug, minPrice: minPriceNum, maxPrice: maxPriceNum, globalMin: globalMinPrice, globalMax: globalMaxPrice })} isActive={currentPage === p}>{p}</PaginationLink>
-                </PaginationItem>
-              ))}
-              <PaginationItem>
-                <PaginationNext href={currentPage < totalPages ? buildProductsHref({ page: currentPage + 1, sort: sortKey, category: categorySlug, material: materialSlug, minPrice: minPriceNum, maxPrice: maxPriceNum, globalMin: globalMinPrice, globalMax: globalMaxPrice }) : '#'} />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
+                );
+              })}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <Pagination className="justify-center px-4 md:px-0">
+                <PaginationContent>
+                  {validCurrentPage > 1 && (
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        href={`/products?${new URLSearchParams({
+                          ...Object.fromEntries(searchParams?.entries() || []),
+                          page: String(validCurrentPage - 1)
+                        }).toString()}`}
+                      />
+                    </PaginationItem>
+                  )}
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <PaginationItem key={page}>
+                      <PaginationLink 
+                        href={`/products?${new URLSearchParams({
+                          ...Object.fromEntries(searchParams?.entries() || []),
+                          page: String(page)
+                        }).toString()}`}
+                        isActive={page === validCurrentPage}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  
+                  {validCurrentPage < totalPages && (
+                    <PaginationItem>
+                      <PaginationNext 
+                        href={`/products?${new URLSearchParams({
+                          ...Object.fromEntries(searchParams?.entries() || []),
+                          page: String(validCurrentPage + 1)
+                        }).toString()}`}
+                      />
+                    </PaginationItem>
+                  )}
+                </PaginationContent>
+              </Pagination>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
 }
-
-function buildProductsHref(args: { page?: number; sort?: string; category?: string; material?: string; minPrice?: number; maxPrice?: number; globalMin?: number; globalMax?: number }) {
-  const params = new URLSearchParams();
-  if (args.page && args.page > 1) params.set('page', String(args.page));
-  if (args.sort) params.set('sort', args.sort);
-  if (args.category) params.set('category', args.category);
-  if (args.material) params.set('material', args.material);
-  if (typeof args.minPrice === 'number' && typeof args.globalMin === 'number' && args.minPrice > args.globalMin) params.set('minPrice', String(args.minPrice));
-  if (typeof args.maxPrice === 'number' && typeof args.globalMax === 'number' && args.maxPrice < args.globalMax) params.set('maxPrice', String(args.maxPrice));
-  const qs = params.toString();
-  return qs ? `/products?${qs}` : '/products';
-}
-

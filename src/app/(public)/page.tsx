@@ -9,5 +9,16 @@ import CategoryCarousel from "@/components/home/CategoryCarousel";
 import FullWidthCategoryCarousel from "@/components/home/FullWidthCategoryCarousel";
 
 export default function Home() {
-  return null;
+  return (
+    <main className="flex flex-col">
+      <Hero />
+      <CategoryCarousel />
+      <FullWidthCategoryCarousel />
+      <FeaturedProducts />
+      <AllProducts />
+      <InformationSection />
+      <PaymentMethods />
+      <DiscoverSection />
+    </main>
+  );
 }

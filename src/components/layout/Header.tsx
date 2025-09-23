@@ -7,21 +7,26 @@ import { Search, X, ChevronLeft, ChevronDown, Menu, PanelLeft } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import OrderCart from "@/components/cart/OrderCart";
+import CartButton from "@/components/cart/CartButton";
+import { useCart } from "@/contexts/CartContext";
+import CartDrawer from "@/components/cart/CartDrawer";
 import { cn } from "@/lib/utils";
 import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { api } from '@/lib/api/products';
+import type { Category, Subcategory } from '@/types/database';
 
-const productCategories: Record<string, string[]> = {
+// Fallback data in case API fails
+const fallbackProductCategories: Record<string, string[]> = {
   "Aros": ["Acero quirúrgico", "Acero blanco", "Acero dorado", "Plata 925"],
   "Collares": ["Acero quirúrgico", "Acero blanco", "Acero dorado", "Plata 925"],
   "Anillos": ["Acero quirúrgico", "Acero blanco", "Acero dorado", "Plata 925"],
   "Pulseras": ["Acero quirúrgico", "Acero blanco", "Acero dorado", "Plata 925"],
+  "Piercings": ["Titanio", "Acero quirúrgico", "Oro blanco", "Plata"],
+  "Accesorios": ["Varios materiales", "Acero inoxidable", "Aleaciones"],
 };
 
-const singleProductLinks = [
-  { title: "Piercings", href: "/products/piercings", description: "Ver todos los piercings" },
-  { title: "Accesorios", href: "/products/accesorios", description: "Ver todos los accesorios" },
+const singleProductLinks: { title: string; href: string; description: string; }[] = [
+  // Removed Piercings and Accesorios as they are already in productCategories
 ];
 
 const navLinks = [
@@ -36,33 +41,144 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mobileProductsExpanded, setMobileProductsExpanded] = useState(false);
   const [mobileExpandedCategory, setMobileExpandedCategory] = useState<string | null>(null);
-  const [isSheetOpen, setSheetOpen] = useState(false); // cart only
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isClient, setIsClient] = useState(false);
+  
+  // New states for dynamic categories
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [productCategories, setProductCategories] = useState<Record<string, string[]>>(fallbackProductCategories);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  
   const categoriesRef = useRef<HTMLDivElement | null>(null);
+  const productsButtonRef = useRef<HTMLButtonElement | null>(null);
   const router = useRouter();
   const pathname = usePathname();
+
+  // Load categories and subcategories from API
+  useEffect(() => {
+    const loadCategoriesData = async () => {
+      setIsLoadingCategories(true);
+      try {
+        console.log('🔄 Loading categories and subcategories...');
+        
+        // Load categories and subcategories in parallel
+        const [categoriesResponse, subcategoriesResponse] = await Promise.all([
+          api.categories.getAll(),
+          api.subcategories.getAll()
+        ]);
+
+        console.log('📋 Categories response:', categoriesResponse);
+        console.log('📋 Subcategories response:', subcategoriesResponse);
+
+        if (categoriesResponse.success && categoriesResponse.data) {
+          setCategories(categoriesResponse.data);
+          console.log('✅ Categories loaded:', categoriesResponse.data);
+        }
+
+        if (subcategoriesResponse.success && subcategoriesResponse.data) {
+          setSubcategories(subcategoriesResponse.data);
+          console.log('✅ Subcategories loaded:', subcategoriesResponse.data);
+        }
+
+        // Build the productCategories structure
+        if (categoriesResponse.success && subcategoriesResponse.success && 
+            categoriesResponse.data && subcategoriesResponse.data) {
+          
+          const categoryMap: Record<string, string[]> = {};
+          
+          categoriesResponse.data.forEach(category => {
+            const categorySubcategories = subcategoriesResponse.data!
+              .filter(sub => sub.category_id === category.id)
+              .map(sub => sub.name);
+            
+            categoryMap[category.name] = categorySubcategories;
+            console.log(`📂 Category "${category.name}" has subcategories:`, categorySubcategories);
+          });
+
+          console.log('🗂️ Final categoryMap:', categoryMap);
+
+          // Only update if we have data, otherwise keep fallback
+          if (Object.keys(categoryMap).length > 0) {
+            setProductCategories(categoryMap);
+            console.log('✅ ProductCategories updated with database data');
+          } else {
+            console.log('⚠️ No categories found, keeping fallback data');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error loading categories:', error);
+        // Keep fallback data on error
+      } finally {
+        setIsLoadingCategories(false);
+        console.log('🏁 Categories loading finished');
+      }
+    };
+
+    loadCategoriesData();
+  }, []);
+  
+  // Log state changes
+  useEffect(() => {
+    console.log('🔄 showCategories state changed to:', showCategories);
+  }, [showCategories]);
   
   // Check if we're in admin panel
   const isAdminPanel = pathname?.startsWith('/admin');
 
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      const value = searchQuery.trim();
-      if (!value) {
-        setIsSearchOpen(false);
-        return;
-      }
-      if (value.toUpperCase() === 'ADMIN') {
-        router.push('/admin');
-      } else {
-        router.push(`/search?q=${encodeURIComponent(value)}`);
-      }
-      setIsSearchOpen(false);
+      performSearch();
     }
   };
 
-  useEffect(() => { if (isSearchOpen) setIsSearchOpen(false); // close on route change
+  const performSearch = () => {
+    const value = searchQuery.trim();
+    if (!value) {
+      setIsSearchOpen(false);
+      return;
+    }
+    if (value.toUpperCase() === 'ADMIN') {
+      router.push('/admin');
+    } else {
+      router.push(`/search?q=${encodeURIComponent(value)}`);
+    }
+    setIsSearchOpen(false);
+    setSearchQuery(''); // Clear search after navigating
+  };
+
+  useEffect(() => {
+    console.log('🚀 Component mounted, setting isClient to true');
+    setIsClient(true);
+  }, []);
+
+  const handleProductsToggle = (e: React.MouseEvent) => {
+    console.log('🖱️ =========================');
+    console.log('🖱️ Button clicked!');
+    console.log('🖱️ Current showCategories state:', showCategories);
+    console.log('🖱️ Event type:', e.type);
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (showCategories) {
+      console.log('🖱️ Categories are OPEN, attempting to CLOSE');
+      setShowCategories(false);
+    } else {
+      console.log('🖱️ Categories are CLOSED, attempting to OPEN');
+      setShowCategories(true);  
+    }
+    console.log('🖱️ =========================');
+  };
+
+  useEffect(() => { 
+    console.log('🛣️ Pathname changed to:', pathname);
+    if (isSearchOpen) {
+      console.log('🛣️ Closing search due to pathname change');
+      setIsSearchOpen(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
@@ -141,6 +257,15 @@ export default function Header() {
                         
                         {mobileProductsExpanded && (
                           <div className="ml-4 mt-2 space-y-2">
+                            {/* View all products - moved to top */}
+                            <Link
+                              href="/products"
+                              onClick={() => setIsMobileMenuOpen(false)}
+                              className="block p-2 text-sm font-medium text-black hover:bg-muted/30 rounded-md transition-colors"
+                            >
+                              Ver todos los productos
+                            </Link>
+                            
                             {/* Category buttons */}
                             {Object.entries(productCategories).map(([category, subcategories]) => {
                               const categorySlug = category.toLowerCase().replace(/\s/g, '-');
@@ -195,15 +320,6 @@ export default function Header() {
                                 {item.title}
                               </Link>
                             ))}
-                            
-                            {/* View all products */}
-                            <Link
-                              href="/products"
-                              onClick={() => setIsMobileMenuOpen(false)}
-                              className="block p-2 text-sm font-medium text-primary hover:bg-muted/30 rounded-md transition-colors"
-                            >
-                              Ver todos los productos
-                            </Link>
                           </div>
                         )}
                       </div>
@@ -270,7 +386,8 @@ export default function Header() {
             {/* Desktop nav (categories + links) */}
             <div className="hidden md:flex items-center gap-2">
               <button
-                onClick={() => setShowCategories(v => !v)}
+                ref={productsButtonRef}
+                onClick={handleProductsToggle}
                 aria-expanded={showCategories}
                 className={cn(
                   navigationMenuTriggerStyle(),
@@ -313,7 +430,7 @@ export default function Header() {
               <Search className="h-5 w-5" />
               <span className="sr-only">Abrir búsqueda</span>
             </Button>
-            <Button variant="ghost" size="icon" className="relative hover:bg-transparent" aria-label="Pedido" onClick={() => setSheetOpen(true)}>
+            <Button variant="ghost" size="icon" className="relative hover:bg-transparent" aria-label="Pedido" onClick={() => setIsCartOpen(true)}>
               <BagIcon />
               <CartBadge />
               <span className="sr-only">Pedido</span>
@@ -332,73 +449,96 @@ export default function Header() {
         </div>
         {isSearchOpen && (
           <div className="absolute left-0 right-0 pb-4 w-full flex justify-center bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b z-50">
-            <div className="relative w-full max-w-xl mt-4 px-4">
-              <Search className="absolute left-7 md:left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Buscar productos..."
-                className="pl-10 w-full border-none shadow-none focus-visible:ring-0 focus-visible:outline-none bg-background/70 backdrop-blur"
-                autoFocus
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleSearch}
-              />
+            <div className="relative w-full max-w-xl mt-4 px-4 flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Buscar productos..."
+                  className="pl-10 w-full border-none shadow-none focus-visible:ring-0 focus-visible:outline-none bg-background/70 backdrop-blur"
+                  autoFocus
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleSearch}
+                />
+              </div>
+              <Button 
+                onClick={performSearch}
+                disabled={!searchQuery.trim()}
+                size="sm"
+                className="px-4"
+              >
+                Buscar
+              </Button>
             </div>
           </div>
         )}
       </header>
       {/* Desktop categories overlay */}
-      {showCategories && (
+      {isClient && showCategories && (
         <div
           ref={categoriesRef}
           className="w-full fixed left-0 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/50 shadow-xl border-b z-40 flex flex-col items-center transition-colors"
           style={{ top: 'calc(var(--announcement-bar-height, 0px) + 5rem)' }}
         >
           <button
-            onClick={() => setShowCategories(false)}
+            onClick={() => {
+              console.log('❌ Closing categories via X button');
+              setShowCategories(false);
+            }}
             aria-label="Cerrar categorías"
             className="absolute top-2 right-3 p-2 rounded-md text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
           <div className="w-full flex justify-center mt-6 mb-1 pb-4 border-b">
-            <Link href="/products" className="font-bold text-lg hover:underline" onClick={() => setShowCategories(false)}>
+            <Link href="/products" className="font-bold text-lg hover:underline" onClick={() => {
+              console.log('🔗 Closing categories via "Ver todos los productos" link');
+              setShowCategories(false);
+            }}>
               Ver todos los productos
             </Link>
           </div>
           <div className="flex flex-row gap-8 min-h-[300px] px-8 py-6 items-start pb-16">
             {Object.entries(productCategories).map(([category, subcategories]) => (
               <div key={category} className="flex flex-col w-32">
-                <Accordion type="single" collapsible>
-                  <AccordionItem value={category}>
-                    <AccordionTrigger className="font-headline font-bold text-lg mb-2 hover:underline text-left w-full">
-                      {category}
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <ul className="space-y-1">
-                        {subcategories.map(subcategory => (
-                          <li key={subcategory}>
-                            <Link
-                              href={`/products?category=${category.toLowerCase().replace(/\s/g, '-')}&material=${subcategory.toLowerCase().replace(/\s/g, '-')}`}
-                              className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors"
-                              onClick={() => setShowCategories(false)}
-                            >
-                              {subcategory}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
+                <Link
+                  href={`/products?category=${category.toLowerCase().replace(/\s/g, '-')}`}
+                  className="font-headline font-bold text-lg mb-4 text-left w-full hover:text-foreground/80 transition-colors"
+                  onClick={() => {
+                    console.log('🔗 Closing categories via category link:', category);
+                    setShowCategories(false);
+                  }}
+                >
+                  {category}
+                </Link>
+                <ul className="space-y-1">
+                  {subcategories.map(subcategory => (
+                    <li key={subcategory}>
+                      <Link
+                        href={`/products?category=${category.toLowerCase().replace(/\s/g, '-')}&material=${subcategory.toLowerCase().replace(/\s/g, '-')}`}
+                        className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => {
+                          console.log('🔗 Closing categories via subcategory link:', subcategory);
+                          setShowCategories(false);
+                        }}
+                      >
+                        {subcategory}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </div>
             ))}
             {singleProductLinks.map((item) => (
-              <div key={item.title} className="flex flex-col w-32">
+              <div key={item.title} className="flex flex-col w-32 -mt-4">
                 <Link
                   href={item.href}
                   className="flex flex-1 items-center justify-between py-4 font-headline font-bold text-lg hover:underline transition-all text-left w-full"
-                  onClick={() => setShowCategories(false)}
+                  onClick={() => {
+                    console.log('🔗 Closing categories via single product link:', item.title);
+                    setShowCategories(false);
+                  }}
                 >
                   {item.title}
                 </Link>
@@ -418,38 +558,33 @@ export default function Header() {
           </div>
         </div>
       )}
-      <CartOpenListener onOpen={() => setSheetOpen(true)} />
-      {showCategories && <OutsideCategoriesCloser targetRef={categoriesRef} onClose={() => setShowCategories(false)} />}
+      <CartOpenListener onOpen={() => setIsCartOpen(true)} />
+      {isClient && showCategories && <OutsideCategoriesCloser 
+        targetRef={categoriesRef} 
+        productsButtonRef={productsButtonRef}
+        onClose={() => {
+          console.log('👆 Closing categories via outside click');
+          setShowCategories(false);
+        }} 
+      />}
       
-      {/* Cart Sheet */}
-      <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="right" className="w-96">
-          <SheetTitle className="sr-only">Carrito de compras</SheetTitle>
-          <SheetDescription className="sr-only">Productos en tu carrito</SheetDescription>
-          <OrderCart />
-        </SheetContent>
-      </Sheet>
+      {/* New Cart Drawer */}
+      <CartDrawer 
+        isOpen={isCartOpen} 
+        onClose={() => setIsCartOpen(false)} 
+      />
     </>
   );
 }
 
 function CartBadge() {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { count?: number } | undefined;
-      if (detail && typeof detail.count === 'number') {
-        // Defer the state update to avoid updating during render
-        setTimeout(() => setCount(detail.count!), 0);
-      }
-    };
-    window.addEventListener('cart-state', handler as EventListener);
-    return () => window.removeEventListener('cart-state', handler as EventListener);
-  }, []);
-  if (count <= 0) return null;
+  const { itemCount } = useCart();
+  
+  if (itemCount <= 0) return null;
+  
   return (
     <span className="absolute -top-1 -right-1 min-w-[1.15rem] h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-medium flex items-center justify-center animate-in fade-in zoom-in">
-      {count > 99 ? '99+' : count}
+      {itemCount > 99 ? '99+' : itemCount}
     </span>
   );
 }
@@ -463,16 +598,50 @@ function CartOpenListener({ onOpen }: { onOpen: () => void }) {
   return null;
 }
 
-function OutsideCategoriesCloser({ targetRef, onClose }: { targetRef: React.RefObject<HTMLElement>, onClose: () => void }) {
+function OutsideCategoriesCloser({ 
+  targetRef, 
+  productsButtonRef, 
+  onClose 
+}: { 
+  targetRef: React.RefObject<HTMLElement>; 
+  productsButtonRef: React.RefObject<HTMLButtonElement>;
+  onClose: () => void; 
+}) {
   useEffect(() => {
     function handlePointer(e: MouseEvent | TouchEvent) {
+      console.log('👆 Outside click detected, target:', e.target);
       const el = targetRef.current;
-      if (!el) return;
-      if (e.target instanceof Node && !el.contains(e.target)) {
-        onClose();
+      const buttonEl = productsButtonRef.current;
+      
+      if (!el) {
+        console.log('👆 No targetRef element found');
+        return;
+      }
+      
+      // Check if click is on the products button or inside the categories area
+      if (e.target instanceof Node) {
+        const isInsideCategories = el.contains(e.target);
+        const isOnProductsButton = buttonEl && (buttonEl.contains(e.target) || buttonEl === e.target);
+        
+        if (isOnProductsButton) {
+          console.log('👆 Click is on products button, ignoring');
+          return;
+        }
+        
+        if (!isInsideCategories) {
+          console.log('👆 Click is outside categories area, closing');
+          onClose();
+        } else {
+          console.log('👆 Click is inside categories area, not closing');
+        }
       }
     }
-    function handleKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
+    function handleKey(e: KeyboardEvent) { 
+      if (e.key === 'Escape') {
+        console.log('⌨️ Escape key pressed, closing categories');
+        onClose(); 
+      }
+    }
     document.addEventListener('mousedown', handlePointer);
     document.addEventListener('touchstart', handlePointer);
     document.addEventListener('keydown', handleKey);

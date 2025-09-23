@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -9,8 +10,11 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { api } from "@/lib/api/products";
+import type { Category } from "@/types/database";
 
-const categories = [
+// Fallback categories for when database is not available
+const fallbackCategories = [
   {
     name: "Anillos",
     href: "/products?category=anillos",
@@ -56,6 +60,74 @@ const categories = [
 ];
 
 export default function CategoryCarousel() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setIsLoading(true);
+        const response = await api.categories.getAll();
+        
+        if (response.success && response.data) {
+          // Filter categories that have portada_historias defined
+          const categoriesWithImages = response.data.filter((cat: Category) => cat.portada_historias);
+          
+          if (categoriesWithImages.length > 0) {
+            setCategories(categoriesWithImages);
+          } else {
+            // If no categories have images, show all categories with fallback images
+            console.log('No categories with portada_historias found, using all categories with fallback images');
+            setCategories(response.data);
+          }
+        } else {
+          console.error('Failed to load categories:', response.error);
+          // Use empty array on error, will show loading state
+          setCategories([]);
+        }
+      } catch (error) {
+        console.error('Error loading categories:', error);
+        setCategories([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
+
+  const getCategoryHref = (category: Category) => {
+    return `/products?category=${encodeURIComponent(category.name.toLowerCase())}`;
+  };
+
+  const getCategoryImage = (category: Category) => {
+    return category.portada_historias || "https://picsum.photos/200/200?v=default";
+  };
+
+  const getCategoryHoverImage = (category: Category) => {
+    // Use portada_cards as hover or same image as fallback
+    return category.portada_cards || getCategoryImage(category);
+  };
+
+  if (isLoading) {
+    return (
+      <section className="py-10 sm:py-16 bg-primary/10">
+        <div className="container">
+          <div className="text-center mb-8 sm:mb-12 px-2">
+            <h2 className="font-headline text-2xl sm:text-4xl font-bold tracking-tight">
+              Nuestras Categorías
+            </h2>
+            <p className="mt-3 sm:mt-4 max-w-2xl mx-auto text-sm sm:text-lg text-muted-foreground">
+              Encuentra la joya perfecta para cada estilo.
+            </p>
+          </div>
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="py-10 sm:py-16 bg-primary/10">
       <div className="container">
@@ -73,26 +145,26 @@ export default function CategoryCarousel() {
         >
           <CarouselContent>
             {categories.map((category) => (
-              <CarouselItem key={category.name} className="basis-1/4 sm:basis-1/4 md:basis-1/5 lg:basis-1/6 px-1 sm:px-2">
-                <Link href={category.href}>
+              <CarouselItem key={category.id} className="basis-1/4 sm:basis-1/4 md:basis-1/5 lg:basis-1/6 px-1 sm:px-2">
+                <Link href={getCategoryHref(category)}>
                   <div className="flex flex-col items-center gap-1.5 sm:gap-4 group">
                     <div className="w-14 h-14 sm:w-32 sm:h-32 rounded-full flex items-center justify-center border border-accent sm:border-4 transition-all duration-300">
                       <div className="w-12 h-12 sm:w-28 sm:h-28 rounded-full overflow-hidden relative transition-all duration-300 group-hover:scale-105">
                         <Image
-                          src={category.image}
+                          src={getCategoryImage(category)}
                           alt={`Categoría ${category.name}`}
                           width={200}
                           height={200}
                           className="w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-0"
-                          data-ai-hint={category.dataAiHint}
+                          data-ai-hint={`${category.name.toLowerCase()} collection`}
                         />
                         <Image
-                          src={category.hoverImage}
+                          src={getCategoryHoverImage(category)}
                           alt={`Categoría ${category.name}`}
                           width={200}
                           height={200}
                           className="w-full h-full object-cover absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                          data-ai-hint={category.dataAiHint}
+                          data-ai-hint={`${category.name.toLowerCase()} collection`}
                         />
                       </div>
                     </div>

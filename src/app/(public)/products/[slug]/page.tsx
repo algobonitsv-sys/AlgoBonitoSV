@@ -5,40 +5,108 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { CreditCard, Landmark, HandCoins, Truck, Shield, RefreshCw, Gem, Leaf, Sparkles } from 'lucide-react';
 import AddToCartButton from './add-to-cart-button';
-
-// Temporary local dataset mirroring list pages; will be replaced by Supabase fetch
-const products = [
-  { slug: 'collar-luna', name: "Collar 'Luna'", price: 45, description: 'Un collar inspirado en la serenidad de la luna, elaborado con materiales hipoalergénicos y un brillo sutil que ilumina cualquier look.', images: ['https://picsum.photos/900/1600?v=10','https://picsum.photos/900/1600?v=20'], variants: ['Plateado','Dorado'] },
-  { slug: 'anillo-estelar', name: "Anillo 'Estelar'", price: 35, description: 'Anillo minimalista con destellos que evocan un cielo estrellado. Ligero, cómodo y perfecto para usar todos los días.', images: ['https://picsum.photos/900/1600?v=11','https://picsum.photos/900/1600?v=21'], variants: ['6','7','8','9'] },
-  { slug: 'aretes-gota', name: "Aretes 'Gota'", price: 25, description: 'Diseño elegante en forma de gota que aporta movimiento y luz al rostro. Acabado pulido y cierre seguro.', images: ['https://picsum.photos/900/1600?v=12','https://picsum.photos/900/1600?v=22'] },
-];
+import { api } from '@/lib/api/products';
+import type { Metadata } from 'next';
 
 interface ProductDetailProps {
   params: Promise<{ slug: string }>; // Next.js 15 async params
 }
 
+// Generate metadata for SEO
+export async function generateMetadata({ params }: ProductDetailProps): Promise<Metadata> {
+  const { slug } = await params;
+  const response = await api.products.getBySlug(slug);
+  
+  if (!response.data) {
+    return {
+      title: 'Producto no encontrado - AlgoBonito SV',
+      description: 'El producto que buscas no fue encontrado.'
+    };
+  }
+
+  const product = response.data;
+  
+  return {
+    title: `${product.name} - $${product.price} | AlgoBonito SV`,
+    description: product.description || `Compra ${product.name} en AlgoBonito SV. Joyería de calidad con diseños únicos.`,
+    openGraph: {
+      title: `${product.name} - AlgoBonito SV`,
+      description: product.description || `Descubre ${product.name} en AlgoBonito SV`,
+      images: product.cover_image ? [{ url: product.cover_image }] : [],
+    },
+  };
+}
+
 export default async function ProductDetailPage({ params }: ProductDetailProps) {
   const { slug } = await params;
-  const product = products.find(p => p.slug === slug);
-  if (!product) return notFound();
+  
+  // Get product from database
+  const response = await api.products.getBySlug(slug);
+  
+  if (!response.data) {
+    return notFound();
+  }
+
+  const product = response.data;
+
+  // Parse gallery images from product_images field
+  const galleryImages = product.product_images 
+    ? (typeof product.product_images === 'string' 
+        ? JSON.parse(product.product_images) 
+        : product.product_images)
+    : [];
+
+  // Combine cover image with gallery images for display
+  const allImages = [
+    product.cover_image,
+    product.hover_image,
+    ...galleryImages
+  ].filter(Boolean); // Remove null/undefined values
+
+  // Generate slug from product name for consistency
+  const productSlug = product.name.toLowerCase().replace(/\s+/g, '-');
+
+  // Create product data compatible with AddToCartButton
+  const productForCart = {
+    id: product.id,
+    slug: productSlug,
+    name: product.name,
+    price: product.price,
+    description: product.description || '',
+    images: allImages
+  };
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container py-10 lg:py-16">
+      <div className="container py-5 lg:py-8">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-start">
           {/* Gallery */}
           <div className="space-y-4 sticky top-28">{/* sticky so images remain visible on scroll */}
-            <div className="relative aspect-[9/16] w-full overflow-hidden rounded-2xl bg-muted shadow-lg ring-1 ring-border/50">
-              <Image src={product.images[0]} alt={product.name} fill className="object-cover" priority />
-              <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity bg-black/30" />
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              {product.images.map((img, i) => (
-                <div key={i} className="relative aspect-[9/16] overflow-hidden rounded-xl bg-muted ring-1 ring-border/40">
-                  <Image src={img} alt={`${product.name} ${i+1}`} fill className="object-cover" />
+            {allImages.length > 0 && (
+              <>
+                <div className="relative aspect-[9/16] w-full max-w-[70%] mx-auto overflow-hidden rounded-2xl bg-muted shadow-lg ring-1 ring-border/50">
+                  <Image src={allImages[0]} alt={product.name} fill className="object-cover" priority />
+                  <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity bg-black/30" />
                 </div>
-              ))}
-            </div>
+                {allImages.length > 1 && (
+                  <div className="grid grid-cols-3 gap-3 max-w-[70%] mx-auto">
+                    {allImages.slice(1, 4).map((img, i) => (
+                      <div key={i} className="relative aspect-[9/16] overflow-hidden rounded-xl bg-muted ring-1 ring-border/40">
+                        <Image src={img} alt={`${product.name} ${i+2}`} fill className="object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+            {allImages.length === 0 && (
+              <div className="aspect-[9/16] w-full max-w-[70%] mx-auto rounded-2xl bg-muted shadow-lg ring-1 ring-border/50 flex items-center justify-center">
+                <div className="text-center text-muted-foreground">
+                  <div className="text-lg font-medium">Sin imágenes</div>
+                  <div className="text-sm">No hay imágenes disponibles para este producto</div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Info */}
@@ -54,7 +122,7 @@ export default async function ProductDetailPage({ params }: ProductDetailProps) 
             </div>
 
             <div className="space-y-4">
-              <AddToCartButton product={product} />
+              <AddToCartButton product={productForCart} />
               <p className="text-xs text-muted-foreground/80 leading-relaxed">
                 Este producto se añadirá a tu pedido para confirmar luego por WhatsApp. No es un pago inmediato.
               </p>
@@ -82,7 +150,7 @@ export default async function ProductDetailPage({ params }: ProductDetailProps) 
         </div>
       </div>
       <Suspense>
-        <RelatedProducts currentSlug={product.slug} />
+        <RelatedProducts currentSlug={productSlug} />
       </Suspense>
     </div>
   );
@@ -101,23 +169,38 @@ function Feature({ icon: Icon, title, desc }: { icon: any; title: string; desc: 
 }
 
 async function RelatedProducts({ currentSlug }: { currentSlug: string }) {
-  const related = products.filter(p => p.slug !== currentSlug).slice(0, 4);
+  // Get related products from API
+  const response = await api.products.getAll();
+  const allProducts = response.data || [];
+  
+  // Filter out current product and get random 4 products
+  const related = allProducts
+    .filter(p => {
+      const slug = p.name.toLowerCase().replace(/\s+/g, '-');
+      return slug !== currentSlug && p.is_active;
+    })
+    .slice(0, 4);
+  
   return (
     <div className="container pb-20">
       <Separator className="mb-10" />
       <h2 className="font-headline text-2xl md:text-3xl font-semibold tracking-tight mb-8">También te puede gustar</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        {related.map(r => (
-          <a key={r.slug} href={`/products/${r.slug}`} className="group block">
-            <div className="relative aspect-[9/16] overflow-hidden rounded-xl bg-muted ring-1 ring-border/40">
-              <Image src={r.images[0]} alt={r.name} fill className="object-cover transition-all duration-500 group-hover:scale-105" />
-            </div>
-            <div className="pt-3">
-              <p className="text-sm font-medium leading-tight line-clamp-1">{r.name}</p>
-              <p className="text-sm text-muted-foreground">${r.price.toFixed(2)}</p>
-            </div>
-          </a>
-        ))}
+        {related.map(r => {
+          const slug = r.name.toLowerCase().replace(/\s+/g, '-');
+          const image = r.cover_image || r.hover_image || '/placeholder-product.jpg';
+          return (
+            <a key={r.id} href={`/products/${slug}`} className="group block">
+              <div className="relative aspect-[9/16] overflow-hidden rounded-xl bg-muted ring-1 ring-border/40">
+                <Image src={image} alt={r.name} fill className="object-cover transition-all duration-500 group-hover:scale-105" />
+              </div>
+              <div className="pt-3">
+                <p className="text-sm font-medium leading-tight line-clamp-1">{r.name}</p>
+                <p className="text-sm text-muted-foreground">${r.price.toFixed(2)}</p>
+              </div>
+            </a>
+          );
+        })}
       </div>
     </div>
   );

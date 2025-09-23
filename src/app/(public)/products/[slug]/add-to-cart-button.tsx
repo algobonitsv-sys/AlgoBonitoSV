@@ -3,9 +3,10 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus, Check } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { cartStore } from '@/lib/cart-store';
+import { useCart } from '@/contexts/CartContext';
 
 interface ProductMinimal {
+  id: string;
   slug: string;
   name: string;
   price: number;
@@ -18,23 +19,29 @@ export default function AddToCartButton({ product }: { product: ProductMinimal }
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [variant, setVariant] = useState<string | undefined>(product.variants?.[0]);
-  // We no longer rely on cart-mounted events; global store handles persistence.
+  const { addItem } = useCart();
 
   const add = () => setQty(q => q + 1);
   const sub = () => setQty(q => Math.max(1, q - 1));
 
   const handleAdd = () => {
-    const compositeId = variant ? `${product.slug}__${variant}` : product.slug;
-    cartStore.addItem({
-      id: compositeId,
-      name: product.name,
+    // Use the actual product ID from the database
+    const productId = variant ? `${product.id}__${variant}` : product.id;
+    
+    addItem({
+      product_id: productId,
+      slug: product.slug,
+      name: variant ? `${product.name} (${variant})` : product.name,
       price: product.price,
-      qty,
+      quantity: qty,
       image: product.images?.[0],
     });
-    toast({ title: 'Añadido al pedido', description: `${qty} × ${product.name}${variant ? ' ('+variant+')' : ''}` });
-    // Open cart after adding
-    try { window.dispatchEvent(new CustomEvent('open-cart')); } catch {}
+
+    toast({ 
+      title: 'Añadido al carrito', 
+      description: `${qty} × ${product.name}${variant ? ' (' + variant + ')' : ''}` 
+    });
+
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };

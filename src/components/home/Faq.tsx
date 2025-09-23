@@ -1,46 +1,74 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-
-const faqItems = [
-  {
-    question: "¿Cuál es el tiempo de entrega de los pedidos?",
-    answer:
-      "Para envíos nacionales, el tiempo de entrega es de 2 a 3 días hábiles. Para envíos internacionales, el tiempo varía según el destino. Te proporcionaremos un número de seguimiento para que puedas rastrear tu pedido.",
-  },
-  {
-    question: "¿Tienen política de devoluciones?",
-    answer:
-      "Sí, aceptamos devoluciones dentro de los 7 días posteriores a la recepción del pedido, siempre que el producto no haya sido usado y se encuentre en su empaque original. Contáctanos para iniciar el proceso de devolución.",
-  },
-  {
-    question: "¿Cómo cuido mis joyas?",
-    answer:
-      "Recomendamos guardar tus joyas en un lugar seco, evitar el contacto con productos químicos como perfumes y limpiarlas regularmente con un paño suave. Consulta nuestra sección de 'Materiales' para cuidados específicos.",
-  },
-  {
-    question: "¿Ofrecen garantía?",
-    answer:
-      "Ofrecemos una garantía de 30 días por defectos de fabricación. La garantía no cubre el desgaste normal, la pérdida o el daño por mal uso.",
-  },
-  {
-    question: "¿Puedo personalizar una pieza?",
-    answer:
-      "¡Claro! Nos encanta crear piezas únicas. Contáctanos a través de WhatsApp o Instagram para discutir tus ideas y te haremos una cotización.",
-  },
-];
+import { api } from '@/lib/api/products';
+import type { FAQ } from '@/types/database';
 
 export default function Faq() {
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadFaqs = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await api.faqs.getActive();
+        
+        if (response.success && response.data) {
+          setFaqs(response.data);
+        } else {
+          setError('Error al cargar las preguntas frecuentes');
+        }
+      } catch (err) {
+        console.error('Error loading FAQs:', err);
+        setError('Error al cargar las preguntas frecuentes');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadFaqs();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="w-full py-8 text-center">
+        <p className="text-muted-foreground">Cargando preguntas frecuentes...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full py-8 text-center">
+        <p className="text-destructive">{error}</p>
+      </div>
+    );
+  }
+
+  if (faqs.length === 0) {
+    return (
+      <div className="w-full py-8 text-center">
+        <p className="text-muted-foreground">No hay preguntas frecuentes disponibles.</p>
+      </div>
+    );
+  }
+
   return (
     <Accordion type="single" collapsible className="w-full">
-      {faqItems.map((item, index) => (
-        <AccordionItem value={`item-${index}`} key={index}>
-          <AccordionTrigger className="text-left">{item.question}</AccordionTrigger>
+      {faqs.map((faq) => (
+        <AccordionItem value={`item-${faq.id}`} key={faq.id}>
+          <AccordionTrigger className="text-left">{faq.question}</AccordionTrigger>
           <AccordionContent className="text-muted-foreground">
-            {item.answer}
+            {faq.answer}
           </AccordionContent>
         </AccordionItem>
       ))}
