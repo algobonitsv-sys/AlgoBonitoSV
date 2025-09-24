@@ -39,6 +39,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import ImagePreview from '@/components/ui/image-preview';
 import ImageGalleryManager from '@/components/ui/image-gallery-manager';
+import ImageUpload from '@/components/admin/ImageUpload';
+import ImageGalleryUpload from '@/components/admin/ImageGalleryUpload';
 import SalesRegistrationModal from '@/components/admin/SalesRegistrationModal';
 import StockOrderModal from '@/components/admin/StockOrderModal';
 import GeneralSalesModal from '@/components/admin/GeneralSalesModal';
@@ -563,32 +565,34 @@ export default function AdminProductsPage() {
                 </div>
                 
                 <div className="grid md:grid-cols-2 gap-4">
-                  <ImagePreview
-                    value={formData.cover_image}
-                    onChange={(value) => setFormData({ ...formData, cover_image: value })}
-                    aspectRatio="9:16"
+                  <ImageUpload
+                    currentImageUrl={formData.cover_image}
+                    onImageUploaded={(imageUrl: string) => setFormData({ ...formData, cover_image: imageUrl })}
+                    onImageRemoved={() => setFormData({ ...formData, cover_image: '' })}
                     label="Imagen Principal *"
-                    placeholder="https://ejemplo.com/imagen-principal.jpg"
+                    folder="products/covers"
+                    required={true}
                   />
                   
-                  <ImagePreview
-                    value={formData.hover_image}
-                    onChange={(value) => setFormData({ ...formData, hover_image: value })}
-                    aspectRatio="9:16"
+                  <ImageUpload
+                    currentImageUrl={formData.hover_image}
+                    onImageUploaded={(imageUrl: string) => setFormData({ ...formData, hover_image: imageUrl })}
+                    onImageRemoved={() => setFormData({ ...formData, hover_image: '' })}
                     label="Imagen Hover"
-                    placeholder="https://ejemplo.com/imagen-hover.jpg"
+                    folder="products/hover"
                   />
                 </div>
               </div>
 
               {/* Galería de Imágenes del Producto */}
               <div className="w-full max-w-full overflow-hidden" style={{ maxWidth: '100%' }}>
-                <ImageGalleryManager
+                <ImageGalleryUpload
                   images={formData.gallery_images}
                   onChange={(images) => setFormData({ ...formData, gallery_images: images })}
-                  aspectRatio="9:16"
                   title="Galería del Producto"
                   maxImages={8}
+                  folder="products/gallery"
+                  productId={editingProduct?.id}
                 />
               </div>
 

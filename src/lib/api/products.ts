@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
+import { R2Utils } from '@/lib/cloudflare-r2';
 import type {
   ApiResponse,
   Product,
@@ -1039,12 +1040,58 @@ export const productsApi = {
         return createResponse(true, null);
       }
 
-      const { error } = await supabase!
+      // Primero obtener el producto para conseguir las URLs de las imágenes
+      const { data: product, error: fetchError } = await (supabase! as any)
+        .from('products')
+        .select('cover_image, hover_image, product_images')
+        .eq('id', id)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+      }
+
+      // Eliminar el producto de la base de datos
+      const { error } = await (supabase! as any)
         .from('products')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
+
+      // Si el producto tenía imágenes, intentar eliminarlas de Cloudflare R2
+      if (product) {
+        const imagesToDelete: string[] = [];
+        
+        // Añadir imagen de portada
+        if (product.cover_image) imagesToDelete.push(product.cover_image);
+        
+        // Añadir imagen hover
+        if (product.hover_image) imagesToDelete.push(product.hover_image);
+        
+        // Añadir imágenes de galería
+        if (product.product_images && Array.isArray(product.product_images)) {
+          product.product_images.forEach((imageUrl: string) => {
+            if (imageUrl && imageUrl.trim()) {
+              imagesToDelete.push(imageUrl);
+            }
+          });
+        }
+
+        // Eliminar todas las imágenes de R2 en paralelo (no bloquear si falla)
+        const deletePromises = imagesToDelete.map(async (imageUrl) => {
+          try {
+            await R2Utils.deleteProductImageByUrl(imageUrl);
+            console.log(`✅ Imagen eliminada de R2: ${imageUrl}`);
+          } catch (error) {
+            console.warn(`⚠️ No se pudo eliminar imagen de R2: ${imageUrl}`, error);
+            // No fallar la operación completa si no se puede eliminar la imagen
+          }
+        });
+
+        await Promise.allSettled(deletePromises);
+      }
+
       return createResponse(true, null);
     } catch (error) {
       return createResponse(false, handleError(error));
