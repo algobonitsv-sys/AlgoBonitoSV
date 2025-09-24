@@ -30,7 +30,11 @@ import {
   Edit,
   Trash2,
   Activity,
-  Calendar
+  Calendar,
+  ChevronDown,
+  ChevronRight,
+  Package2,
+  Receipt
 } from 'lucide-react';
 import { 
   Select,
@@ -42,6 +46,11 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { 
   BarChart, 
   Bar, 
@@ -66,6 +75,7 @@ interface Period {
   name: string;
   isCurrent: boolean;
   closure_date?: Date;
+  created_at?: string;
   notes?: string;
 }
 
@@ -146,6 +156,89 @@ const recentActivity = [
   { id: 5, action: 'FAQ actualizada', time: '2 días', amount: null, type: 'update' }
 ];
 
+// Componente para cards expandibles del dashboard
+interface ExpandableCardProps {
+  title: string;
+  value: string;
+  icon: React.ReactNode;
+  breakdown?: Array<{ label: string; value: number; description?: string }>;
+  color?: string;
+  lastValue?: string;
+  lastDate?: string;
+}
+
+const ExpandableCard: React.FC<ExpandableCardProps> = ({ 
+  title, 
+  value, 
+  icon, 
+  breakdown = [], 
+  color = "text-gray-600",
+  lastValue,
+  lastDate
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <Card className="hover:shadow-md transition-shadow">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 cursor-pointer hover:bg-gray-50 transition-colors">
+            <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            <div className="flex items-center gap-2">
+              {icon}
+              {breakdown.length > 0 && (
+                isOpen ? 
+                <ChevronDown className="h-4 w-4 text-muted-foreground" /> : 
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+        
+        <CardContent>
+          <div className={`text-2xl font-bold ${color}`}>
+            {value}
+          </div>
+          {lastValue && lastDate && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Último: {lastValue} ({lastDate})
+            </p>
+          )}
+          
+          {breakdown.length > 0 && (
+            <CollapsibleContent className="space-y-2">
+              <div className="mt-4 pt-4 border-t">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Desglose del cálculo:</h4>
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
+                  {breakdown.map((item, index) => (
+                    <div key={index} className="flex justify-between items-center text-sm">
+                      <div className="flex flex-col">
+                        <span className="text-gray-600">{item.label}</span>
+                        {item.description && (
+                          <span className="text-xs text-gray-400">{item.description}</span>
+                        )}
+                      </div>
+                      <span className={`font-medium ${item.value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${Math.abs(item.value).toFixed(0)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 pt-2 border-t border-gray-100">
+                  <div className="flex justify-between items-center text-sm font-medium">
+                    <span>Total:</span>
+                    <span className={color}>{value}</span>
+                  </div>
+                </div>
+              </div>
+            </CollapsibleContent>
+          )}
+        </CardContent>
+      </Collapsible>
+    </Card>
+  );
+};
+
 export default function AdminPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<Period>({ id: 'current', name: 'Período Actual', isCurrent: true }); // Período seleccionado como objeto
   const [availablePeriods, setAvailablePeriods] = useState<Period[]>([
@@ -175,6 +268,65 @@ export default function AdminPage() {
     return Math.round(amount).toLocaleString('en-US');
   };
 
+  // Función para generar los desgloses de cada métrica con datos reales
+  const generateBreakdowns = (stats: any) => {
+    return {
+      productRevenue: [
+        { label: 'Ventas de productos', value: stats.productRevenue, description: 'Ingresos por ventas directas de productos' }
+      ],
+      monetaryMovements: [
+        { label: 'Ingresos monetarios', value: stats.monetaryMovements >= 0 ? stats.monetaryMovements : 0, description: 'Entradas de efectivo externas' },
+        { label: 'Extracciones monetarias', value: stats.monetaryMovements < 0 ? Math.abs(stats.monetaryMovements) : 0, description: 'Salidas de efectivo externas' }
+      ],
+      fixedCosts: [
+        { label: 'Costos fijos mensuales', value: stats.fixedCosts, description: 'Alquiler, servicios, seguros, etc.' }
+      ],
+      salaryWithdrawals: [
+        { label: 'Extracciones de sueldos', value: stats.salaryWithdrawals, description: 'Pagos a empleados y personal' }
+      ],
+      orderCosts: [
+        { label: 'Costos de pedidos', value: stats.orderCosts, description: 'Inversión en stock e inventario' },
+        ...(stats.lastOrderCost > 0 ? [{
+          label: `Último pedido (${stats.lastOrderDate})`,
+          value: -stats.lastOrderCost,
+          description: 'Pedido más reciente registrado'
+        }] : [])
+      ],
+      totalCosts: [
+        { label: 'Costos fijos', value: stats.fixedCosts, description: 'Gastos operacionales fijos' },
+        { label: 'Extracciones de sueldos', value: stats.salaryWithdrawals, description: 'Pagos de nómina' },
+        { label: 'Costos de pedidos', value: stats.orderCosts, description: 'Inversión en inventario' },
+        { label: 'Movimientos negativos', value: stats.monetaryMovements < 0 ? stats.monetaryMovements : 0, description: 'Extracciones monetarias' }
+      ],
+      totalRevenue: [
+        { label: 'Ingresos por productos', value: stats.productRevenue, description: 'Ventas de productos' },
+        { label: 'Movimientos positivos', value: stats.monetaryMovements > 0 ? stats.monetaryMovements : 0, description: 'Ingresos monetarios externos' }
+      ],
+      profit: [
+        { label: 'Ingresos totales', value: stats.totalRevenue, description: 'Total de entradas de dinero' },
+        { label: 'Costos totales', value: stats.totalCosts, description: 'Total de gastos y costos' }
+      ],
+      totalPatrimony: [
+        { label: 'Valor del inventario', value: stats.totalPatrimony, description: 'Costo de todos los productos en stock' }
+      ],
+      itemsSold: [
+        { label: 'Unidades vendidas', value: stats.itemsSold, description: 'Cantidad total de productos vendidos en el período' }
+      ],
+      conversionRate: [
+        { label: 'Tasa de conversión', value: stats.conversionRate, description: 'Porcentaje de ventas concretadas sobre pedidos realizados' }
+      ],
+      availableCapital: [
+        { label: 'Capital histórico disponible', value: stats.availableCapital, description: 'Ingresos históricos totales menos costos históricos totales desde siempre' }
+      ]
+    };
+  };
+
+  // Función para obtener detalles del desglose específicos para cada métrica
+  const getBreakdownDetails = (metric: string, stats: any) => {
+    const breakdowns = generateBreakdowns(stats);
+    return breakdowns[metric as keyof typeof breakdowns] || [];
+  };
+
   // Función para cargar períodos disponibles
   const loadAvailablePeriods = async () => {
     try {
@@ -185,7 +337,6 @@ export default function AdminPage() {
           ...response.data.map((closure: any) => {
             // Convertir closure_date a objeto Date válido
             const closureDate = new Date(closure.closure_date);
-            
             return {
               id: closure.id,
               name: `Cierre ${closureDate.toLocaleDateString('es-ES', { 
@@ -194,6 +345,7 @@ export default function AdminPage() {
               })}`,
               isCurrent: false,
               closure_date: closureDate, // Asegurar que sea un objeto Date
+              created_at: closure.created_at, // Hora real del cierre
               notes: closure.notes
             };
           })
@@ -209,38 +361,35 @@ export default function AdminPage() {
   // Función para filtrar datos por período
   const filterDataByPeriod = (data: any[], dateField: string = 'created_at') => {
     if (selectedPeriod.isCurrent) {
-      // Para período actual, obtener datos después del último cierre
+      // Para período actual, obtener datos después del último cierre (usando hora real del cierre: created_at)
       const lastClosure = availablePeriods
-        .filter(p => !p.isCurrent && p.closure_date)
-        .sort((a, b) => new Date(b.closure_date!).getTime() - new Date(a.closure_date!).getTime())[0];
-      
-      if (lastClosure && lastClosure.closure_date) {
-        const cutoffDate = new Date(lastClosure.closure_date);
+        .filter(p => !p.isCurrent && p.created_at)
+        .sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime())[0];
+      if (lastClosure && lastClosure.created_at) {
+        const cutoffDate = new Date(lastClosure.created_at);
         return data.filter(item => {
           const itemDate = new Date(item[dateField]);
-          return itemDate > cutoffDate;
+          return itemDate.getTime() > cutoffDate.getTime();
         });
       }
-      return data; // Si no hay cierres, mostrar todo
+      return data;
     } else {
-      // Para período cerrado específico, mostrar datos hasta esa fecha
+      // Para período cerrado específico, mostrar datos hasta esa fecha (usando hora real del cierre: created_at)
       const selectedClosure = availablePeriods.find(p => p.id === selectedPeriod.id);
-      if (selectedClosure && selectedClosure.closure_date) {
-        const cutoffDate = new Date(selectedClosure.closure_date);
-        
+      if (selectedClosure && selectedClosure.created_at) {
+        const cutoffDate = new Date(selectedClosure.created_at);
         // Encontrar el cierre anterior para delimitar el período
         const previousClosure = availablePeriods
-          .filter(p => !p.isCurrent && p.closure_date && new Date(p.closure_date) < cutoffDate)
-          .sort((a, b) => new Date(b.closure_date!).getTime() - new Date(a.closure_date!).getTime())[0];
-        
+          .filter(p => !p.isCurrent && p.created_at && new Date(p.created_at) < cutoffDate)
+          .sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime())[0];
         return data.filter(item => {
           const itemDate = new Date(item[dateField]);
-          const isBeforeCutoff = itemDate <= cutoffDate;
-          const isAfterPrevious = !previousClosure || !previousClosure.closure_date || itemDate > new Date(previousClosure.closure_date);
+          const isBeforeCutoff = itemDate.getTime() <= cutoffDate.getTime();
+          const isAfterPrevious = !previousClosure || !previousClosure.created_at || itemDate.getTime() > new Date(previousClosure.created_at).getTime();
           return isBeforeCutoff && isAfterPrevious;
         });
       }
-      return []; // Si no se encuentra el período, retornar vacío
+      return [];
     }
   };
 
@@ -274,8 +423,29 @@ export default function AdminPage() {
         // Cargar pedidos de stock para calcular costos
         const stockOrdersResponse = await stockOrdersApi.getAll();
         const allStockOrders = stockOrdersResponse.success && stockOrdersResponse.data ? stockOrdersResponse.data : [];
-        const stockOrders = filterDataByPeriod(allStockOrders, 'created_at');
+        
+        // Para pedidos de stock, filtramos por 'updated_at' (cuando se marcó como recibido)
+  // Filtramos por 'created_at' para asignar el costo al período en que se pagó/creó el pedido
+  const stockOrders = filterDataByPeriod(allStockOrders, 'created_at');
+        
         console.log(`📦 Pedidos de stock cargados: ${stockOrders.length} del período (${allStockOrders.length} total)`);
+        console.log(`📦 Debug - Período seleccionado:`, {
+          periodName: selectedPeriod.name,
+          isCurrent: selectedPeriod.isCurrent,
+          closureDate: selectedPeriod.closure_date?.toISOString()
+        });
+        
+        if (stockOrders.length > 0) {
+          console.log(`📦 Primeros 3 pedidos en período (filtrados por created_at):`, stockOrders.slice(0, 3).map(order => ({
+            id: order.id?.substring(0, 8),
+            status: order.status,
+            created_at: order.created_at,
+            created_at_hora: new Date(order.created_at).toLocaleString(),
+            updated_at: order.updated_at,
+            updated_at_hora: new Date(order.updated_at).toLocaleString(),
+            total_cost: order.total_cost
+          })));
+        }
         
         // Cargar movimientos monetarios
         const monetaryResponse = await financeApi.monetaryMovements.getAll();
@@ -293,6 +463,11 @@ export default function AdminPage() {
         const allSalaryWithdrawals = salaryResponse.success && salaryResponse.data ? salaryResponse.data : [];
         const salaryWithdrawals = filterDataByPeriod(allSalaryWithdrawals, 'withdrawal_date');
         console.log(`👥 Retiros de sueldo cargados: ${salaryWithdrawals.length} del período (${allSalaryWithdrawals.length} total)`);
+        
+        // Cargar productos para calcular patrimonio total (NO se filtran por período)
+        const productsResponse = await api.products.getAll();
+        const products = productsResponse.success && productsResponse.data ? productsResponse.data : [];
+        console.log('📦 Productos cargados:', products.length);
         
         // Calcular métricas de ventas
         const productRevenue = sales.reduce((total, sale) => total + (sale.total_amount || 0), 0);
@@ -326,27 +501,83 @@ export default function AdminPage() {
         // Calcular retiros de sueldos totales
         const totalSalaryWithdrawals = salaryWithdrawals.reduce((total, withdrawal) => total + (withdrawal.amount || 0), 0);
         
-        // Calcular costos de pedidos de stock
-        const orderCosts = stockOrders
-          .filter(order => order.status === 'received')
-          .reduce((total, order) => total + (order.total_cost || 0), 0);
+        // Calcular costos de pedidos de stock (solo pedidos recibidos)
+        const receivedStockOrders = stockOrders.filter(order => order.status === 'received');
+        const orderCosts = receivedStockOrders.reduce((total, order) => total + (order.total_cost || 0), 0);
+        
+        console.log(`📦 Análisis de pedidos de stock:`, {
+          totalStockOrdersInPeriod: stockOrders.length,
+          receivedInPeriod: receivedStockOrders.length,
+          pendingInPeriod: stockOrders.filter(order => order.status === 'pending').length,
+          orderCosts: orderCosts,
+          period: selectedPeriod.name,
+          isCurrent: selectedPeriod.isCurrent,
+          filteredBy: 'created_at (fecha de pago/creación)'
+        });
+
+        // Mostrar detalles de pedidos recibidos
+        if (receivedStockOrders.length > 0) {
+          console.log(`📦 Pedidos recibidos en período:`, receivedStockOrders.map(order => ({
+            id: order.id?.substring(0, 8),
+            created_at: order.created_at,
+            updated_at: order.updated_at,
+            total_cost: order.total_cost,
+            status: order.status
+          })));
+        }
           
-        // Encontrar último pedido
-        const lastOrder = stockOrders
-          .filter(order => order.status === 'received')
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+        // Encontrar último pedido recibido en el período
+        const lastOrder = receivedStockOrders
+          .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())[0];
         
-        // Calcular valores financieros finales
-        const totalCosts = -(totalFixedCosts + totalSalaryWithdrawals + orderCosts);
-        const totalRevenue = productRevenue + netMonetaryMovements;
-        const profit = totalRevenue + totalCosts; // totalCosts ya es negativo
+        // Calcular valores financieros finales según especificaciones del usuario
+        const totalFixedCostsCalc = totalFixedCosts;
+        const totalSalaryWithdrawalsCalc = totalSalaryWithdrawals;
+        const orderCostsCalc = orderCosts;
+        const negativeMonetyaryMovements = monetaryMovements
+          .filter(m => m.type === 'withdrawal')
+          .reduce((total, m) => total + (m.amount || 0), 0);
+
+        // COSTOS TOTALES: suma de costos fijos + sueldos + costos de pedidos + movimientos monetarios negativos
+        const totalCosts = totalFixedCostsCalc + totalSalaryWithdrawalsCalc + orderCostsCalc + negativeMonetyaryMovements;
+
+        // INGRESOS TOTALES: suma de ingresos por productos + movimientos monetarios positivos  
+        const totalRevenue = productRevenue + totalMonetaryIncome;
+
+        // GANANCIA: Ingresos totales - Costos totales
+        const profit = totalRevenue - totalCosts;
+
+        // PATRIMONIO TOTAL: suma de costos de todos los productos en stock
+        const totalPatrimony = products.reduce((total: number, product: any) => {
+          return total + ((product.cost || 0) * (product.stock || 0));
+        }, 0);
+
+        // CAPITAL DISPONIBLE: ingresos históricos totales menos costos históricos totales desde siempre (sin filtro de período)
+        // Obtener todos los datos históricos sin filtrar
+        const allSalesResponse = await salesApi.getAll();
+        const allSalesData = allSalesResponse.success && allSalesResponse.data ? allSalesResponse.data : [];
+        const allProductRevenue = allSalesData.reduce((total, sale) => total + (sale.total_amount || 0), 0);
+        const allMonetaryResponse = await financeApi.monetaryMovements.getAll();
+        const allMonetaryData = allMonetaryResponse.success && allMonetaryResponse.data ? allMonetaryResponse.data : [];
+        const allMonetaryIncome = allMonetaryData.filter(m => m.type === 'income').reduce((total, m) => total + (m.amount || 0), 0);
+        const allMonetaryWithdrawals = allMonetaryData.filter(m => m.type === 'withdrawal').reduce((total, m) => total + (m.amount || 0), 0);
+        const allFixedCostsResponse = await financeApi.fixedCosts.getAll();
+        const allFixedCosts = allFixedCostsResponse.success && allFixedCostsResponse.data ? allFixedCostsResponse.data : [];
+        const allFixedCostsTotal = allFixedCosts.reduce((total, cost) => total + (cost.amount || 0), 0);
+        const allSalaryResponse = await financeApi.salaryWithdrawals.getAll();
+        const allSalaryData = allSalaryResponse.success && allSalaryResponse.data ? allSalaryResponse.data : [];
+        const allSalaryTotal = allSalaryData.reduce((total, withdrawal) => total + (withdrawal.amount || 0), 0);
+        const allStockOrdersResponse = await stockOrdersApi.getAll();
+        const allStockOrdersData = allStockOrdersResponse.success && allStockOrdersResponse.data ? allStockOrdersResponse.data : [];
+        const allOrderCosts = allStockOrdersData.filter(order => order.status === 'received').reduce((total, order) => total + (order.total_cost || 0), 0);
+        const allTotalCosts = allFixedCostsTotal + allSalaryTotal + allOrderCosts + allMonetaryWithdrawals;
+        const allTotalRevenue = allProductRevenue + allMonetaryIncome;
+        const availableCapital = allTotalRevenue - allTotalCosts;
         
-        // Valores calculados para patrimonio y capital (basados en fórmulas de negocio)
-        const totalPatrimony = totalRevenue + (totalRevenue * 0.45); // Estimación del patrimonio
-        const availableCapital = profit + (netMonetaryMovements * 0.8); // Capital disponible
-        
-        // Calcular tasa de conversión realista
-        const conversionRate = sales.length > 0 ? (itemsSold / sales.length) * 100 : 0;
+        // TASA DE CONVERSIÓN: porcentaje de ventas concretadas sobre pedidos realizados
+        // Aquí asumimos que cada venta representa una conversión exitosa
+        const totalOrders = sales.length; // Asumiendo que cada venta es un pedido
+        const conversionRate = totalOrders > 0 ? (sales.length / totalOrders) * 100 : 0;
         
         console.log('📊 Métricas calculadas:', {
           productRevenue,
@@ -357,16 +588,16 @@ export default function AdminPage() {
           profit
         });
         
-        // Actualizar estado con datos reales
+        // Actualizar estado con datos reales calculados correctamente
         setQuickStats({
           productRevenue: Math.round(productRevenue),
           monetaryMovements: Math.round(netMonetaryMovements),
-          fixedCosts: -Math.round(totalFixedCosts),
-          salaryWithdrawals: -Math.round(totalSalaryWithdrawals),
-          orderCosts: -Math.round(orderCosts),
+          fixedCosts: -Math.round(totalFixedCostsCalc), // Negativo para mostrar como gasto
+          salaryWithdrawals: -Math.round(totalSalaryWithdrawalsCalc), // Negativo para mostrar como gasto
+          orderCosts: -Math.round(orderCostsCalc), // Negativo para mostrar como gasto
           lastOrderCost: lastOrder?.total_cost || 0,
-          lastOrderDate: lastOrder?.created_at ? new Date(lastOrder.created_at).toLocaleDateString('es-ES') : 'N/A',
-          totalCosts: Math.round(totalCosts),
+          lastOrderDate: lastOrder?.created_at ? new Date(lastOrder.created_at).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A',
+          totalCosts: -Math.round(totalCosts), // Negativo para mostrar como gasto
           totalRevenue: Math.round(totalRevenue),
           profit: Math.round(profit),
           totalPatrimony: Math.round(totalPatrimony),
@@ -399,6 +630,12 @@ export default function AdminPage() {
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-2">Panel de Control</h1>
         <p className="text-muted-foreground">Resumen general y acceso rápido a todas las secciones</p>
+        {selectedPeriod && selectedPeriod.closure_date && (
+          <div className="mt-2 text-xs text-gray-500">
+            <span>Cierre de caja: </span>
+            <span className="font-mono">{new Date(selectedPeriod.closure_date).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+        )}
       </div>
 
       {/* Selector de Período */}
@@ -448,139 +685,100 @@ export default function AdminPage() {
       {/* Financial Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {/* Ingreso por Productos */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ingreso por Productos</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${formatCurrency(quickStats.productRevenue)}</div>
-          </CardContent>
-        </Card>
+        <ExpandableCard
+          title="Ingreso por Productos"
+          value={`$${formatCurrency(quickStats.productRevenue)}`}
+          icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
+          breakdown={getBreakdownDetails('productRevenue', quickStats)}
+        />
 
         {/* Movimientos Monetarios */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Movimientos Monetarios</CardTitle>
-            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${formatCurrency(quickStats.monetaryMovements)}</div>
-          </CardContent>
-        </Card>
+        <ExpandableCard
+          title="Movimientos Monetarios"
+          value={`$${formatCurrency(quickStats.monetaryMovements)}`}
+          icon={<ArrowUpRight className="h-4 w-4 text-muted-foreground" />}
+          breakdown={getBreakdownDetails('monetaryMovements', quickStats)}
+        />
 
         {/* Costos Fijos */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Costos Fijos</CardTitle>
-            <Building className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">${formatCurrency(quickStats.fixedCosts)}</div>
-          </CardContent>
-        </Card>
+        <ExpandableCard
+          title="Costos Fijos"
+          value={`$${formatCurrency(quickStats.fixedCosts)}`}
+          icon={<Building className="h-4 w-4 text-muted-foreground" />}
+          breakdown={getBreakdownDetails('fixedCosts', quickStats)}
+        />
 
         {/* Extracción de Sueldos */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Extracción de Sueldos</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">${formatCurrency(quickStats.salaryWithdrawals)}</div>
-          </CardContent>
-        </Card>
+        <ExpandableCard
+          title="Extracción de Sueldos"
+          value={`$${formatCurrency(quickStats.salaryWithdrawals)}`}
+          icon={<Users className="h-4 w-4 text-muted-foreground" />}
+          breakdown={getBreakdownDetails('salaryWithdrawals', quickStats)}
+        />
 
         {/* Costos de Pedidos */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Costos de Pedidos</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">${formatCurrency(quickStats.orderCosts)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Último: ${formatCurrency(quickStats.lastOrderCost)} ({quickStats.lastOrderDate})
-            </p>
-          </CardContent>
-        </Card>
+        <ExpandableCard
+          title="Costos de Pedidos"
+          value={`$${formatCurrency(quickStats.orderCosts)}`}
+          icon={<Package className="h-4 w-4 text-muted-foreground" />}
+          breakdown={getBreakdownDetails('orderCosts', quickStats)}
+        />
 
         {/* Costos Totales */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Costos Totales</CardTitle>
-            <ArrowDownRight className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">${formatCurrency(quickStats.totalCosts)}</div>
-          </CardContent>
-        </Card>
+        <ExpandableCard
+          title="Costos Totales"
+          value={`$${formatCurrency(quickStats.totalCosts)}`}
+          icon={<ArrowDownRight className="h-4 w-4 text-muted-foreground" />}
+          breakdown={getBreakdownDetails('totalCosts', quickStats)}
+        />
 
         {/* Ingresos Totales */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">${formatCurrency(quickStats.totalRevenue)}</div>
-          </CardContent>
-        </Card>
+        <ExpandableCard
+          title="Ingresos Totales"
+          value={`$${formatCurrency(quickStats.totalRevenue)}`}
+          icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
+          breakdown={getBreakdownDetails('totalRevenue', quickStats)}
+        />
 
         {/* Ganancia */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ganancia</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">${formatCurrency(quickStats.profit)}</div>
-          </CardContent>
-        </Card>
+        <ExpandableCard
+          title="Ganancia"
+          value={`$${formatCurrency(quickStats.profit)}`}
+          icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
+          breakdown={getBreakdownDetails('profit', quickStats)}
+        />
 
         {/* Patrimonio Total */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Patrimonio Total</CardTitle>
-            <PiggyBank className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${formatCurrency(quickStats.totalPatrimony)}</div>
-          </CardContent>
-        </Card>
+        <ExpandableCard
+          title="Patrimonio Total"
+          value={`$${formatCurrency(quickStats.totalPatrimony)}`}
+          icon={<PiggyBank className="h-4 w-4 text-muted-foreground" />}
+          breakdown={getBreakdownDetails('totalPatrimony', quickStats)}
+        />
 
         {/* Items Vendidos */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Items Vendidos</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{quickStats.itemsSold} items</div>
-          </CardContent>
-        </Card>
+        <ExpandableCard
+          title="Items Vendidos"
+          value={`${quickStats.itemsSold} items`}
+          icon={<Package className="h-4 w-4 text-muted-foreground" />}
+          breakdown={getBreakdownDetails('itemsSold', quickStats)}
+        />
 
         {/* Tasa de Conversión */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tasa de Conversión</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{quickStats.conversionRate}%</div>
-          </CardContent>
-        </Card>
+        <ExpandableCard
+          title="Tasa de Conversión"
+          value={`${quickStats.conversionRate}%`}
+          icon={<Target className="h-4 w-4 text-muted-foreground" />}
+          breakdown={getBreakdownDetails('conversionRate', quickStats)}
+        />
 
         {/* Capital Disponible */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Capital Disponible</CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${formatCurrency(quickStats.availableCapital)}</div>
-          </CardContent>
-        </Card>
+        <ExpandableCard
+          title="Capital Disponible"
+          value={`$${formatCurrency(quickStats.availableCapital)}`}
+          icon={<Wallet className="h-4 w-4 text-muted-foreground" />}
+          breakdown={getBreakdownDetails('availableCapital', quickStats)}
+        />
       </div>
 
       {/* Charts and Activity */}

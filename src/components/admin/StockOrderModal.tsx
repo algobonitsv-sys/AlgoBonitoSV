@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 import { api } from '@/lib/api/products';
+import { stockOrdersApi, StockOrderInsert, StockOrderItemInsert } from '@/lib/api/stockOrders';
 import type { Product, Category } from '@/types/database';
 import { Package, Search, ChevronDown, ChevronRight, Plus, Minus } from 'lucide-react';
 
@@ -164,24 +165,36 @@ export default function StockOrderModal({
 
     setLoading(true);
     try {
-      // Simular guardado en localStorage para el historial
-      const existingOrders = JSON.parse(localStorage.getItem('stockOrders') || '[]');
-      const newOrder = {
-        id: Date.now().toString(),
+      // Preparar datos del pedido
+      const orderData: StockOrderInsert = {
         order_date: new Date().toISOString().split('T')[0],
-        items: items,
-        status: 'pending',
-        created_at: new Date().toISOString()
+        status: 'pending', // Cambiado: Crear como pendiente para poder confirmar después
+        notes: 'Pedido de reposición de stock'
       };
-      existingOrders.unshift(newOrder);
-      localStorage.setItem('stockOrders', JSON.stringify(existingOrders));
-      
-      toast.success('Pedido de stock registrado exitosamente');
-      onOrderRegistered?.();
-      handleClose();
+
+      // Preparar items del pedido
+      const orderItems: Omit<StockOrderItemInsert, 'stock_order_id'>[] = items.map(item => ({
+        product_id: item.product_id,
+        product_name: item.product_name,
+        quantity: item.quantity
+      }));
+
+      // Crear el pedido usando la nueva API
+      const result = await stockOrdersApi.create(orderData, orderItems);
+
+      if (result.success) {
+        console.log('✅ Pedido de stock creado exitosamente:', result.data);
+        toast.success('Pedido de stock registrado exitosamente. Ve a Finanzas > Análisis de Pedidos para marcarlo como recibido.');
+        onOrderRegistered?.();
+        handleClose();
+      } else {
+        console.error('❌ Error creando pedido de stock:', result.error);
+        toast.error('Error al registrar el pedido de stock: ' + result.error);
+      }
+
     } catch (error) {
       console.error('Error registering stock order:', error);
-      toast.error('Error al registrar el pedido de stock');
+      toast.error('Error al registrar el pedido de stock: ' + (error instanceof Error ? error.message : 'Error desconocido'));
     } finally {
       setLoading(false);
     }

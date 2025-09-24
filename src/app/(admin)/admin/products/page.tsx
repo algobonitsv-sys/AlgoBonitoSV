@@ -508,8 +508,10 @@ export default function AdminProductsPage() {
     loadData(); // Refresh products in case inventory changed
   };
 
-  const handleStockOrderRegistered = () => {
+  const handleStockOrderRegistered = async () => {
     toast.success('Pedido de stock registrado exitosamente');
+    // Recargar los datos para mostrar el stock actualizado
+    await loadData();
   };
 
   const handleGeneralSaleRegistered = () => {

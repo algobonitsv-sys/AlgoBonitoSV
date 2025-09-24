@@ -2879,16 +2879,16 @@ ${closureRegistered ? '✅ Registro guardado en base de datos' : '⚠️ Continu
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {order.items_with_prices.map((item, index) => (
+                            {order.items?.map((item, index) => (
                               <TableRow key={index}>
                                 <TableCell>{item.product_name}</TableCell>
                                 <TableCell>+{item.quantity}</TableCell>
-                                <TableCell>${item.cost?.toFixed(2) || '0.00'}</TableCell>
-                                <TableCell>${item.price?.toFixed(2) || '0.00'}</TableCell>
+                                <TableCell>${item.unit_cost?.toFixed(2) || '0.00'}</TableCell>
+                                <TableCell>${item.unit_price?.toFixed(2) || '0.00'}</TableCell>
                                 <TableCell>{item.quantity} unidades</TableCell>
-                                <TableCell>${((item.cost || 0) * item.quantity).toFixed(2)}</TableCell>
+                                <TableCell>${item.total_cost?.toFixed(2) || '0.00'}</TableCell>
                                 <TableCell className="text-green-600 font-medium">
-                                  ${((item.price || 0) * item.quantity).toFixed(2)}
+                                  ${item.total_potential_income?.toFixed(2) || '0.00'}
                                 </TableCell>
                               </TableRow>
                             ))}
