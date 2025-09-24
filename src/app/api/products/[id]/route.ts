@@ -4,11 +4,11 @@ import * as R2Utils from '@/lib/cloudflare-r2';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
     console.log('\n🚀 Products DELETE API: Starting deletion...');
-    const productId = params.id;
+    const productId = context.params.id;
     console.log('📋 Products DELETE API: Product ID:', productId);
 
     // Initialize Supabase client
