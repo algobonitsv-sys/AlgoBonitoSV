@@ -48,6 +48,8 @@ import ProductSalesModal from '@/components/admin/ProductSalesModal';
 import HistoryModal from '@/components/admin/HistoryModal';
 import { Plus, Edit, Trash2, Package, Loader2, ShoppingBag, Star, Sparkles, History, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
+import { tempImageStore } from '@/lib/temp-image-store';
+import { TempImageUploader } from '@/lib/temp-image-uploader';
 
 // Import API functions and types
 import { api } from '@/lib/api/products';
@@ -116,7 +118,31 @@ export default function AdminProductsPage() {
   // Load initial data
   useEffect(() => {
     loadData();
+    // Clean up any malformed temp IDs on component mount
+    tempImageStore.cleanupMalformedIds();
   }, []);
+
+  // Clean up malformed IDs in form data
+  useEffect(() => {
+    let needsUpdate = false;
+    const cleanFormData = { ...formData };
+    
+    if (formData.cover_image?.startsWith('temp_temp_')) {
+      cleanFormData.cover_image = formData.cover_image.replace('temp_temp_', '');
+      needsUpdate = true;
+      console.log('🧹 ProductsPage: cleaned up malformed cover_image ID');
+    }
+    
+    if (formData.hover_image?.startsWith('temp_temp_')) {
+      cleanFormData.hover_image = formData.hover_image.replace('temp_temp_', '');
+      needsUpdate = true;
+      console.log('🧹 ProductsPage: cleaned up malformed hover_image ID');
+    }
+    
+    if (needsUpdate) {
+      setFormData(cleanFormData);
+    }
+  }, [formData.cover_image, formData.hover_image]);
 
   // Filter subcategories when category changes
   useEffect(() => {
@@ -166,30 +192,56 @@ export default function AdminProductsPage() {
   };
 
   const handleSubmit = async () => {
+    console.log('\n🚀 ProductsPage: Starting product save process...');
+    console.log('📋 ProductsPage: Current form data:', formData);
+    console.log('✏️ ProductsPage: Editing mode:', editingProduct ? 'UPDATE' : 'CREATE');
+    if (editingProduct) {
+      console.log('📝 ProductsPage: Editing product:', editingProduct.id);
+    }
+
+    // Check for temporary images
+    const tempImages = tempImageStore.getAllImages();
+    console.log(`📊 ProductsPage: Found ${tempImages.length} temporary images in store`);
+    if (tempImages.length > 0) {
+      console.log('📋 ProductsPage: Temporary images list:', tempImages.map(img => ({
+        id: img.id,
+        type: img.type,
+        fileName: img.file.name
+      })));
+    }
+
     // Validation
+    console.log('🔍 ProductsPage: Starting form validation...');
     if (!formData.name.trim()) {
+      console.log('❌ ProductsPage: Validation failed - missing name');
       toast.error('El nombre del producto es requerido');
       return;
     }
     if (!formData.category_id) {
+      console.log('❌ ProductsPage: Validation failed - missing category');
       toast.error('La categoría es requerida');
       return;
     }
     if (!formData.subcategory_id) {
+      console.log('❌ ProductsPage: Validation failed - missing subcategory');
       toast.error('La subcategoría es requerida');
       return;
     }
     if (!formData.cost || parseFloat(formData.cost) <= 0) {
+      console.log('❌ ProductsPage: Validation failed - invalid cost');
       toast.error('El costo debe ser mayor a 0');
       return;
     }
     if (!formData.price || parseFloat(formData.price) <= 0) {
+      console.log('❌ ProductsPage: Validation failed - invalid price');
       toast.error('El precio debe ser mayor a 0');
       return;
     }
+    console.log('✅ ProductsPage: Form validation passed');
 
     setSaving(true);
     try {
+      console.log('📦 ProductsPage: Building product data object...');
       const productData: ProductInsert = {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
@@ -205,36 +257,91 @@ export default function AdminProductsPage() {
         is_featured: formData.is_featured,
         is_new: formData.is_new
       };
+      console.log('📋 ProductsPage: Product data object built:', productData);
 
       let result: any;
       if (editingProduct) {
+        console.log('🔄 ProductsPage: Updating existing product...');
         result = await api.products.update(editingProduct.id, productData);
+        console.log('📡 ProductsPage: Update API response:', result);
         if (result.success && result.data) {
           setProducts(products.map(product => 
             product.id === editingProduct.id ? result.data! : product
           ));
           toast.success('Producto actualizado correctamente');
+          console.log('✅ ProductsPage: Product updated successfully');
         }
       } else {
+        console.log('🆕 ProductsPage: Creating new product...');
         result = await api.products.create(productData);
+        console.log('📡 ProductsPage: Create API response:', result);
         if (result.success && result.data) {
           setProducts([...products, result.data]);
           toast.success('Producto creado correctamente');
+          console.log('✅ ProductsPage: Product created successfully');
         }
       }
 
+      // NOW UPLOAD TEMPORARY IMAGES TO CLOUDFLARE R2
+      if (result.success && tempImages.length > 0) {
+        console.log('\n🌐 ProductsPage: Starting image upload to Cloudflare R2...');
+        console.log(`📤 ProductsPage: Will upload ${tempImages.length} images for product: ${result.data?.id || 'unknown'}`);
+        
+        const uploadResult = await TempImageUploader.uploadAllTempImages(result.data?.id);
+        console.log('📊 ProductsPage: Upload process completed');
+        console.log('📈 ProductsPage: Upload results:', uploadResult);
+        
+        if (uploadResult.errors.length > 0) {
+          console.log('⚠️ ProductsPage: Some image uploads failed:', uploadResult.errors);
+          toast.error(`Producto guardado, pero ${uploadResult.errors.length} imágenes no se pudieron subir`);
+        } else if (uploadResult.uploadedUrls.length > 0) {
+          console.log('✅ ProductsPage: All images uploaded successfully');
+          toast.success(`Producto guardado y ${uploadResult.uploadedUrls.length} imágenes subidas correctamente`);
+          
+          // UPDATE PRODUCT WITH REAL R2 URLS
+          console.log('🔄 ProductsPage: Updating product with R2 URLs...');
+          const updatedProductData = TempImageUploader.mapTempUrlsToReal(
+            productData,
+            uploadResult.tempUrls,
+            uploadResult.uploadedUrls
+          );
+          console.log('📋 ProductsPage: Updated product data with R2 URLs:', updatedProductData);
+          
+          const finalUpdateResult = await api.products.update(result.data.id, updatedProductData);
+          console.log('📡 ProductsPage: Final update API response:', finalUpdateResult);
+          
+          if (finalUpdateResult.success) {
+            console.log('✅ ProductsPage: Product URLs updated with R2 links');
+            // Refresh products list to show updated URLs
+            loadData();
+          }
+        }
+      } else if (result.success) {
+        console.log('ℹ️ ProductsPage: No temporary images to upload');
+      }
+
       if (result.error) {
+        console.log('❌ ProductsPage: API returned error:', result.error);
         toast.error(result.error);
         return;
       }
 
       // Reset form
+      console.log('🧹 ProductsPage: Resetting form and closing dialog...');
       resetForm();
       setIsDialogOpen(false);
+      console.log('✅ ProductsPage: Product save process completed successfully');
     } catch (error) {
-      console.error('Error saving product:', error);
+      console.error('❌ ProductsPage: Error during product save process:', error);
+      console.error('🔍 ProductsPage: Error details:', {
+        editingMode: editingProduct ? 'update' : 'create',
+        productId: editingProduct?.id,
+        formData: formData,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       toast.error('Error al guardar el producto');
     } finally {
+      console.log('🏁 ProductsPage: Finishing save process, setting saving to false');
       setSaving(false);
     }
   };
@@ -260,20 +367,55 @@ export default function AdminProductsPage() {
   };
 
   const handleDelete = async (id: string) => {
+    console.log('\n🗑️ ProductsPage: Starting product deletion process...');
+    console.log('📋 ProductsPage: Product ID to delete:', id);
+    
+    // Find the product to get its images before deletion
+    const productToDelete = products.find(p => p.id === id);
+    if (productToDelete) {
+      console.log('📋 ProductsPage: Product details before deletion:', {
+        id: productToDelete.id,
+        name: productToDelete.name,
+        cover_image: productToDelete.cover_image,
+        hover_image: productToDelete.hover_image,
+        gallery_images: productToDelete.product_images?.length || 0
+      });
+    }
+
     if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+      console.log('✅ ProductsPage: User confirmed deletion');
       try {
-        const result = await api.products.delete(id);
+        console.log('🚀 ProductsPage: Calling server-side API to delete product...');
+        
+        // Call the new server-side API endpoint instead of the client-side API
+        const response = await fetch(`/api/products/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('📊 ProductsPage: Delete API response:', result);
         
         if (result.success) {
+          console.log('✅ ProductsPage: Product deleted successfully from database and R2');
           setProducts(products.filter(product => product.id !== id));
           toast.success('Producto eliminado correctamente');
         } else {
-          toast.error(result.error || 'Error al eliminar el producto');
+          console.error('❌ ProductsPage: Deletion failed:', result.error);
+          toast.error('Error al eliminar el producto: ' + result.error);
         }
       } catch (error) {
-        console.error('Error deleting product:', error);
+        console.error('❌ ProductsPage: Deletion error:', error);
         toast.error('Error al eliminar el producto');
       }
+    } else {
+      console.log('❌ ProductsPage: User cancelled deletion');
     }
   };
 
@@ -565,22 +707,58 @@ export default function AdminProductsPage() {
                 </div>
                 
                 <div className="grid md:grid-cols-2 gap-4">
-                  <ImageUpload
-                    currentImageUrl={formData.cover_image}
-                    onImageUploaded={(imageUrl: string) => setFormData({ ...formData, cover_image: imageUrl })}
-                    onImageRemoved={() => setFormData({ ...formData, cover_image: '' })}
-                    label="Imagen Principal *"
-                    folder="products/covers"
-                    required={true}
-                  />
+                  <div>
+                    {(() => {
+                      console.log('🖼️ ProductsPage: Rendering cover ImageUpload with currentImageUrl:', formData.cover_image);
+                      return null;
+                    })()}
+                    <ImageUpload
+                      currentImageUrl={formData.cover_image}
+                      onImageUploaded={(imageUrl: string) => {
+                        console.log('🖼️ ProductsPage: cover image uploaded, received imageUrl:', imageUrl);
+                        
+                        // Clean up any malformed temp IDs
+                        let cleanImageUrl = imageUrl;
+                        if (imageUrl.startsWith('temp_temp_')) {
+                          cleanImageUrl = imageUrl.replace('temp_temp_', '');
+                          console.log('🧹 ProductsPage: cleaned up malformed cover image ID:', cleanImageUrl);
+                        }
+                        
+                        setFormData({ ...formData, cover_image: cleanImageUrl });
+                        console.log('🖼️ ProductsPage: cover_image set in formData');
+                      }}
+                      onImageRemoved={() => setFormData({ ...formData, cover_image: '' })}
+                      label="Imagen Principal *"
+                      folder="products/covers"
+                      required={true}
+                    />
+                  </div>
                   
-                  <ImageUpload
-                    currentImageUrl={formData.hover_image}
-                    onImageUploaded={(imageUrl: string) => setFormData({ ...formData, hover_image: imageUrl })}
-                    onImageRemoved={() => setFormData({ ...formData, hover_image: '' })}
-                    label="Imagen Hover"
-                    folder="products/hover"
-                  />
+                  <div>
+                    {(() => {
+                      console.log('🖼️ ProductsPage: Rendering hover ImageUpload with currentImageUrl:', formData.hover_image);
+                      return null;
+                    })()}
+                    <ImageUpload
+                      currentImageUrl={formData.hover_image}
+                      onImageUploaded={(imageUrl: string) => {
+                        console.log('🖼️ ProductsPage: hover image uploaded, received imageUrl:', imageUrl);
+                        
+                        // Clean up any malformed temp IDs
+                        let cleanImageUrl = imageUrl;
+                        if (imageUrl.startsWith('temp_temp_')) {
+                          cleanImageUrl = imageUrl.replace('temp_temp_', '');
+                          console.log('🧹 ProductsPage: cleaned up malformed hover image ID:', cleanImageUrl);
+                        }
+                        
+                        setFormData({ ...formData, hover_image: cleanImageUrl });
+                        console.log('🖼️ ProductsPage: hover_image set in formData');
+                      }}
+                      onImageRemoved={() => setFormData({ ...formData, hover_image: '' })}
+                      label="Imagen Hover"
+                      folder="products/hover"
+                    />
+                  </div>
                 </div>
               </div>
 

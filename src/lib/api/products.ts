@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 import { R2Utils } from '@/lib/cloudflare-r2';
+import { checkServerEnvVars } from '@/lib/server-env-check';
 import type {
   ApiResponse,
   Product,
@@ -1034,12 +1035,16 @@ export const productsApi = {
 
   // Delete product
   async delete(id: string): Promise<ApiResponse<boolean>> {
+    console.log('\n🗑️ ProductsAPI.delete: Starting product deletion process...');
+    console.log('📋 ProductsAPI.delete: Product ID:', id);
+
     try {
       if (!isSupabaseConfigured()) {
-        console.log('⚠️ Supabase not configured, simulating product deletion');
+        console.log('⚠️ ProductsAPI.delete: Supabase not configured, simulating deletion');
         return createResponse(true, null);
       }
 
+      console.log('📋 ProductsAPI.delete: Fetching product data to get image URLs...');
       // Primero obtener el producto para conseguir las URLs de las imágenes
       const { data: product, error: fetchError } = await (supabase! as any)
         .from('products')
@@ -1047,51 +1052,85 @@ export const productsApi = {
         .eq('id', id)
         .single();
 
+      console.log('📊 ProductsAPI.delete: Product fetch result:', { product, fetchError });
+
       if (fetchError && fetchError.code !== 'PGRST116') {
+        console.log('❌ ProductsAPI.delete: Error fetching product:', fetchError);
         throw fetchError;
       }
 
+      console.log('🗑️ ProductsAPI.delete: Deleting product from database...');
       // Eliminar el producto de la base de datos
       const { error } = await (supabase! as any)
         .from('products')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.log('❌ ProductsAPI.delete: Database deletion failed:', error);
+        throw error;
+      }
+      console.log('✅ ProductsAPI.delete: Product deleted from database successfully');
 
       // Si el producto tenía imágenes, intentar eliminarlas de Cloudflare R2
       if (product) {
+        console.log('📋 ProductsAPI.delete: Product had images, preparing for R2 deletion...');
         const imagesToDelete: string[] = [];
         
         // Añadir imagen de portada
-        if (product.cover_image) imagesToDelete.push(product.cover_image);
+        if (product.cover_image) {
+          imagesToDelete.push(product.cover_image);
+          console.log('📷 ProductsAPI.delete: Added cover image for deletion:', product.cover_image);
+        }
         
         // Añadir imagen hover
-        if (product.hover_image) imagesToDelete.push(product.hover_image);
+        if (product.hover_image) {
+          imagesToDelete.push(product.hover_image);
+          console.log('🖼️ ProductsAPI.delete: Added hover image for deletion:', product.hover_image);
+        }
         
         // Añadir imágenes de galería
         if (product.product_images && Array.isArray(product.product_images)) {
           product.product_images.forEach((imageUrl: string) => {
             if (imageUrl && imageUrl.trim()) {
               imagesToDelete.push(imageUrl);
+              console.log('🖼️ ProductsAPI.delete: Added gallery image for deletion:', imageUrl);
             }
           });
         }
 
+        console.log(`📊 ProductsAPI.delete: Total images to delete from R2: ${imagesToDelete.length}`);
+        console.log('📋 ProductsAPI.delete: Images list:', imagesToDelete);
+
         // Eliminar todas las imágenes de R2 en paralelo (no bloquear si falla)
-        const deletePromises = imagesToDelete.map(async (imageUrl) => {
+        console.log('🔍 ProductsAPI.delete: Starting R2 image deletion. Checking environment...');
+        checkServerEnvVars(); // Debug de variables de entorno del servidor
+        
+        const deletePromises = imagesToDelete.map(async (imageUrl, index) => {
+          console.log(`🗑️ ProductsAPI.delete: Deleting image ${index + 1}/${imagesToDelete.length}: ${imageUrl}`);
           try {
-            await R2Utils.deleteProductImageByUrl(imageUrl);
-            console.log(`✅ Imagen eliminada de R2: ${imageUrl}`);
+            const result = await R2Utils.deleteProductImageByUrl(imageUrl);
+            console.log(`✅ ProductsAPI.delete: Image ${index + 1} deleted successfully:`, { imageUrl, result });
+            return { success: true, imageUrl, result };
           } catch (error) {
-            console.warn(`⚠️ No se pudo eliminar imagen de R2: ${imageUrl}`, error);
+            console.warn(`⚠️ ProductsAPI.delete: Could not delete image ${index + 1}:`, { imageUrl, error });
             // No fallar la operación completa si no se puede eliminar la imagen
+            return { success: false, imageUrl, error };
           }
         });
 
-        await Promise.allSettled(deletePromises);
+        console.log('⏳ ProductsAPI.delete: Waiting for all R2 deletions to complete...');
+        const deleteResults = await Promise.allSettled(deletePromises);
+        console.log('📊 ProductsAPI.delete: R2 deletion results:', deleteResults);
+
+        const successful = deleteResults.filter(r => r.status === 'fulfilled').length;
+        const failed = deleteResults.filter(r => r.status === 'rejected').length;
+        console.log(`📈 ProductsAPI.delete: R2 deletion summary - Success: ${successful}, Failed: ${failed}`);
+      } else {
+        console.log('ℹ️ ProductsAPI.delete: Product had no images to delete from R2');
       }
 
+      console.log('✅ ProductsAPI.delete: Product deletion process completed successfully');
       return createResponse(true, null);
     } catch (error) {
       return createResponse(false, handleError(error));

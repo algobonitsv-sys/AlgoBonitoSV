@@ -64,19 +64,30 @@ export function useFileUpload(): UseFileUploadResult {
 
   const deleteFile = async (imageUrl: string): Promise<DeleteResponse> => {
     try {
-      const response = await fetch(`/api/upload?url=${encodeURIComponent(imageUrl)}`, {
-        method: 'DELETE',
+      console.log('🗑️ Attempting to delete image:', imageUrl);
+      
+      const response = await fetch('/api/images/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ imageUrl }),
       });
 
       const result = await response.json();
+      
+      console.log('🗑️ Delete API response:', result);
       
       if (!response.ok) {
         throw new Error(result.error || 'Error al eliminar el archivo');
       }
 
-      return result;
+      return {
+        success: true,
+        ...result
+      };
     } catch (error) {
-      console.error('Error deleting file:', error);
+      console.error('❌ Error deleting file:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido al eliminar el archivo'
