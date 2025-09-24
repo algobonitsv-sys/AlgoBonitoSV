@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/supabaseServer';
 import * as R2Utils from '@/lib/cloudflare-r2';
 
-export async function DELETE(
-  request: NextRequest,
-  context: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, context: { params: { id: string } }): Promise<Response> {
   try {
     console.log('\n🚀 Products DELETE API: Starting deletion...');
     const productId = context.params.id;
