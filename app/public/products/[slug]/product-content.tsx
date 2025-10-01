@@ -251,83 +251,135 @@ export default function ProductGallery({
 
       {/* Columna derecha - Info producto */}
       <div className="flex flex-col gap-8">
-        <div>
-          {/* Category / Subcategory */}
+        <div className="space-y-4">
+          {/* Breadcrumb / Category Navigation */}
           {(product.categories?.name || product.subcategories?.name || product.category || product.subcategory) && (
-            <div className="text-sm text-muted-foreground mb-2 flex items-center gap-1">
-              <span className="text-xs uppercase tracking-wide font-medium">Categoría:</span>
+            <nav className="flex items-center space-x-1 text-sm text-muted-foreground">
+              <span>Inicio</span>
+              <span className="mx-1">/</span>
+              <span>Productos</span>
               {(product.categories?.name || product.category) && (
-                <span className="capitalize bg-muted px-2 py-1 rounded-md text-xs">
-                  {product.categories?.name || product.category}
-                </span>
-              )}
-              {(product.subcategories?.name || product.subcategory) && (product.categories?.name || product.category) && (
-                <span className="text-muted-foreground/60">/</span>
+                <>
+                  <span className="mx-1">/</span>
+                  <span className="text-foreground font-medium">
+                    {product.categories?.name || product.category}
+                  </span>
+                </>
               )}
               {(product.subcategories?.name || product.subcategory) && (
-                <span className="capitalize bg-muted px-2 py-1 rounded-md text-xs">
-                  {product.subcategories?.name || product.subcategory}
-                </span>
+                <>
+                  <span className="mx-1">/</span>
+                  <span className="text-foreground font-medium">
+                    {product.subcategories?.name || product.subcategory}
+                  </span>
+                </>
               )}
+            </nav>
+          )}
+
+          {/* Product Title and Basic Info */}
+          <div className="space-y-3">
+            <h1 className="font-headline text-3xl md:text-4xl font-bold tracking-tight leading-tight">{product.name}</h1>
+            
+            <div className="flex items-baseline gap-3">
+              <p className="text-3xl font-bold text-foreground">${product.price.toFixed(2)}</p>
+            </div>
+          </div>
+
+          {/* Product Description */}
+          {product.description && (
+            <div className="prose prose-gray max-w-none">
+              <p className="text-muted-foreground text-base leading-relaxed">{product.description}</p>
             </div>
           )}
-          <h1 className="font-headline text-3xl md:text-4xl font-bold tracking-tight">{product.name}</h1>
-          <div className="mt-2 flex items-center gap-4">
-            <p className="text-2xl font-semibold text-foreground">${product.price.toFixed(2)}</p>
-            {product.stock !== undefined && product.stock !== null && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Stock:</span>
-                <span className={`text-sm font-medium px-2 py-1 rounded-md ${
-                  product.stock > 10 
-                    ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' 
-                    : product.stock > 0 
-                      ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400' 
-                      : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-                }`}>
-                  {product.stock > 0 ? `${product.stock} unidades` : 'Sin stock'}
+        </div>
+
+        {/* Botón de carrito y stock alineados a la misma altura */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1">
+                <AddToCartButton product={productForCart as any} />
+              </div>
+
+              {/* Stock aligned to the right of the button and centered vertically */}
+              <div className="flex-shrink-0 flex items-center justify-center">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
+                  <span className="w-1.5 h-1.5 bg-current rounded-full mr-1.5"></span>
+                  1 en stock
                 </span>
               </div>
-            )}
+            </div>
+
+            <p className="text-xs text-muted-foreground mt-3">Este producto se añadirá a tu pedido y se confirmará por WhatsApp. No es un pago inmediato.</p>
           </div>
-          <p className="mt-4 text-muted-foreground text-base leading-relaxed">{product.description ?? ''}</p>
+
+          <Separator />
+
+          {/* Feature cards - hidden on mobile */}
+          <div className="hidden md:grid gap-4 md:grid-cols-3">
+            <Feature icon={CreditCard} title="Pagos" desc="Tarjeta, transferencia o contra entrega." />
+            <Feature icon={Truck} title="Envíos" desc="Local, nacional y retiro en tienda." />
+            <Feature icon={Shield} title="Garantía" desc="Piezas revisadas y soporte personalizado." />
+          </div>
+
+          {/* Beneficios - Enhanced Design */}
+          <div className="bg-gradient-to-br from-muted/30 to-muted/10 rounded-2xl border p-6 space-y-6">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Sparkles className="h-4 w-4 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">¿Por qué elegir este producto?</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Gem className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground text-sm">Materiales Premium</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">Acabados de alta calidad</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Leaf className="h-4 w-4 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground text-sm">Hipoalergénico</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">Ideal para uso diario</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground text-sm">Listo para Regalo</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">Presentación elegante</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <RefreshCw className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground text-sm">Garantía de Cambio</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">7 días sin uso</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Botón de carrito y aclaración */}
-        <div className="space-y-3">
-          <AddToCartButton product={productForCart as any} />
-          <p className="text-xs text-muted-foreground">Este producto se añadirá a tu pedido y se confirmará por WhatsApp. No es un pago inmediato.</p>
-        </div>
-
-        <Separator />
-
-        {/* Feature cards - hidden on mobile */}
-        <div className="hidden md:grid gap-4 md:grid-cols-3">
-          <Feature icon={CreditCard} title="Pagos" desc="Tarjeta, transferencia o contra entrega." />
-          <Feature icon={Truck} title="Envíos" desc="Local, nacional y retiro en tienda." />
-          <Feature icon={Shield} title="Garantía" desc="Piezas revisadas y soporte personalizado." />
-        </div>
-
-        {/* Beneficios */}
-        <div className="rounded-2xl border p-6 space-y-5">
-          <h2 className="text-sm font-semibold uppercase text-muted-foreground tracking-wide">Beneficios adicionales</h2>
-          <ul className="grid gap-3 text-sm text-muted-foreground">
-            <li className="flex gap-2"><Gem className="h-4 w-4" /> Materiales premium y acabados de calidad</li>
-            <li className="flex gap-2"><Leaf className="h-4 w-4" /> Hipoalergénico, ideal para uso diario</li>
-            <li className="flex gap-2"><Sparkles className="h-4 w-4" /> Presentación lista para regalo</li>
-            <li className="flex gap-2"><RefreshCw className="h-4 w-4" /> Cambios dentro de 7 días (sin uso)</li>
-          </ul>
-        </div>
       </div>
 
+      {/* Product Details Section - Outside grid for full width */}
+      <div className="container mt-16">
+        <ProductDetailsSection />
+      </div>
     </div>
-
-    {/* Product Details Section - Outside grid for full width */}
-    <div className="container mt-16">
-      <ProductDetailsSection />
-    </div>
-  </div>
-  );
-}
+    );
+  }
 
 // Product Details Section with Payment Methods, Mobile Accordion, Desktop Tabs
 function ProductDetailsSection() {
@@ -340,17 +392,26 @@ function ProductDetailsSection() {
 
   return (
     <div>
-      {/* Payment Methods */}
-      <div className="mb-12 mt-8 text-center md:text-left">
-        <h3 className="text-sm font-semibold uppercase text-muted-foreground mb-2">Paga con Confianza</h3>
-        <div className="flex items-center gap-8 justify-center md:justify-start">
+      {/* Payment Methods - Enhanced */}
+      <div className="mb-12 mt-8">
+        <div className="text-center md:text-left mb-6">
+          <h3 className="text-lg font-semibold text-foreground mb-2">Opciones de Pago Seguras</h3>
+          <p className="text-sm text-muted-foreground">Elige la forma de pago que más te convenga</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {paymentMethods.map(method => (
-            <div key={method.text} className="flex flex-col items-center text-muted-foreground min-w-[80px] px-4">
-              {/* Icon wrapper: center icon both vertically and horizontally */}
-              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-transparent">
-                <method.icon className="h-7 w-7" />
+            <div key={method.text} className="flex items-center gap-3 p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors">
+              <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+                <method.icon className="h-5 w-5 text-gray-300 dark:text-gray-400" />
               </div>
-              <span className="text-xs text-center mt-1">{method.text}</span>
+              <div>
+                <p className="font-medium text-sm text-foreground">{method.text}</p>
+                <p className="text-xs text-muted-foreground">
+                  {method.text === 'Tarjetas' && 'Visa, Mastercard'}
+                  {method.text === 'Transferencia' && 'Banco a banco'}
+                  {method.text === 'Contra entrega' && 'Pago al recibir'}
+                </p>
+              </div>
             </div>
           ))}
         </div>
