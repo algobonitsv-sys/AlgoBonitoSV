@@ -62,7 +62,7 @@ export default function AddToCartButton({ product }: { product: ProductMinimal }
 
   return (
     <div className="flex flex-col sm:flex-row gap-3 w-full">
-      <div className="flex items-center gap-3 rounded-full border bg-background px-4 py-2 w-full sm:w-auto">
+      <div className="flex items-center gap-3 rounded-full border bg-background px-3 py-2 w-auto min-w-[88px]">
         <button type="button" onClick={sub} aria-label="Disminuir" className="p-1 disabled:opacity-40" disabled={qty <= 1}>
           <Minus className="h-4 w-4" />
         </button>

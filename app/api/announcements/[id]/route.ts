@@ -9,13 +9,13 @@ function getSupabaseClient() {
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+  context: any
+): Promise<NextResponse> {
   try {
     const supabase = getSupabaseClient();
     
     const body = await request.json();
-    const { id } = params;
+    const { id } = context?.params || {};
 
     const { data: announcement, error } = await supabase
       .from('announcements')
@@ -41,12 +41,12 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+  context: any
+): Promise<NextResponse> {
   try {
     const supabase = getSupabaseClient();
     
-    const { id } = params;
+    const { id } = context?.params || {};
 
     const { error } = await supabase
       .from('announcements')
