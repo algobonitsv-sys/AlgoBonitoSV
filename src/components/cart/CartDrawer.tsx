@@ -300,49 +300,62 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
                 ) : (
                   <div className="p-4">
                     <div className="space-y-4">
-                      {items.map((item) => (
-                        <div key={item.product_id} className="flex items-center space-x-4 py-4 border-b">
-                          {item.image && (
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className="h-16 w-16 object-cover rounded"
-                            />
-                          )}
-                          
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-medium text-gray-900 truncate">
-                              {item.name}
-                            </h4>
-                            <p className="text-sm text-gray-500">${item.price}</p>
-                          </div>
+                      {items.map((item) => {
+                        // Debug: Log cart item data
+                        console.log('Cart item:', item);
+                        console.log('Item category:', item.category);
+                        console.log('Item subcategory:', item.subcategory);
+                        
+                        return (
+                          <div key={item.product_id} className="flex items-center space-x-4 py-4 border-b">
+                            {item.image && (
+                              <img
+                                src={item.image}
+                                alt={item.name}
+                                className="h-16 w-16 object-cover rounded-full"
+                              />
+                            )}
 
-                          <div className="flex items-center space-x-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-medium text-gray-900 truncate">
+                                {item.name}
+                              </h4>
+                              { (item.category || item.subcategory) && (
+                                <p className="text-xs text-gray-500 truncate">
+                                  {item.category && <span className="mr-1">{item.category}</span>}
+                                  {item.subcategory && <span className="text-gray-400">/ {item.subcategory}</span>}
+                                </p>
+                              )}
+                              <p className="text-sm text-gray-500">${item.price}</p>
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
+                                className="p-1 rounded-md hover:bg-gray-100"
+                              >
+                                <Minus className="h-4 w-4" />
+                              </button>
+
+                              <span className="w-8 text-center text-sm">{item.quantity}</span>
+
+                              <button
+                                onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                                className="p-1 rounded-md hover:bg-gray-100"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+                            </div>
+
                             <button
-                              onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
-                              className="p-1 rounded-md hover:bg-gray-100"
+                              onClick={() => removeItem(item.product_id)}
+                              className="p-1 rounded-md hover:bg-gray-100 text-red-500"
                             >
-                              <Minus className="h-4 w-4" />
-                            </button>
-                            
-                            <span className="w-8 text-center text-sm">{item.quantity}</span>
-                            
-                            <button
-                              onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
-                              className="p-1 rounded-md hover:bg-gray-100"
-                            >
-                              <Plus className="h-4 w-4" />
+                              <X className="h-4 w-4" />
                             </button>
                           </div>
-
-                          <button
-                            onClick={() => removeItem(item.product_id)}
-                            className="p-1 rounded-md hover:bg-gray-100 text-red-500"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}

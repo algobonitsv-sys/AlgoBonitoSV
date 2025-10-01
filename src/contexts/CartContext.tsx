@@ -36,6 +36,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items]);
 
   const addItem = (newItem: Omit<CartItem, 'id'>) => {
+    // Debug: Log what data CartContext receives
+    console.log('CartContext addItem received:', newItem);
+    console.log('Category in CartContext:', newItem.category);
+    console.log('Subcategory in CartContext:', newItem.subcategory);
+    
     setItems(currentItems => {
       const existingItemIndex = currentItems.findIndex(
         item => item.product_id === newItem.product_id

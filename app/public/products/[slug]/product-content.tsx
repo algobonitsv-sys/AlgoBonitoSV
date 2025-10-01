@@ -189,13 +189,26 @@ export default function ProductGallery({
 
   // Prepare product object for AddToCartButton
   const productSlug = product.name.toLowerCase().replace(/\s+/g, '-');
+  
+  // Debug: Log product data to see what's available
+  console.log('Product data:', product);
+  console.log('Categories:', product.categories);
+  console.log('Subcategories:', product.subcategories);
+  console.log('Category (flat):', product.category);
+  console.log('Subcategory (flat):', product.subcategory);
+  
   const productForCart = {
     id: (product as any).id ?? productSlug,
     slug: productSlug,
     name: product.name,
     price: product.price,
     images: allImages,
+    category: product.categories?.name || product.category,
+    subcategory: product.subcategories?.name || product.subcategory,
   };
+  
+  // Debug: Log productForCart to see what we're sending to AddToCartButton
+  console.log('productForCart being sent to AddToCartButton:', productForCart);
 
   return (
     <div className="container py-10">
@@ -296,22 +309,38 @@ export default function ProductGallery({
 
         {/* Botón de carrito y stock alineados a la misma altura */}
         <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex-1">
+          {/* Layout móvil: todo en una fila horizontal */}
+          <div className="md:hidden">
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
                 <AddToCartButton product={productForCart as any} />
               </div>
-
-              {/* Stock aligned to the right of the button and centered vertically */}
-              <div className="flex-shrink-0 flex items-center justify-center">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
-                  <span className="w-1.5 h-1.5 bg-current rounded-full mr-1.5"></span>
-                  1 en stock
+              {/* Stock en móvil */}
+              <div className="flex-shrink-0">
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
+                  <span className="w-1.5 h-1.5 bg-current rounded-full mr-1"></span>
+                  1 stock
                 </span>
               </div>
             </div>
-
-            <p className="text-xs text-muted-foreground mt-3">Este producto se añadirá a tu pedido y se confirmará por WhatsApp. No es un pago inmediato.</p>
           </div>
+
+          {/* Layout desktop: botón y stock separados */}
+          <div className="hidden md:flex items-center justify-between gap-4">
+            <div className="flex-1">
+              <AddToCartButton product={productForCart as any} />
+            </div>
+            {/* Stock aligned to the right of the button and centered vertically */}
+            <div className="flex-shrink-0 flex items-center justify-center">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
+                <span className="w-1.5 h-1.5 bg-current rounded-full mr-1.5"></span>
+                1 en stock
+              </span>
+            </div>
+          </div>
+
+          <p className="text-xs text-muted-foreground mt-3">Este producto se añadirá a tu pedido y se confirmará por WhatsApp. No es un pago inmediato.</p>
+        </div>
 
           <Separator />
 
