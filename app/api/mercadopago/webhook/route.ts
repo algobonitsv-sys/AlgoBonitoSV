@@ -1,153 +1,256 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
-// Inicializar Mercado Pago
-const client = new MercadoPagoConfig({
-  accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
-});
-
-const payment = new Payment(client);
-
-// Inicializar Supabase
+// Initialize Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function POST(request: NextRequest) {
+// Webhook signature validation function
+function validateWebhookSignature(
+  signature: string,
+  requestId: string,
+  dataId: string,
+  timestamp: string,
+  secret: string
+): boolean {
   try {
-    const body = await request.json();
-    console.log('Webhook received:', body);
+    // Create the manifest string as per Mercado Pago documentation
+    const manifest = `id:${dataId};request-id:${requestId};ts:${timestamp};`;
 
-    // Validar que es una notificación de pago
-    if (body.type === 'payment') {
-      const paymentId = body.data.id;
-      
-      if (!paymentId) {
-        console.error('No payment ID found in webhook');
-        return NextResponse.json({ error: 'No payment ID' }, { status: 400 });
-      }
+    // Create HMAC signature
+    const hmac = crypto.createHmac('sha256', secret);
+    hmac.update(manifest);
+    const calculatedSignature = hmac.digest('hex');
 
-      // Obtener información completa del pago
-      const paymentInfo = await payment.get({ id: paymentId });
-      console.log('Payment info:', JSON.stringify(paymentInfo, null, 2));
+    // Extract v1 hash from signature header
+    const signatureParts = signature.split(',');
+    let receivedHash = '';
 
-      // Actualizar el estado de la orden en la base de datos
-      const externalReference = paymentInfo.external_reference;
-      
-      if (externalReference) {
-        // Extraer el timestamp del external_reference para encontrar la orden
-        const orderTimestamp = externalReference.replace('order_', '');
-        
-        // Buscar la orden en la base de datos por timestamp aproximado
-        const { data: orders, error: orderError } = await supabase
-          .from('orders')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(10);
-
-        if (orderError) {
-          console.error('Error fetching orders:', orderError);
-        } else if (orders && orders.length > 0) {
-          // Por simplicidad, actualizamos la orden más reciente
-          // En producción deberías usar un ID más específico
-          const latestOrder = orders[0];
-          
-          let status = 'pending';
-          let paymentDetails = '';
-          
-          switch (paymentInfo.status) {
-            case 'approved':
-              status = 'paid';
-              paymentDetails = `Pago aprobado - ID: ${paymentId}`;
-              break;
-            case 'pending':
-              status = 'pending';
-              paymentDetails = `Pago pendiente - ID: ${paymentId}`;
-              break;
-            case 'rejected':
-              status = 'failed';
-              paymentDetails = `Pago rechazado - ID: ${paymentId}`;
-              break;
-            default:
-              paymentDetails = `Estado: ${paymentInfo.status} - ID: ${paymentId}`;
-          }
-
-          const { error: updateError } = await supabase
-            .from('orders')
-            .update({
-              status: status,
-              notes: `${latestOrder.notes || ''}\n${paymentDetails}`.trim(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', latestOrder.id);
-
-          if (updateError) {
-            console.error('Error updating order:', updateError);
-          } else {
-            console.log(`Order ${latestOrder.id} updated with payment status: ${status}`);
-          }
-        }
-      }
-
-      // Guardar información del pago en una tabla separada (opcional)
-      const { error: paymentLogError } = await supabase
-        .from('payments')
-        .insert({
-          payment_id: paymentInfo.id,
-          status: paymentInfo.status,
-          status_detail: paymentInfo.status_detail,
-          transaction_amount: paymentInfo.transaction_amount,
-          currency_id: paymentInfo.currency_id,
-          external_reference: paymentInfo.external_reference,
-          payer_email: paymentInfo.payer?.email,
-          payment_method_id: paymentInfo.payment_method_id,
-          payment_type_id: paymentInfo.payment_type_id,
-          raw_data: paymentInfo,
-          created_at: new Date().toISOString(),
-        })
-        .select();
-
-      if (paymentLogError) {
-        console.error('Error logging payment:', paymentLogError);
-        // No fallar el webhook por esto
+    for (const part of signatureParts) {
+      const [key, value] = part.split('=');
+      if (key === 'v1') {
+        receivedHash = value;
+        break;
       }
     }
 
-    return NextResponse.json({ received: true });
+    return calculatedSignature === receivedHash;
+  } catch (error) {
+    console.error('Error validating webhook signature:', error);
+    return false;
+  }
+}
+
+// Function to process payment notification
+async function processPaymentNotification(paymentId: string) {
+  try {
+    console.log(`Processing payment notification for ID: ${paymentId}`);
+
+    // Get full payment details from Mercado Pago API
+    const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: {
+        'Authorization': `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch payment: ${response.status} ${response.statusText}`);
+    }
+
+    const payment = await response.json();
+    console.log('Payment details received:', JSON.stringify(payment, null, 2));
+
+    // Extract relevant information
+    const {
+      id,
+      status,
+      status_detail,
+      payment_type_id,
+      transaction_amount,
+      external_reference,
+      date_created,
+      date_approved,
+      description
+    } = payment;
+
+    // Update payment status in database
+    const { error: updateError } = await supabase
+      .from('payments')
+      .upsert({
+        mercadopago_payment_id: id,
+        status,
+        status_detail,
+        payment_type: payment_type_id,
+        amount: transaction_amount,
+        external_reference,
+        date_created,
+        date_approved,
+        description,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'mercadopago_payment_id'
+      });
+
+    if (updateError) {
+      console.error('Error updating payment in database:', updateError);
+      throw updateError;
+    }
+
+    // If payment is approved, update order status
+    if (status === 'approved' && external_reference) {
+      const { error: orderError } = await supabase
+        .from('orders')
+        .update({
+          status: 'paid',
+          payment_date: date_approved,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', external_reference);
+
+      if (orderError) {
+        console.error('Error updating order status:', orderError);
+      } else {
+        console.log(`Order ${external_reference} marked as paid`);
+      }
+    }
+
+    console.log(`Payment ${paymentId} processed successfully`);
+    return true;
 
   } catch (error) {
-    console.error('Webhook error:', error);
+    console.error(`Error processing payment ${paymentId}:`, error);
+    throw error;
+  }
+}
+
+// Function to process merchant order notification
+async function processMerchantOrderNotification(orderId: string) {
+  try {
+    console.log(`Processing merchant order notification for ID: ${orderId}`);
+
+    // Get merchant order details from Mercado Pago
+    const response = await fetch(`https://api.mercadopago.com/merchant_orders/${orderId}`, {
+      headers: {
+        'Authorization': `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch merchant order: ${response.status}`);
+    }
+
+    const orderData = await response.json();
+    console.log('Merchant order details:', JSON.stringify(orderData, null, 2));
+
+    // Update order information in database if needed
+    // This is typically used for additional order tracking
+
+    console.log(`Merchant order ${orderId} processed successfully`);
+    return true;
+
+  } catch (error) {
+    console.error(`Error processing merchant order ${orderId}:`, error);
+    throw error;
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const headers = request.headers;
+
+    console.log('=== MERCADO PAGO WEBHOOK RECEIVED ===');
+    console.log('Headers:', Object.fromEntries(headers.entries()));
+    console.log('Body:', JSON.stringify(body, null, 2));
+
+    // Extract webhook data
+    const { action, type, data, live_mode, user_id } = body;
+
+    // Optional: Validate webhook signature if secret is configured
+    const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+    if (webhookSecret) {
+      const signature = headers.get('x-signature');
+      const requestId = headers.get('x-request-id');
+      const dataId = data?.id?.toString();
+
+      if (signature && requestId && dataId) {
+        // Extract timestamp from signature
+        const signatureParts = signature.split(',');
+        let timestamp = '';
+        for (const part of signatureParts) {
+          const [key, value] = part.split('=');
+          if (key === 'ts') {
+            timestamp = value;
+            break;
+          }
+        }
+
+        const isValidSignature = validateWebhookSignature(
+          signature,
+          requestId,
+          dataId,
+          timestamp,
+          webhookSecret
+        );
+
+        if (!isValidSignature) {
+          console.error('Invalid webhook signature');
+          return NextResponse.json(
+            { status: 'error', message: 'Invalid signature' },
+            { status: 401 }
+          );
+        }
+
+        console.log('Webhook signature validated successfully');
+      }
+    }
+
+    // Process different event types
+    switch (type) {
+      case 'payment':
+        if (action === 'payment.created' || action === 'payment.updated') {
+          await processPaymentNotification(data.id.toString());
+        }
+        break;
+
+      case 'merchant_order':
+        if (action === 'merchant_order.created' || action === 'merchant_order.updated') {
+          await processMerchantOrderNotification(data.id.toString());
+        }
+        break;
+
+      default:
+        console.log(`Unhandled webhook type: ${type}, action: ${action}`);
+    }
+
+    // Return success response (HTTP 200 or 201 as per Mercado Pago docs)
     return NextResponse.json(
-      { error: 'Webhook processing failed' },
-      { status: 500 }
+      { status: 'success', received: true },
+      { status: 200 }
+    );
+
+  } catch (error) {
+    console.error('Webhook processing error:', error);
+
+    // Still return 200 to Mercado Pago to avoid retries for processing errors
+    // (they expect 200 for successful receipt, even if processing fails)
+    return NextResponse.json(
+      { status: 'error', message: 'Processing failed but webhook received' },
+      { status: 200 }
     );
   }
 }
 
-// Mercado Pago también envía notificaciones via GET
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const topic = searchParams.get('topic');
-  const id = searchParams.get('id');
-
-  console.log('GET webhook received:', { topic, id });
-
-  if (topic === 'payment' && id) {
-    // Procesar el pago igual que en POST
-    try {
-      const paymentInfo = await payment.get({ id: id });
-      console.log('Payment info from GET:', JSON.stringify(paymentInfo, null, 2));
-      
-      // Aquí puedes duplicar la lógica del POST si es necesario
-      
-      return NextResponse.json({ received: true });
-    } catch (error) {
-      console.error('GET webhook error:', error);
-      return NextResponse.json({ error: 'Error processing payment' }, { status: 500 });
-    }
-  }
-
-  return NextResponse.json({ received: true });
+export async function GET() {
+  return NextResponse.json({
+    status: 'webhook endpoint active',
+    timestamp: new Date().toISOString(),
+    configured_events: ['payment.created', 'payment.updated', 'merchant_order.created', 'merchant_order.updated'],
+    signature_validation: process.env.MERCADOPAGO_WEBHOOK_SECRET ? 'enabled' : 'disabled'
+  });
 }

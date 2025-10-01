@@ -12,7 +12,7 @@ export { financeApi } from './finances';
 export { stockOrdersApi } from './stockOrders';
 
 // Authentication APIs
-export { authApi, useAuth, requireAuth, requireAdmin } from './auth';
+export { authApi, useAuth, useRequireAuth, useRequireAdmin } from './auth';
 
 // Re-export commonly used types
 export type {

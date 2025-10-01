@@ -42,13 +42,13 @@ const fallbackCategories = [
   },
   {
     name: "Piercings",
-    href: "/products/piercings",
+    href: "/public/products/piercings",
     image: "https://picsum.photos/800/600?v=94",
     dataAiHint: "piercings collection",
   },
   {
     name: "Accesorios",
-    href: "/products/accesorios",
+    href: "/public/products/accesorios",
     image: "https://picsum.photos/800/600?v=95",
     dataAiHint: "accessories collection",
   },

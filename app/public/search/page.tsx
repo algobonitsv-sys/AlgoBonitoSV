@@ -257,7 +257,7 @@ function SearchPageContent() {
                 const slug = generateSlug(product.name);
                 
                 return (
-                  <Link key={product.id} href={`/products/${slug}`} className="block">
+                  <Link key={product.id} href={`/public/products/${slug}`} className="block">
                     <Card className="group overflow-hidden transition-shadow duration-300 border-none bg-background shadow-none rounded-none">
                       <CardContent className="p-0">
                         <div className="aspect-[9/16] overflow-hidden relative">

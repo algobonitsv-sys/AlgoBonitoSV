@@ -109,7 +109,7 @@ const slug = generateSlug(product.name);
 
 return (
 <CarouselItem key={product.id} className="pl-1 md:pl-4 basis-1/2 md:basis-1/4">
-<Link href={`/products/${slug}`} className="block">
+                <Link href={`/public/products/${slug}`} className="block">
 <Card className="group overflow-hidden transition-shadow duration-300 border-none bg-transparent shadow-none rounded-none">
 <CardContent className="p-0">
 <div className="aspect-[9/16] overflow-hidden relative">

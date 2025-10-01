@@ -176,7 +176,7 @@ export default function AllProducts() {
             
             return (
               <div key={product.id} className={paddingClasses}>
-                <Link href={`/products/${slug}`} className="block">
+                <Link href={`/public/products/${slug}`} className="block">
                   <Card className="group overflow-hidden transition-shadow duration-300 border-none bg-background shadow-none rounded-none h-full flex flex-col">
                   <CardContent className="p-0 flex-grow">
                     <div className="aspect-[9/16] overflow-hidden relative h-full">

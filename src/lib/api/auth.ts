@@ -295,7 +295,7 @@ export const useAuth = () => {
 // MIDDLEWARE AND GUARDS
 // =====================================================
 
-export const requireAuth = (redirectTo = '/auth/login') => {
+export const useRequireAuth = (redirectTo = '/auth/login') => {
   const { user, loading } = useAuth();
   const router = useRouter();
 
@@ -308,7 +308,7 @@ export const requireAuth = (redirectTo = '/auth/login') => {
   return { user, loading };
 };
 
-export const requireAdmin = (redirectTo = '/') => {
+export const useRequireAdmin = (redirectTo = '/') => {
   const { user, isAdmin, loading } = useAuth();
   const router = useRouter();
 

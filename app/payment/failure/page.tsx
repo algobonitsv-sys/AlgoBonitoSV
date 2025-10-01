@@ -3,8 +3,13 @@ import { XCircle, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function PaymentFailurePage({ searchParams }: any) {
-  const paymentId = typeof searchParams?.payment_id === 'string' ? searchParams.payment_id : null;
-  const status = typeof searchParams?.status === 'string' ? searchParams.status : null;
+  // Extraer todos los parámetros que Mercado Pago puede enviar
+  const paymentId = searchParams?.payment_id || searchParams?.collection_id;
+  const status = searchParams?.status || searchParams?.collection_status;
+  const externalReference = searchParams?.external_reference;
+  const merchantOrderId = searchParams?.merchant_order_id;
+  const preferenceId = searchParams?.preference_id;
+  const paymentType = searchParams?.payment_type;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -25,7 +30,7 @@ export default function PaymentFailurePage({ searchParams }: any) {
           </ul>
         </div>
 
-        {(paymentId || status) && (
+        {(paymentId || status || externalReference || merchantOrderId) && (
           <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
             <h3 className="font-semibold text-gray-700 mb-3">Detalles del intento:</h3>
             <div className="space-y-2 text-sm">
@@ -41,14 +46,34 @@ export default function PaymentFailurePage({ searchParams }: any) {
                   <span className="ml-2 capitalize text-red-600">{status}</span>
                 </div>
               )}
+              {externalReference && (
+                <div>
+                  <span className="text-gray-500">Referencia:</span>
+                  <span className="ml-2 font-mono text-gray-800">{externalReference}</span>
+                </div>
+              )}
+              {merchantOrderId && (
+                <div>
+                  <span className="text-gray-500">Orden de Mercado Pago:</span>
+                  <span className="ml-2 font-mono text-gray-800">{merchantOrderId}</span>
+                </div>
+              )}
+              {paymentType && (
+                <div>
+                  <span className="text-gray-500">Tipo de pago:</span>
+                  <span className="ml-2 capitalize text-gray-800">{paymentType.replace('_', ' ')}</span>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         <div className="space-y-3">
-          <Button className="w-full bg-blue-600 hover:bg-blue-700" size="lg">
-            <RefreshCw className="mr-2 h-4 w-4" /> Intentar de nuevo
-          </Button>
+          <Link href="/checkout">
+            <Button className="w-full bg-blue-600 hover:bg-blue-700" size="lg">
+              <RefreshCw className="mr-2 h-4 w-4" /> Intentar de nuevo
+            </Button>
+          </Link>
 
           <Link href="/">
             <Button variant="outline" className="w-full" size="lg">
@@ -57,7 +82,9 @@ export default function PaymentFailurePage({ searchParams }: any) {
           </Link>
         </div>
 
-        <p className="text-xs text-gray-500 mt-6">Si continúas teniendo problemas, contáctanos y te ayudaremos.</p>
+        <p className="text-xs text-gray-500 mt-6">
+          Si el problema persiste, contacta con nuestro soporte técnico.
+        </p>
       </div>
     </div>
   );

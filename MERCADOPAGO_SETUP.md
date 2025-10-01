@@ -9,8 +9,11 @@ Hemos preparado todo el sistema para integrar Mercado Pago con tu aplicación:
 - ✅ `@types/uuid` para tipado
 
 ### 2. Estructura creada
-- ✅ Componente `MercadoPagoCheckout` en `/src/components/payment/`
 - ✅ API endpoints en `/app/api/mercadopago/`
+   - `create-preference/route.ts`
+   - `feedback/route.ts`
+   - `webhook/route.ts`
+- ✅ Botón reutilizable `MercadoPagoCheckoutButton` en `/src/components/payments/mercadopago-checkout-button.tsx`
 - ✅ Páginas de resultado de pago en `/app/payment/`
 - ✅ Integración con el carrito existente
 
@@ -29,7 +32,7 @@ Hemos preparado todo el sistema para integrar Mercado Pago con tu aplicación:
 
 ### 2. Configurar variables de entorno
 
-Edita el archivo `.env.local` y reemplaza:
+Edita el archivo `.env.local` y reemplaza los valores de prueba con tus credenciales (puedes usar las sandbox que compartiste):
 
 ```bash
 # Para desarrollo (sandbox/test)
@@ -70,10 +73,15 @@ Para producción, usa tu dominio real.
 ### 5. Probar la integración
 
 1. Inicia tu aplicación: `npm run dev`
-2. Agrega productos al carrito
-3. Ve al checkout
-4. Selecciona "Mercado Pago" como método de pago
-5. Completa el flujo de pago
+2. Agrega productos al carrito u obtén el listado desde el admin
+3. Usa el componente `MercadoPagoCheckoutButton` (o un `fetch` manual) para llamar a `/api/mercadopago/create-preference`
+4. Serás redirigido al checkout de Mercado Pago (usa tarjetas de prueba)
+5. Revisa los resultados:
+   - Páginas `/payment/success`, `/payment/failure`, `/payment/pending`
+   - Endpoint `/api/mercadopago/feedback` para depurar la respuesta de `back_urls`
+   - Webhook `/api/mercadopago/webhook` (utiliza ngrok en local) para confirmar la actualización en Supabase
+
+> 💡 **Importante:** en desarrollo utiliza siempre la URL `sandbox_init_point` que devuelve la API o el botón de pruebas en `/test-mp`. Si abres el `init_point` (checkout productivo) con tarjetas o usuarios de prueba, Mercado Pago mostrará el mensaje _"Una de las partes con la que intentás hacer el pago es de prueba"_. Para evitarlo, usa sandbox o inicia sesión con un comprador real cuando pruebes el flujo productivo.
 
 ## 📋 Características implementadas
 

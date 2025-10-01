@@ -31,8 +31,8 @@ const productCategories = {
 }
 
 const singleProductLinks = [
-    { title: "Piercings", href: "/products/piercings", description: "Ver todos los piercings" },
-    { title: "Accesorios", href: "/products/accesorios", description: "Ver todos los accesorios" },
+    { title: "Piercings", href: "/public/products/piercings", description: "Ver todos los piercings" },
+    { title: "Accesorios", href: "/public/products/accesorios", description: "Ver todos los accesorios" },
 ]
 
 const navLinks = [

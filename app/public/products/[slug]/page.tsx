@@ -82,7 +82,7 @@ async function RelatedProducts({ currentSlug }: { currentSlug: string }) {
           const slug = r.name.toLowerCase().replace(/\s+/g, '-');
           const image = r.cover_image || r.hover_image || '/placeholder-product.jpg';
           return (
-            <a key={r.id} href={`/products/${slug}`} className="group block">
+            <a key={r.id} href={`/public/products/${slug}`} className="group block">
               <div className="relative aspect-square overflow-hidden rounded-xl bg-muted ring-1 ring-border/40">
                 <Image src={image} alt={r.name} fill className="object-cover transition-all duration-500 group-hover:scale-105" />
               </div>
