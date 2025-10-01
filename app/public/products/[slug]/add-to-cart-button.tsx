@@ -63,19 +63,25 @@ export default function AddToCartButton({ product }: { product: ProductMinimal }
           })}
         </div>
       )}
-  <div className="flex flex-col sm:flex-row gap-3 w-full">
-  <div className="flex items-center gap-3 rounded-full border bg-background px-3 py-2 w-auto min-w-[88px]">
-        <button type="button" onClick={sub} aria-label="Disminuir" className="p-1 disabled:opacity-40" disabled={qty <= 1}>
-          <Minus className="h-4 w-4" />
-        </button>
-        <span className="text-base font-medium tabular-nums">{qty}</span>
-        <button type="button" onClick={add} aria-label="Aumentar" className="p-1">
-          <Plus className="h-4 w-4" />
-        </button>
-      </div>
-      <Button type="button" onClick={handleAdd} className="flex-1 rounded-full text-base font-medium py-6 shadow-md hover:shadow-xl transition-all">
-        {added ? <span className="flex items-center gap-2"><Check className="h-5 w-5" /> Añadido</span> : 'Añadir al pedido'}
-      </Button>
+      
+      {/* Label solo visible en desktop */}
+      <label className="hidden sm:block text-sm font-medium text-muted-foreground">Cantidad:</label>
+      
+      <div className="flex flex-col sm:flex-row gap-3 w-full">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between rounded-full border bg-background px-4 py-2 w-auto min-w-[160px] max-w-[180px] mx-auto sm:mx-0">
+            <button type="button" onClick={sub} aria-label="Disminuir" className="p-1 disabled:opacity-40" disabled={qty <= 1}>
+              <Minus className="h-4 w-4" />
+            </button>
+            <span className="text-base font-medium tabular-nums flex-1 text-center">{qty}</span>
+            <button type="button" onClick={add} aria-label="Aumentar" className="p-1">
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+        <Button type="button" onClick={handleAdd} className="flex-1 rounded-full text-base font-medium py-6 shadow-md hover:shadow-xl transition-all">
+          {added ? <span className="flex items-center gap-2"><Check className="h-5 w-5" /> Añadido</span> : 'Añadir al pedido'}
+        </Button>
       </div>
     </div>
   );
