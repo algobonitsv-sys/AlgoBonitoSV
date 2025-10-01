@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { Gem } from 'lucide-react';
 
 const announcements = [
@@ -11,6 +12,13 @@ const announcements = [
 ];
 
 export default function AnnouncementBar() {
+  const pathname = usePathname();
+  
+  // Hide announcement bar on admin routes
+  if (pathname && (pathname.startsWith('/admin') || pathname.startsWith('/adminpanel'))) {
+    return null;
+  }
+
   const duplicatedAnnouncements = [...announcements, ...announcements];
   // Ref para obtener la altura real
   const barRef = React.useRef<HTMLDivElement>(null);

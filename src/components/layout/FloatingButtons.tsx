@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Instagram } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { Button } from "@/components/ui/button";
@@ -10,6 +13,12 @@ import {
 } from "@/components/ui/tooltip";
 
 export default function FloatingButtons() {
+  const pathname = usePathname();
+  
+  // Hide floating buttons on admin routes
+  if (pathname && (pathname.startsWith('/admin') || pathname.startsWith('/adminpanel'))) {
+    return null;
+  }
   return (
     <TooltipProvider>
       <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
