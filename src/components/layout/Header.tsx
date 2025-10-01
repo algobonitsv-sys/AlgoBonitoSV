@@ -30,10 +30,10 @@ const singleProductLinks: { title: string; href: string; description: string; }[
 ];
 
 const navLinks = [
-  { href: "/about", label: "Sobre Nosotros" },
-  { href: "/gallery", label: "Nuestros Clientes" },
-  { href: "/materials", label: "Materiales" },
-  { href: "/contact", label: "Contacto" },
+  { href: "/public/about", label: "Sobre Nosotros" },
+  { href: "/public/gallery", label: "Nuestros Clientes" },
+  { href: "/public/materials", label: "Materiales" },
+  { href: "/public/contact", label: "Contacto" },
 ];
 
 export default function Header() {
@@ -149,7 +149,7 @@ export default function Header() {
       router.push('/admin');
     } else {
       console.log('🔍 Regular search, redirecting to search page');
-      router.push(`/search?q=${encodeURIComponent(value)}`);
+      router.push(`/public/search?q=${encodeURIComponent(value)}`);
     }
     
     setIsSearchOpen(false);
@@ -266,7 +266,7 @@ export default function Header() {
                           <div className="ml-4 mt-2 space-y-2">
                             {/* View all products - moved to top */}
                             <Link
-                              href="/products"
+                              href="/public/products"
                               onClick={() => setIsMobileMenuOpen(false)}
                               className="block p-2 text-sm font-medium text-black hover:bg-muted/30 rounded-md transition-colors"
                             >
@@ -294,7 +294,7 @@ export default function Header() {
                                   {isExpanded && (
                                     <div className="ml-4 mt-1 space-y-1">
                                       <Link
-                                        href={`/products?category=${categorySlug}`}
+                                        href={`/public/products?category=${categorySlug}`}
                                         onClick={() => setIsMobileMenuOpen(false)}
                                         className="block p-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/20 rounded-md transition-colors"
                                       >
@@ -303,7 +303,7 @@ export default function Header() {
                                       {subcategories.map((subcategory) => (
                                         <Link
                                           key={subcategory}
-                                          href={`/products?category=${categorySlug}&material=${subcategory.toLowerCase().replace(/\s/g, '-')}`}
+                                          href={`/public/products?category=${categorySlug}&material=${subcategory.toLowerCase().replace(/\s/g, '-')}`}
                                           onClick={() => setIsMobileMenuOpen(false)}
                                           className="block p-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/20 rounded-md transition-colors"
                                         >
@@ -499,7 +499,7 @@ export default function Header() {
             <X className="h-5 w-5" />
           </button>
           <div className="w-full flex justify-center mt-6 mb-1 pb-4 border-b">
-            <Link href="/products" className="font-bold text-lg hover:underline" onClick={() => {
+            <Link href="/public/products" className="font-bold text-lg hover:underline" onClick={() => {
               console.log('🔗 Closing categories via "Ver todos los productos" link');
               setShowCategories(false);
             }}>
@@ -510,7 +510,7 @@ export default function Header() {
             {Object.entries(productCategories).map(([category, subcategories]) => (
               <div key={category} className="flex flex-col w-32">
                 <Link
-                  href={`/products?category=${category.toLowerCase().replace(/\s/g, '-')}`}
+                  href={`/public/products?category=${category.toLowerCase().replace(/\s/g, '-')}`}
                   className="font-headline font-bold text-lg mb-4 text-left w-full hover:text-foreground/80 transition-colors"
                   onClick={() => {
                     console.log('🔗 Closing categories via category link:', category);
@@ -523,7 +523,7 @@ export default function Header() {
                   {subcategories.map(subcategory => (
                     <li key={subcategory}>
                       <Link
-                        href={`/products?category=${category.toLowerCase().replace(/\s/g, '-')}&material=${subcategory.toLowerCase().replace(/\s/g, '-')}`}
+                        href={`/public/products?category=${category.toLowerCase().replace(/\s/g, '-')}&material=${subcategory.toLowerCase().replace(/\s/g, '-')}`}
                         className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors"
                         onClick={() => {
                           console.log('🔗 Closing categories via subcategory link:', subcategory);

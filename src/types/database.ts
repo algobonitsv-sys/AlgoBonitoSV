@@ -55,6 +55,11 @@ export interface Database {
         Insert: ProductInventoryInsert;
         Update: ProductInventoryUpdate;
       };
+      announcements: {
+        Row: Announcement;
+        Insert: AnnouncementInsert;
+        Update: AnnouncementUpdate;
+      };
       sale_items: {
         Row: SaleItem;
         Insert: SaleItemInsert;
@@ -283,6 +288,27 @@ export interface NameInsert {
 
 export interface NameUpdate {
   name?: string;
+}
+
+export interface Announcement {
+  id: string;
+  text: string;
+  is_active: boolean;
+  order_position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AnnouncementInsert {
+  text: string;
+  is_active?: boolean;
+  order_position?: number;
+}
+
+export interface AnnouncementUpdate {
+  text?: string;
+  is_active?: boolean;
+  order_position?: number;
 }
 
 export interface Material {

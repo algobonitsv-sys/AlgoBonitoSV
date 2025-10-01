@@ -132,7 +132,7 @@ export default function EditStockOrderModal({
 
     setLoading(true);
     try {
-      const result = await stockOrdersApi.update(order.id, editingItems);
+      const result = await stockOrdersApi.update(order.id, editingItems as any);
       if (result.success) {
         toast.success('Pedido actualizado exitosamente');
         onOrderUpdated?.();

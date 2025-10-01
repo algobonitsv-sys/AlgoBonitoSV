@@ -68,21 +68,10 @@ export default function CategoryCarousel() {
       try {
         setIsLoading(true);
         const response = await api.categories.getAll();
-        
         if (response.success && response.data) {
-          // Filter categories that have portada_historias defined
-          const categoriesWithImages = response.data.filter((cat: Category) => cat.portada_historias);
-          
-          if (categoriesWithImages.length > 0) {
-            setCategories(categoriesWithImages);
-          } else {
-            // If no categories have images, show all categories with fallback images
-            console.log('No categories with portada_historias found, using all categories with fallback images');
-            setCategories(response.data);
-          }
+          setCategories(response.data);
         } else {
           console.error('Failed to load categories:', response.error);
-          // Use empty array on error, will show loading state
           setCategories([]);
         }
       } catch (error) {
@@ -92,7 +81,6 @@ export default function CategoryCarousel() {
         setIsLoading(false);
       }
     };
-
     loadCategories();
   }, []);
 
@@ -101,12 +89,12 @@ export default function CategoryCarousel() {
   };
 
   const getCategoryImage = (category: Category) => {
-    return category.portada_historias || "https://picsum.photos/200/200?v=default";
+  return category.portada_historias || "https://img.freepik.com/foto-gratis/fondo-textura-abstracta_1258-30553.jpg?semt=ais_hybrid&w=740&q=80";
   };
 
   const getCategoryHoverImage = (category: Category) => {
-    // Use portada_cards as hover or same image as fallback
-    return category.portada_cards || getCategoryImage(category);
+  // Use portada_cards as hover o mismo placeholder si no hay
+  return category.portada_cards || "https://img.freepik.com/foto-gratis/fondo-textura-abstracta_1258-30553.jpg?semt=ais_hybrid&w=740&q=80";
   };
 
   if (isLoading) {

@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
                            activeVars.secretAccessKey && activeVars.secretAccessKey.trim() && 
                            activeVars.bucketName && activeVars.bucketName.trim());
 
-    const missing = [];
+    const missing: string[] = [];
     if (!activeVars.accountId) missing.push('CLOUDFLARE_ACCOUNT_ID');
     if (!activeVars.accessKeyId) missing.push('CLOUDFLARE_ACCESS_KEY_ID'); 
     if (!activeVars.secretAccessKey) missing.push('CLOUDFLARE_SECRET_ACCESS_KEY');

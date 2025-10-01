@@ -65,16 +65,7 @@ export default function FullWidthCategoryCarousel() {
         const response = await api.categories.getAll();
         
         if (response.success && response.data) {
-          // Filter categories that have portada_cards defined
-          const categoriesWithCards = response.data.filter((cat: Category) => cat.portada_cards);
-          
-          if (categoriesWithCards.length > 0) {
-            setCategories(categoriesWithCards);
-          } else {
-            // If no categories have cards images, show all categories with fallback images
-            console.log('No categories with portada_cards found, using all categories with fallback images');
-            setCategories(response.data);
-          }
+          setCategories(response.data);
         } else {
           console.error('Failed to load categories:', response.error);
           setCategories([]);
@@ -95,7 +86,7 @@ export default function FullWidthCategoryCarousel() {
   };
 
   const getCategoryImage = (category: Category) => {
-    return category.portada_cards || "https://picsum.photos/800/600?v=default";
+  return category.portada_cards || "https://img.freepik.com/foto-gratis/fondo-textura-abstracta_1258-30553.jpg?semt=ais_hybrid&w=740&q=80";
   };
   return (
     <section className="py-12 sm:py-16 bg-background">

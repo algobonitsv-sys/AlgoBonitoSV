@@ -33,7 +33,7 @@ export function FiltersBarClient({ categories, materials, currentCategory, curre
     if (opts.resetPage) params.delete('page');
     if (currentSort) params.set('sort', currentSort); else params.delete('sort');
     const qs = params.toString();
-    router.push(qs ? `/products?${qs}` : '/products');
+    router.push(qs ? `/public/products?${qs}` : '/public/products');
   }
 
   useEffect(() => {
@@ -65,12 +65,12 @@ export function FiltersBarClient({ categories, materials, currentCategory, curre
       <div className="flex flex-col gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Categoría</span>
         <div className="flex flex-wrap gap-2">
-          {categories.map(cat => {
+          {categories.map((cat, index) => {
             const slug = slugify(cat);
             const active = slug === pendingCategory;
             return (
               <button
-                key={slug}
+                key={`${slug}-${index}`} // Use index to ensure uniqueness
                 onClick={() => toggleCategory(cat)}
                 aria-pressed={active}
                 className={`px-3 py-1.5 rounded-full border text-xs transition-colors ${active ? 'bg-muted/90 text-foreground border-muted-foreground/40 shadow-inner' : 'hover:bg-muted/40 hover:border-muted'}`}
@@ -82,12 +82,12 @@ export function FiltersBarClient({ categories, materials, currentCategory, curre
       <div className="flex flex-col gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Material</span>
         <div className="flex flex-wrap gap-2">
-          {materials.map(mat => {
+          {materials.map((mat, index) => {
             const slug = slugify(mat);
             const active = slug === pendingMaterial;
             return (
               <button
-                key={slug}
+                key={`${slug}-${index}`} // Use index to ensure uniqueness
                 onClick={() => toggleMaterial(mat)}
                 aria-pressed={active}
                 className={`px-3 py-1.5 rounded-full border text-xs transition-colors ${active ? 'bg-muted/90 text-foreground border-muted-foreground/40 shadow-inner' : 'hover:bg-muted/40 hover:border-muted'}`}

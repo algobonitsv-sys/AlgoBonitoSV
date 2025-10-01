@@ -18,8 +18,11 @@ interface ProductsControlsClientProps {
 const sortOptions: { key: string; label: string }[] = [
   { key: '', label: 'Por defecto' },
   { key: 'nombre', label: 'Nombre (A-Z)' },
+  { key: 'nombre-desc', label: 'Nombre (Z-A)' },
   { key: 'nuevo', label: 'Más nuevos' },
+  { key: 'antiguo', label: 'Más antiguos' },
   { key: 'precio', label: 'Precio (menor)' },
+  { key: 'precio-desc', label: 'Precio (mayor)' },
 ];
 
 export function ProductsControlsClient(props: ProductsControlsClientProps) {
@@ -42,7 +45,7 @@ export function ProductsControlsClient(props: ProductsControlsClientProps) {
     if (opts.sort) params.set('sort', opts.sort); else params.delete('sort');
     params.delete('page'); // reset page whenever changing sort
     const qs = params.toString();
-    return qs ? `/products?${qs}` : '/products';
+    return qs ? `/public/products?${qs}` : '/public/products';
   }, [searchParams, currentCategory, currentMaterial, currentMin, currentMax, globalMin, globalMax]);
 
   const applySort = (key: string) => {

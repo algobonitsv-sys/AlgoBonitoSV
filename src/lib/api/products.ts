@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { supabase } from '@/lib/supabaseClient';
 import { R2Utils } from '@/lib/cloudflare-r2';
 import { checkServerEnvVars } from '@/lib/server-env-check';

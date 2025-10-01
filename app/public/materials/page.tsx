@@ -145,7 +145,7 @@ export default function MaterialsPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-32 pb-8" style={{ paddingBottom: "48px" }}>
           {displayMaterials.map((material, index) => {
             // Para materiales del admin usar datos del admin, para respaldo usar formato original
             const isAdminData = materials.length > 0;
@@ -173,9 +173,9 @@ export default function MaterialsPage() {
           })}
         </div>
 
-        <div className="grid md:grid-cols-2 gap-12 text-lg">
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 text-lg px-4 md:px-0">
           {/* Sección de cuidado */}
-          <div className="space-y-4">
+          <div className="space-y-4 mb-8 md:mb-0">
             {careContent ? (
               <>
                 <h2 className="font-headline text-3xl flex items-center">

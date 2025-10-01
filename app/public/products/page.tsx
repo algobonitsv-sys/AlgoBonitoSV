@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from "next/image";
 import Link from "next/link";
@@ -18,18 +18,20 @@ const categoryMapping: Record<string, string> = {
   'aros': 'aros',
   'collares': 'collares', 
   'anillos': 'anillos',
-  'pulseras': 'pulseras'
+  'pulseras': 'pulseras',
+  'piercings': 'piercings',
+  'accesorios': 'accesorios'
 };
 
 // Map material names from URL to database  
 const materialMapping: Record<string, string> = {
   'acero-quirurgico': 'Acero quirúrgico',
-  'acero-blanco': 'blanco',
-  'acero-dorado': 'dorado', 
+  'acero-blanco': 'Acero blanco',
+  'acero-dorado': 'Acero dorado', 
   'plata-925': 'Plata 925'
 };
 
-export default function ProductsPage() {
+function ProductsContent() {
   const searchParams = useSearchParams();
   
   // State management
@@ -141,13 +143,25 @@ export default function ProductsPage() {
       case 'name':
         filtered.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base' }));
         break;
+      case 'nombre-desc':
+      case 'name-desc':
+        filtered.sort((a, b) => (b.name || '').localeCompare(a.name || '', 'es', { sensitivity: 'base' }));
+        break;
       case 'nuevo':
       case 'newest':
         filtered.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
         break;
+      case 'antiguo':
+      case 'oldest':
+        filtered.sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+        break;
       case 'precio':
       case 'price':
         filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
+        break;
+      case 'precio-desc':
+      case 'price-desc':
+        filtered.sort((a, b) => (b.price || 0) - (a.price || 0));
         break;
       default:
         // Default sort by newest
@@ -180,22 +194,26 @@ export default function ProductsPage() {
 
   // Get unique categories and materials for filters
   const availableCategories = categories.map(c => c.name);
-  const availableMaterials = subcategories.map(s => s.name);
+  const availableMaterials = [...new Set(subcategories.map(s => s.name))]; // Remove duplicates
 
   // Generate page title based on filters
   const getPageTitle = () => {
+    // Buscar la categoría seleccionada en la lista dinámica
+    let title = '';
     if (categoryParam) {
-      const categoryName = categoryMapping[categoryParam.toLowerCase()];
-      if (categoryName) {
-        const capitalizedCategory = categoryName.charAt(0).toUpperCase() + categoryName.slice(1);
-        if (materialParam) {
-          const materialName = materialMapping[materialParam.toLowerCase()] || materialParam;
-          return `${capitalizedCategory} - ${materialName}`;
-        }
-        return capitalizedCategory;
+      const category = categories.find(c => c.name.toLowerCase() === categoryParam.toLowerCase());
+      if (category) {
+        title = category.name.charAt(0).toUpperCase() + category.name.slice(1);
       }
     }
-    return 'Nuestra Colección';
+    // Buscar la subcategoría seleccionada en la lista dinámica
+    if (materialParam) {
+      const subcategory = subcategories.find(s => s.name.toLowerCase() === materialParam.toLowerCase());
+      if (subcategory) {
+        title = title ? `${title} - ${subcategory.name}` : subcategory.name;
+      }
+    }
+    return title || 'Nuestra Colección';
   };
 
   const getPageDescription = () => {
@@ -225,10 +243,10 @@ export default function ProductsPage() {
       <div className="container pt-12 sm:pt-16 pb-8 sm:pb-12">
         <div className="mb-8 flex flex-col gap-6">
           <div className="text-center">
-            <h1 className="font-headline text-4xl sm:text-5xl font-bold tracking-tight">
+            <h1 className="font-headline text-4xl sm:text-5xl font-bold tracking-tight" style={{ paddingTop: "80px" }}>
               {getPageTitle()}
             </h1>
-            <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
+            <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground pb-4">
               {getPageDescription()}
             </p>
             {filteredProducts.length > 0 && (
@@ -237,7 +255,6 @@ export default function ProductsPage() {
               </p>
             )}
           </div>
-          
           <div className="flex flex-col gap-4">
             <ProductsControlsClient
               categories={availableCategories}
@@ -253,7 +270,6 @@ export default function ProductsPage() {
           </div>
         </div>
       </div>
-
       {/* Products Grid */}
       <div className="px-0 md:container">
         {paginatedProducts.length === 0 ? (
@@ -270,14 +286,12 @@ export default function ProductsPage() {
                 const slug = (product.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
                 const categoryName = getCategoryName(product.category_id);
                 const subcategoryName = getSubcategoryName(product.subcategory_id);
-                
                 // Calculate padding based on position in grid for mobile
                 const isLeftColumn = index % 2 === 0; // For mobile 2-column layout
                 const paddingClasses = `md:p-0 ${isLeftColumn ? 'pr-1' : 'pl-1'}`; // Only apply padding on mobile
-                
                 return (
                   <div key={product.id} className={paddingClasses}>
-                    <Link href={`/products/${slug}`} className="block">
+                    <Link href={`/public/products/${slug}`} className="block">
                       <Card className="group overflow-hidden transition-shadow duration-300 border-none bg-background shadow-none rounded-none h-full flex flex-col">
                         <CardContent className="p-0 flex-grow">
                         <div className="aspect-[9/16] overflow-hidden relative h-full">
@@ -327,7 +341,6 @@ export default function ProductsPage() {
                 );
               })}
             </div>
-
             {/* Pagination */}
             {totalPages > 1 && (
               <Pagination className="justify-center px-4 md:px-0">
@@ -335,18 +348,17 @@ export default function ProductsPage() {
                   {validCurrentPage > 1 && (
                     <PaginationItem>
                       <PaginationPrevious 
-                        href={`/products?${new URLSearchParams({
+                        href={`/public/products?${new URLSearchParams({
                           ...Object.fromEntries(searchParams?.entries() || []),
                           page: String(validCurrentPage - 1)
                         }).toString()}`}
                       />
                     </PaginationItem>
                   )}
-                  
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                     <PaginationItem key={page}>
                       <PaginationLink 
-                        href={`/products?${new URLSearchParams({
+                        href={`/public/products?${new URLSearchParams({
                           ...Object.fromEntries(searchParams?.entries() || []),
                           page: String(page)
                         }).toString()}`}
@@ -356,11 +368,10 @@ export default function ProductsPage() {
                       </PaginationLink>
                     </PaginationItem>
                   ))}
-                  
                   {validCurrentPage < totalPages && (
                     <PaginationItem>
                       <PaginationNext 
-                        href={`/products?${new URLSearchParams({
+                        href={`/public/products?${new URLSearchParams({
                           ...Object.fromEntries(searchParams?.entries() || []),
                           page: String(validCurrentPage + 1)
                         }).toString()}`}
@@ -374,5 +385,13 @@ export default function ProductsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <ProductsContent />
+    </Suspense>
   );
 }

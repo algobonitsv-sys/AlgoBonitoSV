@@ -24,8 +24,9 @@ export default function AboutAdminPage() {
   const [backgroundImageFile, setBackgroundImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [backgroundImagePreview, setBackgroundImagePreview] = useState<string | null>(null);
+  const [currentTab, setCurrentTab] = useState<'all' | 'active' | 'inactive'>('all');
   const [formData, setFormData] = useState<AboutContentInsert>({
-    section_type: 'hero',
+    section_type: 'mission',
     title: '',
     subtitle: '',
     content: '',
@@ -102,9 +103,13 @@ export default function AboutAdminPage() {
     if (type === 'image') {
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
+      // Clear URL when file is selected
+      setFormData({ ...formData, image_url: '' });
     } else {
       setBackgroundImageFile(file);
       setBackgroundImagePreview(URL.createObjectURL(file));
+      // Clear URL when file is selected
+      setFormData({ ...formData, background_image_url: '' });
     }
   };
 
@@ -314,14 +319,31 @@ export default function AboutAdminPage() {
 
   const getSectionTypeLabel = (type: string) => {
     const labels = {
-      hero: 'Sección Principal',
-      mission: 'Misión',
+      hero: 'Hero/Encabezado',
+      mission: 'Sección Principal',
       shipping: 'Envíos',
       payment: 'Métodos de Pago',
       returns: 'Devoluciones'
     };
     return labels[type as keyof typeof labels] || type;
   };
+
+  // Filter sections based on current tab
+  const filteredSections = aboutSections.filter(section => {
+    switch (currentTab) {
+      case 'active':
+        return section.is_active;
+      case 'inactive':
+        return !section.is_active;
+      case 'all':
+      default:
+        return true;
+    }
+  });
+
+  // Count sections for tabs
+  const activeSections = aboutSections.filter(s => s.is_active);
+  const inactiveSections = aboutSections.filter(s => !s.is_active);
 
   if (loading) {
     return (
@@ -375,8 +397,8 @@ export default function AboutAdminPage() {
                       <SelectValue placeholder="Selecciona el tipo" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="hero">Sección Principal</SelectItem>
-                      <SelectItem value="mission">Misión</SelectItem>
+                      <SelectItem value="hero">Hero/Encabezado</SelectItem>
+                      <SelectItem value="mission">Sección Principal</SelectItem>
                       <SelectItem value="shipping">Envíos</SelectItem>
                       <SelectItem value="payment">Métodos de Pago</SelectItem>
                       <SelectItem value="returns">Devoluciones</SelectItem>
@@ -589,27 +611,66 @@ export default function AboutAdminPage() {
               )}
 
               {/* Imagen principal */}
-              {(formData.section_type === 'mission') && (
+              {(['hero', 'mission'].includes(formData.section_type)) && (
                 <div className="space-y-4">
                   <Label>
                     <Image className="h-4 w-4 inline mr-2" />
                     Imagen Principal
                   </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Puedes usar una URL de imagen o subir un archivo. Solo se puede usar uno a la vez.
+                  </p>
                   
                   <div className="space-y-4">
-                    <Input
-                      placeholder="URL de la imagen"
-                      value={formData.image_url}
-                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="URL de la imagen"
+                        value={formData.image_url}
+                        onChange={(e) => {
+                          setFormData({ ...formData, image_url: e.target.value });
+                          // Clear file when URL is entered
+                          if (e.target.value) {
+                            setImageFile(null);
+                            setImagePreview(null);
+                          }
+                        }}
+                        className="flex-1"
+                      />
+                      {formData.image_url && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setFormData({ ...formData, image_url: '' })}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                     
                     <div className="text-center text-muted-foreground">o</div>
                     
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileChange(e, 'image')}
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileChange(e, 'image')}
+                        className="flex-1"
+                      />
+                      {imageFile && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setImageFile(null);
+                            setImagePreview(null);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   
                   {imagePreview && (
@@ -631,21 +692,60 @@ export default function AboutAdminPage() {
                     <Image className="h-4 w-4 inline mr-2" />
                     Imagen de Fondo
                   </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Puedes usar una URL de imagen o subir un archivo. Solo se puede usar uno a la vez.
+                  </p>
                   
                   <div className="space-y-4">
-                    <Input
-                      placeholder="URL de la imagen de fondo"
-                      value={formData.background_image_url}
-                      onChange={(e) => setFormData({ ...formData, background_image_url: e.target.value })}
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="URL de la imagen de fondo"
+                        value={formData.background_image_url}
+                        onChange={(e) => {
+                          setFormData({ ...formData, background_image_url: e.target.value });
+                          // Clear file when URL is entered
+                          if (e.target.value) {
+                            setBackgroundImageFile(null);
+                            setBackgroundImagePreview(null);
+                          }
+                        }}
+                        className="flex-1"
+                      />
+                      {formData.background_image_url && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setFormData({ ...formData, background_image_url: '' })}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                     
                     <div className="text-center text-muted-foreground">o</div>
                     
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileChange(e, 'background')}
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileChange(e, 'background')}
+                        className="flex-1"
+                      />
+                      {backgroundImageFile && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setBackgroundImageFile(null);
+                            setBackgroundImagePreview(null);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   
                   {backgroundImagePreview && (
@@ -674,8 +774,44 @@ export default function AboutAdminPage() {
       </div>
 
       {/* Lista de secciones */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {aboutSections.map((section) => (
+      <div className="space-y-6">
+        {/* Tabs */}
+        <div className="flex space-x-1 bg-muted p-1 rounded-lg w-fit">
+          <button
+            onClick={() => setCurrentTab('all')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              currentTab === 'all'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Todos ({aboutSections.length})
+          </button>
+          <button
+            onClick={() => setCurrentTab('active')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              currentTab === 'active'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Activos ({activeSections.length})
+          </button>
+          <button
+            onClick={() => setCurrentTab('inactive')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              currentTab === 'inactive'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Inactivos ({inactiveSections.length})
+          </button>
+        </div>
+
+        {/* Grid de secciones */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredSections.map((section) => (
           <Card key={section.id} className="relative">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
@@ -732,6 +868,7 @@ export default function AboutAdminPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => toggleActive(section)}
+                    title={section.is_active ? "Ocultar sección" : "Mostrar sección"}
                   >
                     {section.is_active ? (
                       <EyeOff className="h-4 w-4" />
@@ -744,6 +881,7 @@ export default function AboutAdminPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleEdit(section)}
+                    title="Editar sección"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -760,6 +898,30 @@ export default function AboutAdminPage() {
             </CardContent>
           </Card>
         ))}
+        </div>
+
+        {filteredSections.length === 0 && (
+          <div className="text-center py-12">
+            <Info className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
+              {currentTab === 'all' ? 'No hay secciones creadas' : 
+               currentTab === 'active' ? 'No hay secciones activas' : 
+               'No hay secciones inactivas'}
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {currentTab === 'all' 
+                ? 'Comienza agregando la primera sección para la página Sobre Nosotros'
+                : `No hay secciones ${currentTab === 'active' ? 'activas' : 'inactivas'} en este momento`
+              }
+            </p>
+            {currentTab === 'all' && (
+              <Button onClick={resetForm}>
+                <Plus className="h-4 w-4 mr-2" />
+                Crear primera sección
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {aboutSections.length === 0 && (

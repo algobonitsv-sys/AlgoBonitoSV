@@ -1,4 +1,4 @@
-
+// ...existing code...
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -629,7 +629,7 @@ export default function AdminPage() {
     <div className="space-y-8">
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-2">Panel de Control</h1>
-        <p className="text-muted-foreground">Resumen general y acceso rápido a todas las secciones</p>
+        <p className="text-muted-foreground" style={{ marginBottom: "12px" }}>Resumen general y acceso rápido a todas las secciones</p>
         {selectedPeriod && selectedPeriod.closure_date && (
           <div className="mt-2 text-xs text-gray-500">
             <span>Cierre de caja: </span>
@@ -683,7 +683,7 @@ export default function AdminPage() {
       </Card>
 
       {/* Financial Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" style={{ marginBottom: "12px" }}>
         {/* Ingreso por Productos */}
         <ExpandableCard
           title="Ingreso por Productos"
@@ -807,7 +807,7 @@ export default function AdminPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card style={{ marginTop: "12px", marginBottom: "12px" }}>
           <CardHeader>
             <CardTitle>Actividad Reciente</CardTitle>
             <CardDescription>Últimas acciones en el sistema</CardDescription>
@@ -817,27 +817,27 @@ export default function AdminPage() {
               {recentActivity.map((activity) => (
                 <div key={activity.id} className="flex items-center space-x-4 p-3 rounded-lg border">
                   <div className="flex-shrink-0">
-                    {activity.type === 'sale' && <DollarSign className="h-5 w-5 text-green-600" />}
-                    {activity.type === 'update' && <Settings className="h-5 w-5 text-blue-600" />}
-                    {activity.type === 'user' && <Users className="h-5 w-5 text-purple-600" />}
-                    {activity.type === 'order' && <Package className="h-5 w-5 text-orange-600" />}
-                  </div>
-                  <div className="flex-grow min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{activity.action}</p>
-                    <p className="text-xs text-gray-500">hace {activity.time}</p>
-                  </div>
-                  {activity.amount && (
-                    <div className="flex-shrink-0">
-                      <Badge variant="outline" className="text-green-600 border-green-600">
-                        {activity.amount}
-                      </Badge>
+                      {activity.type === 'sale' && <DollarSign className="h-5 w-5 text-green-600" />}
+                      {activity.type === 'update' && <Settings className="h-5 w-5 text-blue-600" />}
+                      {activity.type === 'user' && <Users className="h-5 w-5 text-purple-600" />}
+                      {activity.type === 'order' && <Package className="h-5 w-5 text-orange-600" />}
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                    <div className="flex-grow min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{activity.action}</p>
+                      <p className="text-xs text-gray-500">hace {activity.time}</p>
+                    </div>
+                    {activity.amount && (
+                      <div className="flex-shrink-0">
+                        <Badge variant="outline" className="text-green-600 border-green-600">
+                          {activity.amount}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
       </div>
 
       {/* Quick Access Cards */}
@@ -873,7 +873,7 @@ export default function AdminPage() {
       </Card>
 
       {/* Status Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6" style={{ marginTop: "12px" }}>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

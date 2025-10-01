@@ -14,6 +14,7 @@ import {
   CircleDollarSign,
   ShoppingCart,
   Info,
+  Megaphone,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -30,6 +31,7 @@ const navItems = [
   { href: '/adminpanel/about', label: 'Sobre Nosotros', icon: Info },
   { href: '/adminpanel/materials', label: 'Materiales', icon: Gem },
   { href: '/adminpanel/testimonials', label: 'Nuestros clientes', icon: UserCheck },
+  { href: '/adminpanel/announcementbar', label: 'Announcement Bar', icon: Megaphone },
   { href: '/adminpanel/finances', label: 'Finanzas', icon: CircleDollarSign },
   { href: '/adminpanel/orders', label: 'Pedidos', icon: ShoppingCart },
 ];
@@ -77,12 +79,12 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   */
 
   return (
-    <>
+    <div className="min-h-screen">
       {/* Fixed Sidebar */}
       <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-40">
         {/* Sidebar Header */}
-        <div className="flex flex-col items-center p-4 border-b">
-          <h3 className="text-sm font-bold text-black mt-24">ADMIN PANEL</h3>
+        <div className="flex flex-col items-center p-4 border-b" style={{ marginTop: '80px' }}>
+          <h3 className="text-sm font-bold text-black">ADMIN PANEL</h3>
         </div>
         
         {/* Sidebar Navigation */}
@@ -112,20 +114,20 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       </div>
       
       {/* Main Content Area */}
-      <div className="ml-64 min-h-screen flex-1">
-        <main className="h-full overflow-auto p-4 md:p-6">
+      <div className="w-full" style={{ marginLeft: '256px' }}>
+        <main className="min-h-screen p-4 md:p-6" style={{ marginRight: '288.5px' }}>
           {children}
         </main>
       </div>
-    </>
+    </div>
   );
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen w-full">
+    <>
       <AdminLayoutContent>{children}</AdminLayoutContent>
       <Toaster />
-    </div>
+    </>
   );
 }
