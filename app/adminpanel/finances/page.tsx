@@ -1251,7 +1251,7 @@ ${closureRegistered ? '✅ Registro guardado en base de datos' : '⚠️ Continu
   // Process sales data for time-based charts
   const getSalesChartData = () => {
     const now = new Date();
-    let data: { name: string; ventas: number; gastos: number; ganancia: number }[] = [];
+    const data: { name: string; ventas: number; gastos: number; ganancia: number }[] = [];
 
     if (chartTimeFilter === 'day') {
       // Last 7 days

@@ -395,7 +395,7 @@ export function extractFileNameFromUrl(url: string): string | null {
     // Intentar extraer filename de URLs que no son R2 (para compatibilidad)
     try {
       const urlObj = new URL(url);
-      let pathname = urlObj.pathname;
+      const pathname = urlObj.pathname;
       
       // Para URLs de otros servicios, extraer solo el nombre del archivo
       const segments = pathname.split('/');

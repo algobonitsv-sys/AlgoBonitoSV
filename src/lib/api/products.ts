@@ -736,8 +736,8 @@ export const productsApi = {
       );
 
       // Try multiple search strategies
-      let data = null;
-      let error = null;
+      const data = null;
+      const error = null;
 
       // Strategy 1: Exact match with full reconstructed name
       const fullName = searchTerms.join(' ');
@@ -1873,7 +1873,7 @@ export const productSalesApi = {
       }
 
       // Recalculate total_amount if quantity or unit_price changed
-      let updateData = { ...updates };
+      const updateData = { ...updates };
       if (updates.quantity !== undefined || updates.unit_price !== undefined) {
         const { data: currentSale } = await supabase!
           .from('sale_items')

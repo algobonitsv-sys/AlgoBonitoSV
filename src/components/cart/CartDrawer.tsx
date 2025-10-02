@@ -11,6 +11,17 @@ interface CheckoutData {
   delivery_method: string;
 }
 
+const EMOJI = {
+  wave: String.fromCodePoint(0x1F44B),
+  person: String.fromCodePoint(0x1F464),
+  package: String.fromCodePoint(0x1F4E6),
+  moneyBag: String.fromCodePoint(0x1F4B0),
+  creditCard: String.fromCodePoint(0x1F4B3),
+  deliveryTruck: String.fromCodePoint(0x1F69A),
+  bank: String.fromCodePoint(0x1F3E6),
+  prayerHands: String.fromCodePoint(0x1F64F),
+};
+
 export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { items, removeItem, updateQuantity, clearCart, total, itemCount } = useCart();
   const [showCheckout, setShowCheckout] = useState(false);
@@ -57,12 +68,14 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
       }
 
       // Si se guardó exitosamente, crear mensaje para WhatsApp
-      let message = "🛍️ *Nuevo Pedido* \n\n";
+      let message = `¡Hola! ${EMOJI.wave}\n\n`;
+      message += "Quiero confirmar mi pedido:\n\n";
       
       // Agregar nombre del cliente
-      message += `👤 *Cliente:* ${checkoutData.customer_name}\n\n`;
+      message += `${EMOJI.person} *Mi nombre:* ${checkoutData.customer_name}\n\n`;
       
       // Agregar productos
+      message += `${EMOJI.package} *Productos:*\n`;
       items.forEach((item, index) => {
         message += `${index + 1}. ${item.name}\n`;
         message += `   Cantidad: ${item.quantity}\n`;
@@ -70,16 +83,22 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
       });
       
       // Agregar total
-      message += `💰 *Total: $${total.toFixed(2)}*\n\n`;
+      message += `${EMOJI.moneyBag} *Total: $${total.toFixed(2)}*\n\n`;
       
       // Agregar método de pago y entrega
-      message += `💳 *Método de pago:* ${checkoutData.payment_method === 'efectivo' ? 'Efectivo' : 'Transferencia bancaria'}\n`;
-      message += `🚚 *Método de entrega:* ${checkoutData.delivery_method === 'entrega' ? 'Entrega a domicilio' : 'Recoger en tienda'}\n\n`;
+      message += `${EMOJI.creditCard} *Método de pago:* ${checkoutData.payment_method === 'efectivo' ? 'Efectivo' : 'Transferencia bancaria'}\n`;
+      message += `${EMOJI.deliveryTruck} *Método de entrega:* ${checkoutData.delivery_method === 'entrega' ? 'Entrega a domicilio' : 'Recoger en tienda'}\n\n`;
       
-      message += "¡Gracias por tu pedido! 😊";
+      // Agregar información bancaria si es transferencia
+      if (checkoutData.payment_method !== 'efectivo') {
+        message += `${EMOJI.bank} *Alias:* AlgoBonitoSV\n`;
+        message += `${EMOJI.creditCard} *CBU:* 0000000000000000000000\n\n`;
+      }
       
-      // Abrir WhatsApp
-      const whatsappUrl = `https://wa.me/50312345678?text=${encodeURIComponent(message)}`;
+      message += `¡Espero su confirmación! ${EMOJI.prayerHands}`;
+      
+  // Abrir WhatsApp
+  const whatsappUrl = `https://api.whatsapp.com/send?phone=5493564690844&text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
       
       // Limpiar carrito y cerrar
