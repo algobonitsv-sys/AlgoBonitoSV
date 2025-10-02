@@ -60,10 +60,6 @@ export default function CheckoutPage() {
     cartStore.remove(id);
   };
 
-  const removeItem = (id: string) => {
-    cartStore.remove(id);
-  };
-
   const handlePaymentSuccess = () => {
     setIsProcessing(false);
     // El redirect se maneja automáticamente por Mercado Pago

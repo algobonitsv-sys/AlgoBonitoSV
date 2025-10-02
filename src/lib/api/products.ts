@@ -46,9 +46,9 @@ import type {
   OrderItemInsert,
   OrderWithItems,
   OrderStatus,
-  Novedad,
-  NovedadInsert,
-  NovedadUpdate,
+  VistaPrincipal,
+  VistaPrincipalInsert,
+  VistaPrincipalUpdate,
   CustomerTestimonial,
   CustomerTestimonialInsert,
   CustomerTestimonialUpdate,
@@ -1977,16 +1977,16 @@ export const productSalesApi = {
 };
 
 // =====================================================
-// NOVEDAD API (DISCOVER SECTION)
+// VISTA PRINCIPAL API (MAIN VIEW SECTION)
 // =====================================================
 
-export const novedadApi = {
-  // Get all novedades (only active one should be shown)
-  async getAll(): Promise<ApiResponse<Novedad[]>> {
+export const vistaPrincipalApi = {
+  // Get all vista principal entries (only active one should be shown)
+  async getAll(): Promise<ApiResponse<VistaPrincipal[]>> {
     try {
       if (!isSupabaseConfigured()) {
-        console.log('⚠️ Supabase not configured, returning fallback novedad');
-        const fallbackNovedad: Novedad = {
+        console.log('⚠️ Supabase not configured, returning fallback vista principal');
+        const fallbackVistaPrincipal: VistaPrincipal = {
           id: '1',
           titulo: 'Descubre la Belleza, Encuentra tu Estilo',
           descripcion: 'Explora nuestra exclusiva colección de joyas, diseñadas para capturar la esencia de la elegancia y la sofisticación. Cada pieza cuenta una historia.',
@@ -1997,27 +1997,45 @@ export const novedadApi = {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        return createResponse([fallbackNovedad], null);
+        return createResponse([fallbackVistaPrincipal], null);
       }
-      
+
       const { data, error } = await supabase!
-        .from('novedad')
+        .from('vista_principal')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // Handle table not found error
+        if (error.code === 'PGRST205' || error.message?.includes('Could not find the table')) {
+          console.log('⚠️ vista_principal table not found, returning fallback data. Please run the migration script.');
+          const fallbackVistaPrincipal: VistaPrincipal = {
+            id: '1',
+            titulo: 'Descubre la Belleza, Encuentra tu Estilo',
+            descripcion: 'Explora nuestra exclusiva colección de joyas, diseñadas para capturar la esencia de la elegancia y la sofisticación. Cada pieza cuenta una historia.',
+            enlace: '/products',
+            enlace_texto: 'Ver Colección',
+            imagen: 'https://picsum.photos/600/400',
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          return createResponse([fallbackVistaPrincipal], null);
+        }
+        throw error;
+      }
       return createResponse(data || [], null);
     } catch (error) {
-      return createResponse([] as Novedad[], handleError(error));
+      return createResponse([] as VistaPrincipal[], handleError(error));
     }
   },
 
-  // Get active novedad (main one to show)
-  async getActive(): Promise<ApiResponse<Novedad | null>> {
+  // Get active vista principal (main one to show)
+  async getActive(): Promise<ApiResponse<VistaPrincipal | null>> {
     try {
       if (!isSupabaseConfigured()) {
-        console.log('⚠️ Supabase not configured, returning fallback novedad');
-        const fallbackNovedad: Novedad = {
+        console.log('⚠️ Supabase not configured, returning fallback vista principal');
+        const fallbackVistaPrincipal: VistaPrincipal = {
           id: '1',
           titulo: 'Descubre la Belleza, Encuentra tu Estilo',
           descripcion: 'Explora nuestra exclusiva colección de joyas, diseñadas para capturar la esencia de la elegancia y la sofisticación. Cada pieza cuenta una historia.',
@@ -2028,100 +2046,152 @@ export const novedadApi = {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        return createResponse(fallbackNovedad, null);
+        return createResponse(fallbackVistaPrincipal, null);
       }
-      
+
       const { data, error } = await supabase!
-        .from('novedad')
+        .from('vista_principal')
         .select('*')
         .eq('is_active', true)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows returned
+      // Handle different error cases
+      if (error) {
+        // PGRST116 = no rows returned (normal case when no active record exists)
+        if (error.code === 'PGRST116') {
+          return createResponse(null, null);
+        }
+        // PGRST205 = table not found (table hasn't been migrated yet)
+        if (error.code === 'PGRST205' || error.message?.includes('Could not find the table')) {
+          console.log('⚠️ vista_principal table not found, returning fallback data. Please run the migration script.');
+          const fallbackVistaPrincipal: VistaPrincipal = {
+            id: '1',
+            titulo: 'Descubre la Belleza, Encuentra tu Estilo',
+            descripcion: 'Explora nuestra exclusiva colección de joyas, diseñadas para capturar la esencia de la elegancia y la sofisticación. Cada pieza cuenta una historia.',
+            enlace: '/products',
+            enlace_texto: 'Ver Colección',
+            imagen: 'https://picsum.photos/600/400',
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          return createResponse(fallbackVistaPrincipal, null);
+        }
+        throw error;
+      }
+
       return createResponse(data || null, null);
     } catch (error) {
       return createResponse(null, handleError(error));
     }
   },
 
-  // Get novedad by ID
-  async getById(id: string): Promise<ApiResponse<Novedad | null>> {
+  // Get vista principal by ID
+  async getById(id: string): Promise<ApiResponse<VistaPrincipal | null>> {
     try {
       if (!isSupabaseConfigured()) {
         console.log('⚠️ Supabase not configured, returning null');
         return createResponse(null, null);
       }
-      
+
       const { data, error } = await supabase!
-        .from('novedad')
+        .from('vista_principal')
         .select('*')
         .eq('id', id)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) {
+        // Handle table not found error
+        if (error.code === 'PGRST205' || error.message?.includes('Could not find the table')) {
+          console.log('⚠️ vista_principal table not found, returning null. Please run the migration script.');
+          return createResponse(null, null);
+        }
+        if (error.code !== 'PGRST116') throw error; // PGRST116 = no rows returned
+      }
       return createResponse(data || null, null);
     } catch (error) {
       return createResponse(null, handleError(error));
     }
   },
 
-  // Create new novedad
-  async create(novedad: NovedadInsert): Promise<ApiResponse<Novedad | null>> {
+  // Create new vista principal
+  async create(vistaPrincipal: VistaPrincipalInsert): Promise<ApiResponse<VistaPrincipal | null>> {
     try {
       if (!isSupabaseConfigured()) {
-        console.log('⚠️ Supabase not configured, cannot create novedad');
+        console.log('⚠️ Supabase not configured, cannot create vista principal');
         return createResponse(null, 'Supabase not configured');
       }
-      
+
       const { data, error } = await supabase!
-        .from('novedad')
-        .insert(novedad)
+        .from('vista_principal')
+        .insert(vistaPrincipal)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // Handle table not found error
+        if (error.code === 'PGRST205' || error.message?.includes('Could not find the table')) {
+          console.log('⚠️ vista_principal table not found, cannot create. Please run the migration script first.');
+          return createResponse(null, 'Table vista_principal does not exist. Please run the migration script.');
+        }
+        throw error;
+      }
       return createResponse(data, null);
     } catch (error) {
       return createResponse(null, handleError(error));
     }
   },
 
-  // Update existing novedad
-  async update(id: string, updates: NovedadUpdate): Promise<ApiResponse<Novedad | null>> {
+  // Update existing vista principal
+  async update(id: string, updates: VistaPrincipalUpdate): Promise<ApiResponse<VistaPrincipal | null>> {
     try {
       if (!isSupabaseConfigured()) {
-        console.log('⚠️ Supabase not configured, cannot update novedad');
+        console.log('⚠️ Supabase not configured, cannot update vista principal');
         return createResponse(null, 'Supabase not configured');
       }
-      
+
       const { data, error } = await supabase!
-        .from('novedad')
+        .from('vista_principal')
         .update(updates)
         .eq('id', id)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // Handle table not found error
+        if (error.code === 'PGRST205' || error.message?.includes('Could not find the table')) {
+          console.log('⚠️ vista_principal table not found, cannot update. Please run the migration script first.');
+          return createResponse(null, 'Table vista_principal does not exist. Please run the migration script.');
+        }
+        throw error;
+      }
       return createResponse(data, null);
     } catch (error) {
       return createResponse(null, handleError(error));
     }
   },
 
-  // Delete novedad
+  // Delete vista principal
   async delete(id: string): Promise<ApiResponse<boolean>> {
     try {
       if (!isSupabaseConfigured()) {
-        console.log('⚠️ Supabase not configured, cannot delete novedad');
+        console.log('⚠️ Supabase not configured, cannot delete vista principal');
         return createResponse(false, 'Supabase not configured');
       }
-      
+
       const { error } = await supabase!
-        .from('novedad')
+        .from('vista_principal')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        // Handle table not found error
+        if (error.code === 'PGRST205' || error.message?.includes('Could not find the table')) {
+          console.log('⚠️ vista_principal table not found, cannot delete. Please run the migration script first.');
+          return createResponse(false, 'Table vista_principal does not exist. Please run the migration script.');
+        }
+        throw error;
+      }
       return createResponse(true, null);
     } catch (error) {
       return createResponse(false, handleError(error));
@@ -2132,19 +2202,28 @@ export const novedadApi = {
   async setActive(id: string): Promise<ApiResponse<boolean>> {
     try {
       if (!isSupabaseConfigured()) {
-        console.log('⚠️ Supabase not configured, cannot set active novedad');
+        console.log('⚠️ Supabase not configured, cannot set active vista principal');
         return createResponse(false, 'Supabase not configured');
       }
-      
+
       // First, deactivate all
-      await supabase!
-        .from('novedad')
+      const { error: deactivateError } = await supabase!
+        .from('vista_principal')
         .update({ is_active: false })
         .neq('id', '00000000-0000-0000-0000-000000000000'); // Update all rows
-      
+
+      if (deactivateError) {
+        // Handle table not found error
+        if (deactivateError.code === 'PGRST205' || deactivateError.message?.includes('Could not find the table')) {
+          console.log('⚠️ vista_principal table not found, cannot set active. Please run the migration script first.');
+          return createResponse(false, 'Table vista_principal does not exist. Please run the migration script.');
+        }
+        throw deactivateError;
+      }
+
       // Then activate the selected one
       const { error } = await supabase!
-        .from('novedad')
+        .from('vista_principal')
         .update({ is_active: true })
         .eq('id', id);
 
@@ -3093,7 +3172,7 @@ export const api = {
   carouselImages: carouselImagesApi,
   orders: ordersApi,
   productSales: productSalesApi,
-  novedad: novedadApi,
+  vistaPrincipal: vistaPrincipalApi, // Updated from novedadApi
   testimonials: testimonialsApi,
   websiteMaterials: websiteMaterialsApi,
   materialsContent: materialsContentApi,

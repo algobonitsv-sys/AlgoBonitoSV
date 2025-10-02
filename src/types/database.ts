@@ -120,10 +120,10 @@ export interface Database {
         Insert: OrderItemInsert;
         Update: OrderItemUpdate;
       };
-      novedad: {
-        Row: Novedad;
-        Insert: NovedadInsert;
-        Update: NovedadUpdate;
+      vista_principal: {
+        Row: VistaPrincipal;
+        Insert: VistaPrincipalInsert;
+        Update: VistaPrincipalUpdate;
       };
       customer_testimonials: {
         Row: CustomerTestimonial;
@@ -1261,10 +1261,10 @@ export interface CartItem {
 }
 
 // =====================================================
-// NOVEDAD (DISCOVER SECTION)
+// VISTA PRINCIPAL (MAIN VIEW SECTION)
 // =====================================================
 
-export interface Novedad {
+export interface VistaPrincipal {
   id: string;
   titulo: string;
   descripcion: string;
@@ -1276,7 +1276,7 @@ export interface Novedad {
   updated_at: string;
 }
 
-export interface NovedadInsert {
+export interface VistaPrincipalInsert {
   titulo: string;
   descripcion: string;
   enlace?: string;
@@ -1285,7 +1285,7 @@ export interface NovedadInsert {
   is_active?: boolean;
 }
 
-export interface NovedadUpdate {
+export interface VistaPrincipalUpdate {
   titulo?: string;
   descripcion?: string;
   enlace?: string;

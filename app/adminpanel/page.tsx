@@ -34,7 +34,11 @@ import {
   ChevronDown,
   ChevronRight,
   Package2,
-  Receipt
+  Receipt,
+  Sparkles,
+  Info,
+  Gem,
+  Megaphone
 } from 'lucide-react';
 import { 
   Select,
@@ -81,60 +85,100 @@ interface Period {
 
 const dashboardCards = [
   {
+    title: 'Vista Principal',
+    href: '/adminpanel/vistaprincipal',
+    icon: Sparkles,
+    description: 'Editar el contenido principal del home',
+    color: 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/20',
+    iconColor: 'text-amber-600'
+  },
+  {
     title: 'Productos',
-    href: '/admin/products',
+    href: '/adminpanel/products',
     icon: Package,
-    description: 'Gestionar productos y inventario',
+    description: 'Gestionar catálogo y stock de productos',
     color: 'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20',
     iconColor: 'text-blue-600'
   },
   {
-    title: 'Nombres',
-    href: '/admin/names',
+    title: 'Categorías',
+    href: '/adminpanel/names',
     icon: Users,
-    description: 'Administrar nombres de clientes',
-    color: 'bg-green-500/10 hover:bg-green-500/20 border-green-500/20',
-    iconColor: 'text-green-600'
+    description: 'Organizar categorías principales',
+    color: 'bg-teal-500/10 hover:bg-teal-500/20 border-teal-500/20',
+    iconColor: 'text-teal-600'
   },
   {
-    title: 'Modelos',
-    href: '/admin/models',
+    title: 'Subcategorías',
+    href: '/adminpanel/models',
     icon: Users,
-    description: 'Gestionar modelos y personas',
-    color: 'bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20',
-    iconColor: 'text-purple-600'
-  },
-  {
-    title: 'Preguntas frecuentes',
-    href: '/admin/faq',
-    icon: MessageSquareQuote,
-    description: 'Administrar FAQ del sitio',
-    color: 'bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/20',
-    iconColor: 'text-orange-600'
+    description: 'Administrar subcategorías y variaciones',
+    color: 'bg-lime-500/10 hover:bg-lime-500/20 border-lime-500/20',
+    iconColor: 'text-lime-600'
   },
   {
     title: 'Carrusel',
-    href: '/admin/carousel',
+    href: '/adminpanel/carousel',
     icon: GalleryHorizontal,
-    description: 'Gestionar imágenes del carrusel',
+    description: 'Gestionar imágenes destacadas del carrusel',
     color: 'bg-pink-500/10 hover:bg-pink-500/20 border-pink-500/20',
     iconColor: 'text-pink-600'
   },
   {
-    title: 'Órdenes',
-    href: '/admin/orders',
+    title: 'Preguntas frecuentes',
+    href: '/adminpanel/faq',
+    icon: MessageSquareQuote,
+    description: 'Actualizar las dudas más comunes de clientes',
+    color: 'bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/20',
+    iconColor: 'text-orange-600'
+  },
+  {
+    title: 'Sobre Nosotros',
+    href: '/adminpanel/about',
+    icon: Info,
+    description: 'Editar la información institucional de la marca',
+    color: 'bg-sky-500/10 hover:bg-sky-500/20 border-sky-500/20',
+    iconColor: 'text-sky-600'
+  },
+  {
+    title: 'Materiales',
+    href: '/adminpanel/materials',
+    icon: Gem,
+    description: 'Gestionar materialidad y especificaciones',
+    color: 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20',
+    iconColor: 'text-emerald-600'
+  },
+  {
+    title: 'Nuestros clientes',
+    href: '/adminpanel/testimonials',
+    icon: UserCheck,
+    description: 'Administrar testimonios y reseñas',
+    color: 'bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20',
+    iconColor: 'text-purple-600'
+  },
+  {
+    title: 'Announcement Bar',
+    href: '/adminpanel/announcementbar',
+    icon: Megaphone,
+    description: 'Configurar mensajes destacados del sitio',
+    color: 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20',
+    iconColor: 'text-rose-600'
+  },
+  {
+    title: 'Pedidos',
+    href: '/adminpanel/orders',
     icon: ShoppingCart,
-    description: 'Gestionar pedidos de clientes',
+    description: 'Seguimiento y gestión de pedidos de clientes',
     color: 'bg-red-500/10 hover:bg-red-500/20 border-red-500/20',
     iconColor: 'text-red-600'
   },
   {
     title: 'Finanzas',
-    href: '/admin/finances',
+    href: '/adminpanel/finances',
     icon: CircleDollarSign,
-    description: 'Dashboard financiero completo',
-    color: 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20',
-    iconColor: 'text-emerald-600'
+    description: 'Analítica financiera y reportes clave',
+    color: 'bg-cyan-500/10 hover:bg-cyan-500/20 border-cyan-500/20',
+    iconColor: 'text-cyan-600'
   }
 ];
 

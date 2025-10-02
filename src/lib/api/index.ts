@@ -3,7 +3,7 @@
 // =====================================================
 
 // Product and inventory APIs
-export { api as productApi } from './products';
+export { api as productApi, vistaPrincipalApi } from './products';
 
 // Finance APIs
 export { financeApi } from './finances';
