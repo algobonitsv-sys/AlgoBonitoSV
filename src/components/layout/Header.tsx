@@ -498,7 +498,7 @@ export default function Header() {
           >
             <X className="h-5 w-5" />
           </button>
-          <div className="w-full flex justify-center mt-12 mb-1 pb-4 border-b">
+          <div className="w-full flex justify-center mt-6 mb-1 pb-4 border-b">
             <Link href="/public/products" className="font-bold text-lg hover:underline" onClick={() => {
               console.log('🔗 Closing categories via "Ver todos los productos" link');
               setShowCategories(false);

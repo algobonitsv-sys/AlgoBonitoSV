@@ -250,7 +250,7 @@ function ProductsContent() {
               {getPageDescription()}
             </p>
             {filteredProducts.length > 0 && (
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-2 text-sm text-muted-foreground mb-4">
                 {filteredProducts.length} {filteredProducts.length === 1 ? 'producto encontrado' : 'productos encontrados'}
               </p>
             )}

@@ -234,7 +234,7 @@ export default function AboutPage() {
             </p>
             <div className="flex flex-wrap justify-center gap-3 md:gap-4 text-base md:text-lg px-4 md:px-0 mb-8">
               {(paymentSection?.extra_data?.methods || ['Tarjetas de Crédito/Débito', 'Transferencia Bancaria', 'Pago Contra Entrega (San Salvador)']).map((method: string, index: number) => (
-                <span key={index} className="bg-primary-foreground text-primary py-2 md:py-3 px-4 md:px-6 rounded-full font-medium shadow-sm text-sm md:text-base">
+                <span key={index} className="bg-primary-foreground text-gray-800 py-2 md:py-3 px-4 md:px-6 rounded-full font-medium shadow-sm text-sm md:text-base">
                   {method}
                 </span>
               ))}
