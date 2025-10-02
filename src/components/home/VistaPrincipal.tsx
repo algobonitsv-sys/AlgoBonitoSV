@@ -51,14 +51,21 @@ export default function VistaPrincipal() {
   const displayData = vistaPrincipal || fallbackData;
 
   const getImageUrl = (imageUrl: string | null) => {
-    if (!imageUrl) return fallbackData.imagen;
+    if (!imageUrl || imageUrl.trim() === '') return fallbackData.imagen;
 
-    // If it's already a full URL, return as is
-    if (imageUrl.startsWith('http')) return imageUrl;
+    // If it's already a full URL starting with http/https, validate it
+    if (imageUrl.startsWith('http')) {
+      try {
+        new URL(imageUrl); // This will throw if invalid
+        return imageUrl;
+      } catch {
+        // Invalid URL, fall back
+        return fallbackData.imagen;
+      }
+    }
 
-    // If it's a relative path, you might need to prefix with your storage URL
-    // For now, return the URL as is
-    return imageUrl;
+    // For relative paths or other cases, return fallback
+    return fallbackData.imagen;
   };
 
   if (loading) {

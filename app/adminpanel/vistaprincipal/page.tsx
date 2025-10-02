@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,15 @@ import { Separator } from "@/components/ui/separator";
 import { ImageUpload } from "@/components/admin/ImageUpload";
 import { productApi, vistaPrincipalApi } from '@/lib/api';
 import type { VistaPrincipal, VistaPrincipalInsert, VistaPrincipalUpdate } from '@/types/database';
+import { tempImageStore, TempImageStore } from '@/lib/temp-image-store';
+
+const MIME_TYPE_EXTENSION_MAP: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
 
 const DEFAULT_PAYMENT_TITLE = 'Métodos de Pago';
 const DEFAULT_PAYMENT_SUBTITLE = 'Paga de forma rápida y segura.';
@@ -28,6 +37,7 @@ export default function VistaPrincipalAdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isDatabaseMigrated, setIsDatabaseMigrated] = useState(true);
   
   // Form fields
   const [titulo, setTitulo] = useState('');
@@ -48,6 +58,97 @@ export default function VistaPrincipalAdminPage() {
   
   const { toast } = useToast();
 
+  const previewImage = useMemo(() => {
+    if (!imagen || imagen.trim() === '') {
+      return null;
+    }
+
+    const trimmed = imagen.trim();
+
+    if (trimmed.startsWith('blob:') || trimmed.startsWith('data:')) {
+      return trimmed;
+    }
+
+    if (TempImageStore.isTempUrl(trimmed)) {
+      const tempData = tempImageStore.getImage(trimmed);
+      return tempData?.previewUrl || null;
+    }
+
+    return trimmed;
+  }, [imagen]);
+
+  const uploadVistaPrincipalImageIfNeeded = async (): Promise<string | null> => {
+    const trimmed = imagen?.trim();
+
+    if (!trimmed) {
+      return null;
+    }
+
+    if (trimmed.startsWith('http')) {
+      return trimmed;
+    }
+
+    let fileToUpload: File | null = null;
+
+    const isBlobUrl = trimmed.startsWith('blob:') || trimmed.startsWith('data:');
+
+    if (!isBlobUrl && TempImageStore.isTempUrl(trimmed)) {
+      const tempData = tempImageStore.getImage(trimmed);
+      if (tempData?.file) {
+        fileToUpload = tempData.file;
+      }
+    }
+
+    if (!fileToUpload) {
+      try {
+        const response = await fetch(trimmed);
+        if (!response.ok) {
+          throw new Error('No se pudo acceder a la imagen temporal');
+        }
+        const blob = await response.blob();
+        const extension = MIME_TYPE_EXTENSION_MAP[blob.type] || (blob.type?.split('/')[1] ?? 'png');
+        const fileName = `vista-principal-${Date.now()}.${extension}`;
+        fileToUpload = new File([blob], fileName, { type: blob.type || 'image/png' });
+      } catch (error) {
+        console.error('Error obteniendo blob de la imagen de vista principal:', error);
+        throw new Error('No se pudo procesar la imagen seleccionada. Intenta subirla nuevamente.');
+      }
+    }
+
+    if (!fileToUpload) {
+      throw new Error('No se encontró la imagen para subir.');
+    }
+
+    const formData = new FormData();
+    formData.append('file', fileToUpload);
+    formData.append('folder', 'vista-principal');
+
+    const uploadResponse = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    let uploadResult: { success?: boolean; url?: string; error?: string } = {};
+
+    try {
+      uploadResult = await uploadResponse.json();
+    } catch (error) {
+      console.error('Error leyendo la respuesta de subida de imagen:', error);
+      throw new Error('No se pudo subir la imagen seleccionada.');
+    }
+
+    if (!uploadResponse.ok || !uploadResult?.success || !uploadResult?.url) {
+      const errorMessage = uploadResult?.error || 'Error al subir la imagen a Cloudflare';
+      throw new Error(errorMessage);
+    }
+
+    if (!isBlobUrl && TempImageStore.isTempUrl(trimmed)) {
+      tempImageStore.removeImage(trimmed);
+    }
+
+    return uploadResult.url;
+  };
+
   // Load current vista principal
   useEffect(() => {
     loadVistaPrincipal();
@@ -58,19 +159,24 @@ export default function VistaPrincipalAdminPage() {
     try {
       setIsLoading(true);
       const response = await vistaPrincipalApi.getActive();
-      
+      const isFallbackData = response.data?.id === 'fallback';
+
       if (response.error) {
         console.error('Error loading vista principal:', response.error);
-        // Check if it's a table not found error
-        if (response.error.includes('Table vista_principal does not exist') || 
-            response.error.includes('Could not find the table')) {
-          console.log('⚠️ Database table not migrated yet. Using fallback data for initial setup.');
-          // The API will return fallback data, so we can proceed normally
-        }
-        // Initialize with empty values for new creation
+        const tableMissing = response.error.includes('Table vista_principal does not exist') ||
+          response.error.includes('Could not find the table');
+        setIsDatabaseMigrated(!tableMissing);
         resetForm();
         return;
       }
+
+      if (isFallbackData) {
+        setIsDatabaseMigrated(false);
+        resetForm();
+        return;
+      }
+
+      setIsDatabaseMigrated(true);
 
       if (response.data) {
         setVistaPrincipal(response.data);
@@ -78,7 +184,7 @@ export default function VistaPrincipalAdminPage() {
         setDescripcion(response.data.descripcion);
         setEnlace(response.data.enlace);
         setEnlaceTexto(response.data.enlace_texto);
-        setImagen(response.data.imagen);
+        setImagen(response.data.imagen ? response.data.imagen.trim() : null);
         setIsActive(response.data.is_active);
       } else {
         // No active vista principal found, initialize for creation
@@ -91,6 +197,7 @@ export default function VistaPrincipalAdminPage() {
         description: "Error al cargar la información de la vista principal",
         variant: "destructive",
       });
+      setIsDatabaseMigrated(true);
       resetForm();
     } finally {
       setIsLoading(false);
@@ -120,13 +227,13 @@ export default function VistaPrincipalAdminPage() {
           ? response.data.extra_data.methods.filter((method: unknown): method is string => typeof method === 'string')
           : [];
 
-  setPaymentMethods(storedMethods.length > 0 ? storedMethods : [...DEFAULT_PAYMENT_METHODS]);
+        setPaymentMethods(storedMethods.length > 0 ? storedMethods : [...DEFAULT_PAYMENT_METHODS]);
       } else {
         setPaymentSectionId(null);
         setPaymentTitle(DEFAULT_PAYMENT_TITLE);
         setPaymentSubtitle(DEFAULT_PAYMENT_SUBTITLE);
         setPaymentBackgroundImage(DEFAULT_PAYMENT_BACKGROUND_IMAGE);
-  setPaymentMethods([...DEFAULT_PAYMENT_METHODS]);
+        setPaymentMethods([...DEFAULT_PAYMENT_METHODS]);
       }
     } catch (error) {
       console.error('Error loading payment methods:', error);
@@ -139,7 +246,7 @@ export default function VistaPrincipalAdminPage() {
       setPaymentTitle(DEFAULT_PAYMENT_TITLE);
       setPaymentSubtitle(DEFAULT_PAYMENT_SUBTITLE);
       setPaymentBackgroundImage(DEFAULT_PAYMENT_BACKGROUND_IMAGE);
-  setPaymentMethods([...DEFAULT_PAYMENT_METHODS]);
+      setPaymentMethods([...DEFAULT_PAYMENT_METHODS]);
     } finally {
       setIsLoadingPayment(false);
     }
@@ -156,6 +263,15 @@ export default function VistaPrincipalAdminPage() {
   };
 
   const handleSave = async () => {
+    if (!isDatabaseMigrated) {
+      toast({
+        title: "Migración pendiente",
+        description: "Primero completa la migración de la tabla vista_principal antes de guardar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!titulo.trim() || !descripcion.trim()) {
       toast({
         title: "Error",
@@ -168,12 +284,14 @@ export default function VistaPrincipalAdminPage() {
     try {
       setIsSaving(true);
 
+      const imageUrlToSave = await uploadVistaPrincipalImageIfNeeded();
+
       const vistaPrincipalData = {
         titulo: titulo.trim(),
         descripcion: descripcion.trim(),
         enlace: enlace.trim(),
         enlace_texto: enlaceTexto.trim(),
-        imagen: imagen || null,
+        imagen: imageUrlToSave,
         is_active: isActive,
       };
 
@@ -203,6 +321,8 @@ export default function VistaPrincipalAdminPage() {
           : "Vista Principal creada correctamente",
       });
 
+      setImagen(imageUrlToSave);
+
       // Reload the data
       await loadVistaPrincipal();
       
@@ -210,7 +330,7 @@ export default function VistaPrincipalAdminPage() {
       console.error('Error saving vista principal:', error);
       toast({
         title: "Error",
-        description: "Error al guardar la vista principal",
+        description: error instanceof Error ? error.message : "Error al guardar la vista principal",
         variant: "destructive",
       });
     } finally {
@@ -304,8 +424,13 @@ export default function VistaPrincipalAdminPage() {
     setTimeout(() => setIsCreating(false), 500);
   };
 
-  const handleImageChange = (newImageUrl: string) => {
-    setImagen(newImageUrl || null);
+  const handleImageChange = (newImageUrl: string | null) => {
+    if (!newImageUrl || newImageUrl.trim() === '') {
+      setImagen(null);
+      return;
+    }
+
+    setImagen(newImageUrl.trim());
   };
 
   if (isLoading) {
@@ -328,12 +453,12 @@ export default function VistaPrincipalAdminPage() {
               Gestión de Vista Principal
             </h1>
             <p className="text-muted-foreground">
-              Administra el contenido de la sección "Descubre la Belleza" del homepage
+              Administra el contenido de la sección Descubre la Belleza del homepage
             </p>
           </div>
           
           <div className="flex gap-2">
-            {vistaPrincipal && (
+            {isDatabaseMigrated && (
               <Button
                 variant="outline"
                 onClick={handleCreateNew}
@@ -350,27 +475,65 @@ export default function VistaPrincipalAdminPage() {
           </div>
         </div>
 
-        {/* Migration Warning */}
-        {!vistaPrincipal && (
+        {/* Migration Status */}
+        {!isDatabaseMigrated && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-yellow-800">
                   Base de datos no migrada
                 </h3>
-                <div className="mt-2 text-sm text-yellow-700">
+                <div className="mt-2 text-sm text-yellow-700 space-y-2">
                   <p>
-                    La tabla de base de datos no ha sido migrada aún. Para guardar cambios permanentemente, 
-                    ejecuta el siguiente SQL en el editor de Supabase:
+                    La tabla <span className="font-semibold">vista_principal</span> aún no existe. Ejecuta el
+                    siguiente SQL en el editor de Supabase para completar la migración:
                   </p>
-                  <pre className="mt-2 p-2 bg-yellow-100 rounded text-xs font-mono">
-                    ALTER TABLE novedad RENAME TO vista_principal;
+                  <pre className="p-2 bg-yellow-100 rounded text-xs font-mono">
+ALTER TABLE novedad RENAME TO vista_principal;
                   </pre>
+                  <p>
+                    Una vez renombrada la tabla, vuelve a este panel y recarga la página para empezar a
+                    administrar el contenido.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isDatabaseMigrated && !vistaPrincipal && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a1 1 0 00-1 1v4a1 1 0 00.293.707l2.5 2.5a1 1 0 001.414-1.414L11 9.586V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-blue-800">
+                  No hay una vista principal activa todavía
+                </h3>
+                <div className="mt-2 text-sm text-blue-700 space-y-2">
+                  <p>
+                    La migración fue exitosa, pero aún no tienes contenido configurado. Completa el formulario
+                    de abajo y guarda los cambios para publicar tu primera vista principal.
+                  </p>
+                  <p className="font-medium">
+                    ¿Prefieres partir de cero? Usa el botón <span className="italic">Nueva Vista Principal</span> para limpiar el formulario.
+                  </p>
                 </div>
               </div>
             </div>
@@ -454,7 +617,7 @@ export default function VistaPrincipalAdminPage() {
               <ImageUpload
                 currentImageUrl={imagen || undefined}
                 onImageUploaded={handleImageChange}
-                onImageRemoved={() => handleImageChange('')}
+                onImageRemoved={() => handleImageChange(null)}
                 label="Imagen de la Sección"
                 folder="vista-principal"
                 className="w-full max-w-md"
@@ -485,7 +648,12 @@ export default function VistaPrincipalAdminPage() {
             <div className="flex justify-end">
               <Button 
                 onClick={handleSave} 
-                disabled={isSaving || !titulo.trim() || !descripcion.trim()}
+                disabled={
+                  isSaving ||
+                  !titulo.trim() ||
+                  !descripcion.trim() ||
+                  !isDatabaseMigrated
+                }
                 size="lg"
               >
                 {isSaving ? (
@@ -523,9 +691,9 @@ export default function VistaPrincipalAdminPage() {
                     </Button>
                   </div>
                   <div className="bg-gray-200 rounded-lg aspect-[600/400] flex items-center justify-center">
-                    {imagen ? (
+                    {previewImage ? (
                       <img 
-                        src={imagen} 
+                        src={previewImage} 
                         alt="Preview" 
                         className="w-full h-full object-cover rounded-lg"
                       />

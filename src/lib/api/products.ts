@@ -1987,7 +1987,7 @@ export const vistaPrincipalApi = {
       if (!isSupabaseConfigured()) {
         console.log('⚠️ Supabase not configured, returning fallback vista principal');
         const fallbackVistaPrincipal: VistaPrincipal = {
-          id: '1',
+          id: 'fallback',
           titulo: 'Descubre la Belleza, Encuentra tu Estilo',
           descripcion: 'Explora nuestra exclusiva colección de joyas, diseñadas para capturar la esencia de la elegancia y la sofisticación. Cada pieza cuenta una historia.',
           enlace: '/products',
@@ -2010,7 +2010,7 @@ export const vistaPrincipalApi = {
         if (error.code === 'PGRST205' || error.message?.includes('Could not find the table')) {
           console.log('⚠️ vista_principal table not found, returning fallback data. Please run the migration script.');
           const fallbackVistaPrincipal: VistaPrincipal = {
-            id: '1',
+            id: 'fallback',
             titulo: 'Descubre la Belleza, Encuentra tu Estilo',
             descripcion: 'Explora nuestra exclusiva colección de joyas, diseñadas para capturar la esencia de la elegancia y la sofisticación. Cada pieza cuenta una historia.',
             enlace: '/products',
@@ -2036,7 +2036,7 @@ export const vistaPrincipalApi = {
       if (!isSupabaseConfigured()) {
         console.log('⚠️ Supabase not configured, returning fallback vista principal');
         const fallbackVistaPrincipal: VistaPrincipal = {
-          id: '1',
+          id: 'fallback',
           titulo: 'Descubre la Belleza, Encuentra tu Estilo',
           descripcion: 'Explora nuestra exclusiva colección de joyas, diseñadas para capturar la esencia de la elegancia y la sofisticación. Cada pieza cuenta una historia.',
           enlace: '/products',
@@ -2065,7 +2065,7 @@ export const vistaPrincipalApi = {
         if (error.code === 'PGRST205' || error.message?.includes('Could not find the table')) {
           console.log('⚠️ vista_principal table not found, returning fallback data. Please run the migration script.');
           const fallbackVistaPrincipal: VistaPrincipal = {
-            id: '1',
+            id: 'fallback',
             titulo: 'Descubre la Belleza, Encuentra tu Estilo',
             descripcion: 'Explora nuestra exclusiva colección de joyas, diseñadas para capturar la esencia de la elegancia y la sofisticación. Cada pieza cuenta una historia.',
             enlace: '/products',
