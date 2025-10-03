@@ -294,14 +294,14 @@ function ProductsContent() {
                     <Link href={`/public/products/${slug}`} className="block">
                       <Card className="group overflow-hidden transition-shadow duration-300 border-none bg-background shadow-none rounded-none h-full flex flex-col">
                         <CardContent className="p-0 flex-grow">
-                        <div className="aspect-[9/16] overflow-hidden relative h-full">
+                        <div className="aspect-[9/16] overflow-hidden relative h-full" style={{ maxWidth: '453px', maxHeight: '807px' }}>
                           {product.cover_image ? (
                             <>
                               <Image
                                 src={product.cover_image}
                                 alt={product.name || 'Producto'}
-                                width={900}
-                                height={1600}
+                                width={453}
+                                height={807}
                                 className="w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-0"
                                 sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                               />
@@ -309,8 +309,8 @@ function ProductsContent() {
                                 <Image
                                   src={product.product_images[1]}
                                   alt={`${product.name} - vista alternativa`}
-                                  width={900}
-                                  height={1600}
+                                  width={453}
+                                  height={807}
                                   className="w-full h-full object-cover absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                                   sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                                 />

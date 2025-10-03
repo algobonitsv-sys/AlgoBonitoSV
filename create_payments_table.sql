@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS payments (
   status VARCHAR(50) NOT NULL, -- approved, pending, rejected, etc.
   status_detail VARCHAR(255), -- Detalle del estado
   transaction_amount DECIMAL(10,2), -- Monto de la transacción
-  currency_id VARCHAR(10) DEFAULT 'USD', -- Moneda
+  currency_id VARCHAR(10) DEFAULT 'ARS', -- Moneda
   external_reference VARCHAR(255), -- Referencia externa (orden)
   payer_email VARCHAR(255), -- Email del pagador
   payment_method_id VARCHAR(100), -- Método de pago (visa, master, etc.)

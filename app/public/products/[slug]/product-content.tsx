@@ -215,10 +215,14 @@ export default function ProductGallery({
   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
       {/* Columna izquierda - Imágenes (centradas) */}
       <div className="flex flex-col items-center">
-        {/* Imagen principal con relación fija 9:16 */}
+        {/* Imagen principal con dimensiones fijas para consistencia */}
         <div
-          className="relative aspect-[9/16] w-auto mx-auto overflow-hidden border bg-muted shadow-md mt-2"
-          style={{ maxHeight: 'calc(100vh - 160px)' }}
+          className="relative w-full mx-auto overflow-hidden border bg-muted shadow-md mt-2"
+          style={{ 
+            maxWidth: '453px',
+            maxHeight: '807px',
+            aspectRatio: '453/807'
+          }}
           onMouseEnter={() => (hoverRef.current = true)}
           onMouseLeave={() => (hoverRef.current = false)}
           onTouchStart={handleTouchStart}
@@ -234,7 +238,8 @@ export default function ProductGallery({
             <img
               src={currentMain}
               alt={product.name}
-              className="object-cover w-full h-full"
+              className="w-full h-full object-cover"
+              style={{ maxWidth: '453px', maxHeight: '807px' }}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-muted-foreground">

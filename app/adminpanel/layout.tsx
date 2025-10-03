@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Home,
@@ -15,10 +15,15 @@ import {
   ShoppingCart,
   Info,
   Megaphone,
+  Menu,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Toaster } from 'sonner';
+import { useAdminSidebar } from '@/contexts/AdminSidebarContext';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 const navItems = [
   { href: '/adminpanel', label: 'Dashboard', icon: Home },
@@ -39,6 +44,14 @@ const navItems = [
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { isSidebarOpen, toggleSidebar, setSidebarOpen } = useAdminSidebar();
+
+  // Handle click outside to close sidebar on mobile
+  const handleClickOutside = useCallback(() => {
+    if (isSidebarOpen && window.innerWidth < 768) { // Only on mobile (below md breakpoint)
+      setSidebarOpen(false);
+    }
+  }, [isSidebarOpen, setSidebarOpen]);
 
   // Hide announcement bar when in admin panel
   useEffect(() => {
@@ -79,11 +92,35 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   */
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-[1050px] md:min-h-screen">
+      {/* Fixed Header - Only visible on desktop */}
+      <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-50 hidden md:flex items-center px-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleSidebar}
+          className="mr-4"
+          title={isSidebarOpen ? 'Ocultar sidebar' : 'Mostrar sidebar'}
+        >
+          {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
+        <h1 className="text-lg font-semibold text-gray-900">Panel de Administración</h1>
+      </header>
+
       {/* Fixed Sidebar */}
-      <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-40">
+      <div
+        aria-hidden={!isSidebarOpen}
+        className={cn(
+          'fixed left-0 top-16 w-[183.125px] bg-white border-r border-gray-200 z-40 transition-transform duration-300 ease-in-out transform md:translate-x-0 md:opacity-100 md:pointer-events-auto min-h-[1050px]',
+          isSidebarOpen
+            ? 'translate-x-0 opacity-100 pointer-events-auto'
+            : '-translate-x-full opacity-0 pointer-events-none'
+        )}
+        style={{ height: '1050px' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Sidebar Header */}
-        <div className="flex flex-col items-center p-4 border-b" style={{ marginTop: '80px' }}>
+        <div className="flex flex-col items-center p-4 border-b">
           <h3 className="text-sm font-bold text-black">ADMIN PANEL</h3>
         </div>
         
@@ -114,8 +151,19 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       </div>
       
       {/* Main Content Area */}
-      <div className="w-full" style={{ marginLeft: '256px' }}>
-        <main className="min-h-screen p-4 md:p-6" style={{ marginRight: '288.5px' }}>
+      <div
+        className={cn(
+          'w-full transition-all duration-300',
+          isSidebarOpen ? 'md:ml-[183.125px]' : 'md:ml-0'
+        )}
+        onClick={handleClickOutside}
+      >
+        <main
+          className={cn(
+            'min-h-[1050px] md:min-h-screen pt-6 p-4 md:p-6 transition-all duration-300 overflow-y-auto',
+            isSidebarOpen ? 'md:mr-[288.5px]' : 'md:mr-[32.5px]'
+          )}
+        >
           {children}
         </main>
       </div>
@@ -126,6 +174,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <div style={{ display: 'none' }} id="admin-footer-hider" />
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          body footer {
+            display: none !important;
+          }
+        `
+      }} />
       <AdminLayoutContent>{children}</AdminLayoutContent>
       <Toaster />
     </>

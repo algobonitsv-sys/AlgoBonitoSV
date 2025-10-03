@@ -1353,16 +1353,16 @@ ${closureRegistered ? '✅ Registro guardado en base de datos' : '⚠️ Continu
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="text-center space-y-4">
         <div>
           <h1 className="text-2xl font-bold">Gestión Financiera</h1>
           <p className="text-muted-foreground">Control completo de ventas, gastos y cierres de caja</p>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex flex-col md:flex-row gap-2 items-stretch md:items-center md:justify-center">
           <Dialog open={isCashClosureDialogOpen} onOpenChange={setIsCashClosureDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="destructive" className="bg-red-600 hover:bg-red-700">
+              <Button variant="outline" className="border-red-500 text-red-600 hover:bg-red-50 w-full md:w-auto">
                 <Calculator className="h-4 w-4 mr-2" />
                 Cierre de Caja
               </Button>
@@ -1428,7 +1428,7 @@ ${closureRegistered ? '✅ Registro guardado en base de datos' : '⚠️ Continu
           
           <Dialog open={isRevertClosureDialogOpen} onOpenChange={setIsRevertClosureDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="border-orange-500 text-orange-600 hover:bg-orange-50">
+              <Button variant="outline" className="border-orange-500 text-orange-600 hover:bg-orange-50 w-full md:w-auto">
                 <RotateCcw className="h-4 w-4 mr-2" />
                 Revertir Último Cierre
               </Button>
@@ -1493,7 +1493,7 @@ ${closureRegistered ? '✅ Registro guardado en base de datos' : '⚠️ Continu
           
           <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" className="w-full md:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Nuevo Gasto
               </Button>

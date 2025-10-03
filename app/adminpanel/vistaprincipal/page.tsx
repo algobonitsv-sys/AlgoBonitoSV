@@ -447,7 +447,7 @@ export default function VistaPrincipalAdminPage() {
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="text-center space-y-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
               Gestión de Vista Principal
@@ -457,7 +457,7 @@ export default function VistaPrincipalAdminPage() {
             </p>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex justify-center gap-2">
             {isDatabaseMigrated && (
               <Button
                 variant="outline"

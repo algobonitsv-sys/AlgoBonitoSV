@@ -32,17 +32,29 @@ Hemos preparado todo el sistema para integrar Mercado Pago con tu aplicación:
 
 ### 2. Configurar variables de entorno
 
-Edita el archivo `.env.local` y reemplaza los valores de prueba con tus credenciales (puedes usar las sandbox que compartiste):
+Edita el archivo `.env.local` y reemplaza los valores según el ambiente. Actualmente el repositorio ya está configurado con las credenciales **productivas** que nos compartiste (activas) y conserva las de sandbox comentadas para pruebas manuales. Si necesitas alternar entre ambientes, comenta/activa las líneas correspondientes:
 
 ```bash
-# Para desarrollo (sandbox/test)
-MERCADOPAGO_ACCESS_TOKEN=TEST-TU_ACCESS_TOKEN_AQUI
-MERCADOPAGO_PUBLIC_KEY=TEST-TU_PUBLIC_KEY_AQUI
+# Producción (default actual)
+MERCADOPAGO_ACCESS_TOKEN=APP_USR-TU_ACCESS_TOKEN_DE_PRODUCCION
+MERCADOPAGO_PUBLIC_KEY=APP_USR-TU_PUBLIC_KEY_DE_PRODUCCION
+NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY=APP_USR-TU_PUBLIC_KEY_DE_PRODUCCION
+MERCADOPAGO_CURRENCY_ID=ARS
+NEXT_PUBLIC_MERCADOPAGO_CURRENCY_ID=ARS
 
-# Para producción (cuando estés listo)
-# MERCADOPAGO_ACCESS_TOKEN=APP_USR-TU_ACCESS_TOKEN_DE_PRODUCCION
-# MERCADOPAGO_PUBLIC_KEY=APP_USR-TU_PUBLIC_KEY_DE_PRODUCCION
+# Ambiente preferido para el checkout (production | sandbox)
+NEXT_PUBLIC_MERCADOPAGO_ENVIRONMENT=production
+
+# Para desarrollo (sandbox/test)
+# MERCADOPAGO_ACCESS_TOKEN=TEST-TU_ACCESS_TOKEN_AQUI
+# MERCADOPAGO_PUBLIC_KEY=TEST-TU_PUBLIC_KEY_AQUI
+# NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY=TEST-TU_PUBLIC_KEY_AQUI
+# NEXT_PUBLIC_MERCADOPAGO_ENVIRONMENT=sandbox
+# MERCADOPAGO_CURRENCY_ID=ARS
+# NEXT_PUBLIC_MERCADOPAGO_CURRENCY_ID=ARS
 ```
+
+> 🔐 **Recuerda:** No subas el archivo `.env.local` a repositorios públicos ni lo compartas por canales inseguros. Para despliegues en hosting, configura las variables directamente en la plataforma (Vercel, Netlify, etc.).
 
 ### 3. Crear tabla en la base de datos
 
@@ -75,18 +87,18 @@ Para producción, usa tu dominio real.
 1. Inicia tu aplicación: `npm run dev`
 2. Agrega productos al carrito u obtén el listado desde el admin
 3. Usa el componente `MercadoPagoCheckoutButton` (o un `fetch` manual) para llamar a `/api/mercadopago/create-preference`
-4. Serás redirigido al checkout de Mercado Pago (usa tarjetas de prueba)
+4. Se renderizará el botón oficial de Mercado Pago (`Wallet Brick`) para elegir medio de pago en pesos argentinos, iniciar sesión o pagar como invitado
 5. Revisa los resultados:
    - Páginas `/payment/success`, `/payment/failure`, `/payment/pending`
    - Endpoint `/api/mercadopago/feedback` para depurar la respuesta de `back_urls`
    - Webhook `/api/mercadopago/webhook` (utiliza ngrok en local) para confirmar la actualización en Supabase
 
-> 💡 **Importante:** en desarrollo utiliza siempre la URL `sandbox_init_point` que devuelve la API o el botón de pruebas en `/test-mp`. Si abres el `init_point` (checkout productivo) con tarjetas o usuarios de prueba, Mercado Pago mostrará el mensaje _"Una de las partes con la que intentás hacer el pago es de prueba"_. Para evitarlo, usa sandbox o inicia sesión con un comprador real cuando pruebes el flujo productivo.
+> 💡 **Importante:** controla qué checkout abrir (sandbox o producción) mediante la variable `NEXT_PUBLIC_MERCADOPAGO_ENVIRONMENT`. Si la dejas en `sandbox`, los botones redirigen a `sandbox_init_point`. Al cambiarla a `production`, se usará `init_point`. Si abres el `init_point` con tarjetas o usuarios de prueba, Mercado Pago mostrará el mensaje _"Una de las partes con la que intentás hacer el pago es de prueba"_. Para evitarlo, usa sandbox mientras realices pruebas o inicia sesión con un comprador real cuando pruebes el flujo productivo.
 
 ## 📋 Características implementadas
 
 ### Frontend
-- ✅ Componente de checkout con UI atractiva
+- ✅ Componente de checkout con UI atractiva con botón oficial (`Wallet Brick`)
 - ✅ Integración con el carrito existente
 - ✅ Selección entre Mercado Pago, efectivo y transferencia
 - ✅ Páginas de resultado (éxito, fallo, pendiente)
@@ -110,7 +122,7 @@ Para producción, usa tu dominio real.
 ## 🔧 Configuraciones adicionales
 
 ### Personalización
-- Cambia `currency_id` en el componente si no usas USD
+- Ajusta `MERCADOPAGO_CURRENCY_ID` / `NEXT_PUBLIC_MERCADOPAGO_CURRENCY_ID` si necesitás otra moneda (por defecto ARS)
 - Modifica las URLs de retorno según tus necesidades
 - Personaliza los textos y estilos del checkout
 

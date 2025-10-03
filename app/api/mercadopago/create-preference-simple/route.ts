@@ -49,6 +49,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const defaultCurrencyId = process.env.MERCADOPAGO_CURRENCY_ID ?? 'ARS';
+
     // Transform items
     const transformedItems = items.map((item: PreferenceItem) => ({
       id: item.id,
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
       description: item.description || item.title,
       unit_price: Number(item.unit_price),
       quantity: Number(item.quantity),
-      currency_id: item.currency_id || 'USD',
+      currency_id: item.currency_id || defaultCurrencyId,
       picture_url: item.picture_url,
     }));
 

@@ -177,16 +177,16 @@ export default function HistoryModal({
           </DialogHeader>
 
           <Tabs defaultValue={defaultTab} className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="products">
+            <TabsList className="grid w-full grid-cols-3 md:flex md:flex-row">
+              <TabsTrigger value="products" className="flex-1 md:flex-none">
                 <Plus className="h-4 w-4 mr-2" />
                 Productos Creados
               </TabsTrigger>
-              <TabsTrigger value="sales">
+              <TabsTrigger value="sales" className="flex-1 md:flex-none">
                 <ShoppingCart className="h-4 w-4 mr-2" />
                 Ventas Registradas
               </TabsTrigger>
-              <TabsTrigger value="stock">
+              <TabsTrigger value="stock" className="flex-1 md:flex-none">
                 <Package className="h-4 w-4 mr-2" />
                 Pedidos de Stock
               </TabsTrigger>

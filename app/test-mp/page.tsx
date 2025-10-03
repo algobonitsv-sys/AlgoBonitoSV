@@ -2,14 +2,16 @@
 
 import { useState } from 'react';
 
-const isDevelopment = process.env.NODE_ENV !== 'production';
+const envSetting = process.env.NEXT_PUBLIC_MERCADOPAGO_ENVIRONMENT?.toLowerCase();
+const isSandboxMode = envSetting ? envSetting !== 'production' : process.env.NODE_ENV !== 'production';
+const defaultCurrencyId = process.env.NEXT_PUBLIC_MERCADOPAGO_CURRENCY_ID ?? 'ARS';
 
 const resolveCheckoutUrl = (data: any) => {
   if (!data) {
     return null;
   }
 
-  if (isDevelopment) {
+  if (isSandboxMode) {
     return data?.sandbox_init_point ?? data?.init_point ?? null;
   }
 
@@ -37,7 +39,7 @@ export default function TestMPPage() {
             title: 'Producto de Prueba - Pago Aprobado',
             quantity: 1,
             unit_price: 25.00,
-            currency_id: 'USD'
+            currency_id: defaultCurrencyId
           }]
         })
       });
@@ -81,7 +83,7 @@ export default function TestMPPage() {
             title: 'Producto de Prueba - Pago Aprobado',
             quantity: 1,
             unit_price: 25.00,
-            currency_id: 'USD'
+            currency_id: defaultCurrencyId
           }]
         })
       });
@@ -191,7 +193,7 @@ export default function TestMPPage() {
                       >
                         {resolveCheckoutUrl(result)}
                       </a>
-                      {isDevelopment ? (
+                      {isSandboxMode ? (
                         <p className="text-xs text-muted-foreground mt-1">
                           Usando checkout sandbox porque estamos en entorno de pruebas.
                         </p>
@@ -203,7 +205,7 @@ export default function TestMPPage() {
                     </div>
                   )}
 
-                  {!isDevelopment && result.sandbox_init_point && (
+                  {!isSandboxMode && result.sandbox_init_point && (
                     <div>
                       <strong>URL Sandbox (solo pruebas manuales):</strong>
                       <a

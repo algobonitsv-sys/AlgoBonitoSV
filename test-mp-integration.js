@@ -12,7 +12,7 @@ const testPreference = async () => {
           title: 'Producto de Prueba',
           quantity: 1,
           unit_price: 25.00,
-          currency_id: 'USD'
+          currency_id: process.env.MERCADOPAGO_CURRENCY_ID || 'ARS'
         }]
       })
     });

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useId } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Upload, X, Image as ImageIcon, Loader2, Crop } from 'lucide-react';
 import { useFileUpload, FileUploadUtils } from '@/hooks/use-file-upload';
 import ImageCropper from '@/components/ui/image-cropper';
 import { tempImageStore, TempImageData, TempImageStore } from '@/lib/temp-image-store';
+import { toast } from 'sonner';
 
 interface ImageUploadProps {
   currentImageUrl?: string;
@@ -31,6 +32,7 @@ export function ImageUpload({
   required = false,
   className = '',
 }: ImageUploadProps) {
+  const manualInputId = useId();
   const [preview, setPreview] = useState<string>(() => {
     if (!currentImageUrl) return '';
     
@@ -45,6 +47,8 @@ export function ImageUpload({
   });
   const [dragActive, setDragActive] = useState(false);
   const [showCropper, setShowCropper] = useState(false);
+  const [manualUrl, setManualUrl] = useState('');
+  const [urlError, setUrlError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { uploading, uploadFile, deleteFile } = useFileUpload();
 
@@ -54,6 +58,7 @@ export function ImageUpload({
     
     if (!currentImageUrl) {
       setPreview('');
+      setManualUrl('');
       return;
     }
     
@@ -70,10 +75,12 @@ export function ImageUpload({
       console.log('🖼️ ImageUpload: found temp image data:', tempImage);
       setPreview(tempImage.previewUrl);
       console.log('🖼️ ImageUpload: using blob URL:', tempImage.previewUrl);
+      setManualUrl('');
     } else {
       // Si no es temporal, usar la URL directamente
       setPreview(currentImageUrl);
       console.log('🖼️ ImageUpload: using regular URL:', currentImageUrl);
+      setManualUrl(currentImageUrl);
     }
   }, [currentImageUrl]);
 
@@ -118,6 +125,8 @@ export function ImageUpload({
       onImageUploaded(tempId);
 
       console.log('✅ ImageUpload: handleFileSelect completed successfully');
+      setManualUrl('');
+      setUrlError('');
     } catch (error) {
       console.error('❌ ImageUpload: error in handleFileSelect:', error);
       alert('Error al crear vista previa de la imagen');
@@ -145,6 +154,7 @@ export function ImageUpload({
     
     // Limpiar el preview y notificar al componente padre
     setPreview('');
+    setManualUrl('');
     if (onImageRemoved) {
       onImageRemoved();
     }
@@ -189,11 +199,104 @@ export function ImageUpload({
     setDragActive(false);
   };
 
+  const validateManualUrl = (value: string) => {
+    if (!value.trim()) {
+      setUrlError('Ingresa una URL válida');
+      return false;
+    }
+
+    try {
+      const parsed = new URL(value.trim());
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        setUrlError('La URL debe comenzar con http:// o https://');
+        return false;
+      }
+    } catch (error) {
+      setUrlError('Formato de URL inválido');
+      return false;
+    }
+
+    setUrlError('');
+    return true;
+  };
+
+  const handleUseManualUrl = () => {
+    if (!validateManualUrl(manualUrl)) {
+      return;
+    }
+
+    const cleanedUrl = manualUrl.trim();
+
+    // Si había una imagen temporal previa, eliminarla
+    if (currentImageUrl && tempImageStore.getImage(currentImageUrl)) {
+      tempImageStore.removeImage(currentImageUrl);
+    }
+
+    setPreview(cleanedUrl);
+    setManualUrl(cleanedUrl);
+    onImageUploaded(cleanedUrl);
+
+    // Limpiar input de archivo físico
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   // Función para manejar el recorte de imagen
-  const handleCropComplete = (croppedImageUrl: string) => {
-    setPreview(croppedImageUrl);
-    onImageUploaded(croppedImageUrl);
-    setShowCropper(false);
+  const handleCropComplete = async (croppedImageUrl: string) => {
+    console.log('✂️ ImageUpload: handleCropComplete called with:', croppedImageUrl);
+    
+    try {
+      // Limpiar imagen temporal previa si existe
+      if (currentImageUrl && tempImageStore.getImage(currentImageUrl)) {
+        tempImageStore.removeImage(currentImageUrl);
+        console.log('🗑️ ImageUpload: removed previous temp image:', currentImageUrl);
+      }
+      
+      // Convertir la URL blob cropeada en un File
+      console.log('🔄 ImageUpload: converting blob URL to File...');
+      const response = await fetch(croppedImageUrl);
+      const blob = await response.blob();
+      
+      // Crear un File desde el blob
+      const fileName = `cropped-image-${Date.now()}.png`;
+      const file = new File([blob], fileName, { type: 'image/png' });
+      console.log('📁 ImageUpload: created File from blob:', file.name, file.size, 'bytes');
+      
+      // Crear preview URL (que será la misma URL cropeada)
+      setPreview(croppedImageUrl);
+      
+      // Crear datos de imagen temporal
+      const tempId = tempImageStore.generateTempId();
+      console.log('🆔 ImageUpload: generated temp ID for cropped image:', tempId);
+      
+      const tempData: TempImageData = {
+        id: tempId,
+        file: file,
+        previewUrl: croppedImageUrl,
+        type: folder?.includes('covers') ? 'cover' : 
+              folder?.includes('hover') ? 'hover' : 'gallery'
+      };
+      
+      // Guardar en el almacén temporal
+      tempImageStore.addImage(tempData);
+      console.log('💾 ImageUpload: cropped image saved to temp store');
+      
+      // Notificar al componente padre con el ID temporal
+      console.log('📞 ImageUpload: calling onImageUploaded with tempId:', tempId);
+      onImageUploaded(tempId);
+      
+      // Limpiar input de archivo físico
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
+      setShowCropper(false);
+      console.log('✅ ImageUpload: crop complete successfully');
+    } catch (error) {
+      console.error('❌ ImageUpload: error in handleCropComplete:', error);
+      alert('Error al procesar la imagen cropeada');
+    }
   };
 
   // Función para validar si la URL del preview es válida
@@ -235,6 +338,19 @@ export function ImageUpload({
     }
   };
 
+  // Función para determinar si se puede recortar la imagen
+  const canCropImage = (): boolean => {
+    if (!currentImageUrl) return false;
+    
+    // No permitir recorte de URLs externas (causa error CORS)
+    if (currentImageUrl.startsWith('http://') || currentImageUrl.startsWith('https://')) {
+      return false;
+    }
+    
+    // Permitir recorte de imágenes locales (blob URLs, data URLs, temp IDs)
+    return true;
+  };
+
   return (
     <div className={`space-y-2 ${className}`}>
       <Label>
@@ -266,16 +382,24 @@ export function ImageUpload({
           </div>
           {/* Botones de acción */}
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowCropper(true)}
-              disabled={uploading}
-              className="bg-white/90 hover:bg-white text-gray-700"
-            >
-              <Crop className="h-4 w-4" />
-            </Button>
+            {canCropImage() && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  if (canCropImage()) {
+                    setShowCropper(true);
+                  } else {
+                    toast.error('No se puede recortar imágenes de URLs externas por restricciones de seguridad');
+                  }
+                }}
+                disabled={uploading}
+                className="bg-white/90 hover:bg-white text-gray-700"
+              >
+                <Crop className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               type="button"
               variant="destructive"
@@ -341,6 +465,30 @@ export function ImageUpload({
       <p className="text-xs text-muted-foreground">
         Las imágenes se almacenan de forma segura en Cloudflare R2
       </p>
+
+      <div className="space-y-2">
+        <Label htmlFor={manualInputId} className="text-xs text-muted-foreground">
+          O pega una URL de imagen
+        </Label>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Input
+            id={manualInputId}
+            placeholder="https://..."
+            value={manualUrl}
+            onChange={(event) => {
+              setManualUrl(event.target.value);
+              if (urlError) {
+                setUrlError('');
+              }
+            }}
+            disabled={uploading}
+          />
+          <Button type="button" variant="secondary" onClick={handleUseManualUrl} disabled={uploading}>
+            Usar URL
+          </Button>
+        </div>
+        {urlError && <p className="text-xs text-destructive">{urlError}</p>}
+      </div>
       
       {/* Modal de recorte */}
       {showCropper && preview && (

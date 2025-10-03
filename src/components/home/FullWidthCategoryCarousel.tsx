@@ -82,7 +82,7 @@ export default function FullWidthCategoryCarousel() {
   }, []);
 
   const getCategoryHref = (category: Category) => {
-    return `/products?category=${encodeURIComponent(category.name.toLowerCase())}`;
+    return `/public/products?category=${encodeURIComponent(category.name.toLowerCase())}`;
   };
 
   const getCategoryImage = (category: Category) => {

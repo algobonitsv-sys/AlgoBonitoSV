@@ -11,7 +11,7 @@ async function testEndpoint() {
           title: 'Producto de Prueba',
           unit_price: 10.50,
           quantity: 1,
-          currency_id: 'USD'
+          currency_id: process.env.MERCADOPAGO_CURRENCY_ID || 'ARS'
         }],
         payer: {
           name: 'Usuario de Prueba'

@@ -212,7 +212,7 @@ export default function AdminSubcategoriesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="text-center space-y-4">
         <div>
           <h1 className="text-2xl font-bold">Gestión de Subcategorías</h1>
           <p className="text-muted-foreground">Administra las subcategorías para organizar mejor tus productos</p>

@@ -357,7 +357,7 @@ export default function AboutAdminPage() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="text-center space-y-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Gestión de Sobre Nosotros</h1>
           <p className="text-muted-foreground">

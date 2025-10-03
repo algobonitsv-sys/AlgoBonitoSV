@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +36,12 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Switch } from '@/components/ui/switch';
 import ImagePreview from '@/components/ui/image-preview';
 import ImageGalleryManager from '@/components/ui/image-gallery-manager';
@@ -46,7 +52,7 @@ import StockOrderModal from '@/components/admin/StockOrderModal';
 import GeneralSalesModal from '@/components/admin/GeneralSalesModal';
 import ProductSalesModal from '@/components/admin/ProductSalesModal';
 import HistoryModal from '@/components/admin/HistoryModal';
-import { Plus, Edit, Trash2, Package, Loader2, ShoppingBag, Star, Sparkles, History, TrendingUp } from 'lucide-react';
+import { Plus, Edit, Trash2, Package, Loader2, ShoppingBag, Star, Sparkles, History, TrendingUp, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { tempImageStore } from '@/lib/temp-image-store';
 import { TempImageUploader } from '@/lib/temp-image-uploader';
@@ -97,6 +103,67 @@ export default function AdminProductsPage() {
   const [isProductSalesModalOpen, setIsProductSalesModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyDefaultTab, setHistoryDefaultTab] = useState<'products' | 'sales' | 'stock'>('products');
+
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedSubcategory, setSelectedSubcategory] = useState('all');
+  const [sortBy, setSortBy] = useState('name-asc');
+
+  // Filtered and sorted products
+  const filteredProducts = useMemo(() => {
+    let filtered = products.filter((product) => {
+      // Search filter
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        const matchesSearch =
+          product.name.toLowerCase().includes(searchLower) ||
+          product.description?.toLowerCase().includes(searchLower) ||
+          categories.find(cat => cat.id === product.category_id)?.name.toLowerCase().includes(searchLower) ||
+          subcategories.find(sub => sub.id === product.subcategory_id)?.name.toLowerCase().includes(searchLower);
+        
+        if (!matchesSearch) return false;
+      }
+
+      // Category filter
+      if (selectedCategory !== 'all' && product.category_id !== selectedCategory) {
+        return false;
+      }
+
+      // Subcategory filter
+      if (selectedSubcategory !== 'all' && product.subcategory_id !== selectedSubcategory) {
+        return false;
+      }
+
+      return true;
+    });
+
+    // Sort products
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name-asc':
+          return a.name.localeCompare(b.name);
+        case 'name-desc':
+          return b.name.localeCompare(a.name);
+        case 'price-asc':
+          return (a.price || 0) - (b.price || 0);
+        case 'price-desc':
+          return (b.price || 0) - (a.price || 0);
+        case 'stock-asc':
+          return (a.stock || 0) - (b.stock || 0);
+        case 'stock-desc':
+          return (b.stock || 0) - (a.stock || 0);
+        case 'newest':
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+        case 'oldest':
+          return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [products, searchTerm, selectedCategory, selectedSubcategory, sortBy, categories, subcategories]);
 
   // Form state
   const [formData, setFormData] = useState<ProductFormData>({
@@ -158,6 +225,18 @@ export default function AdminProductsPage() {
       setFormData(prev => ({ ...prev, subcategory_id: '' }));
     }
   }, [formData.category_id, subcategories]);
+
+  // Reset subcategory filter when category filter changes
+  useEffect(() => {
+    if (selectedCategory !== 'all') {
+      const categorySubs = subcategories.filter(sub => sub.category_id === selectedCategory);
+      if (selectedSubcategory !== 'all' && !categorySubs.find(sub => sub.id === selectedSubcategory)) {
+        setSelectedSubcategory('all');
+      }
+    } else if (selectedSubcategory !== 'all') {
+      setSelectedSubcategory('all');
+    }
+  }, [selectedCategory, selectedSubcategory, subcategories]);
 
   const loadData = async () => {
     setLoading(true);
@@ -530,57 +609,76 @@ export default function AdminProductsPage() {
     }).format(price);
   };
 
+  // Get available subcategories based on selected category
+  const getAvailableSubcategories = () => {
+    if (selectedCategory === 'all') {
+      // Return unique subcategories when no category is selected
+      const uniqueSubcategories = new Map();
+      subcategories.forEach(sub => {
+        if (!uniqueSubcategories.has(sub.name)) {
+          uniqueSubcategories.set(sub.name, sub);
+        }
+      });
+      return Array.from(uniqueSubcategories.values());
+    } else {
+      // Return subcategories for the selected category
+      return subcategories.filter(sub => sub.category_id === selectedCategory);
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Gestión de Productos</h1>
-          <p className="text-muted-foreground">Administra tu catálogo de productos</p>
-        </div>
-        
-        <div className="flex gap-2">
-          {/* Botón de Historial */}
-          <Button 
-            variant="outline" 
-            onClick={() => openHistoryModal('products')}
-            className="flex items-center gap-2"
-          >
-            <History className="h-4 w-4" />
-            Historial
-          </Button>
+    <div className="space-y-6 pb-10 overflow-x-hidden min-h-full">
+      {/* Header Section */}
+      <div className="space-y-6">
+        <div className="text-center space-y-4">
+          <div>
+            <h1 className="text-2xl font-bold md:text-3xl">Gestión de Productos</h1>
+            <p className="text-muted-foreground text-base md:text-lg">Administra tu catálogo de productos</p>
+          </div>
 
-          {/* Botón de Registrar Pedido de Stock */}
-          <Button 
-            variant="outline" 
-            onClick={() => setIsStockOrderModalOpen(true)}
-            className="flex items-center gap-2"
-          >
-            <Package className="h-4 w-4" />
-            Registrar Pedido
-          </Button>
+          <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:justify-center md:gap-3">
+            {/* Botón de Historial */}
+            <Button 
+              variant="outline" 
+              onClick={() => openHistoryModal('products')}
+              className="flex items-center gap-2 justify-center w-full md:w-auto"
+            >
+              <History className="h-4 w-4" />
+              Historial
+            </Button>
 
-          {/* Botón de Registrar Venta con Filtros */}
-          <Button 
-            variant="outline" 
-            onClick={() => setIsProductSalesModalOpen(true)}
-            className="flex items-center gap-2"
-          >
-            <TrendingUp className="h-4 w-4" />
-            Registrar Venta
-          </Button>
-          
-          {/* Botón de Agregar Producto */}
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) resetForm();
-          }}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar Producto
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto overflow-x-hidden">\
+            {/* Botón de Registrar Pedido de Stock */}
+            <Button 
+              variant="outline" 
+              onClick={() => setIsStockOrderModalOpen(true)}
+              className="flex items-center gap-2 justify-center w-full md:w-auto"
+            >
+              <Package className="h-4 w-4" />
+              Registrar Pedido
+            </Button>
+
+            {/* Botón de Registrar Venta con Filtros */}
+            <Button 
+              variant="outline" 
+              onClick={() => setIsProductSalesModalOpen(true)}
+              className="flex items-center gap-2 justify-center w-full md:w-auto"
+            >
+              <TrendingUp className="h-4 w-4" />
+              Registrar Venta
+            </Button>
+            
+            {/* Botón de Agregar Producto */}
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) resetForm();
+            }}>
+              <DialogTrigger asChild>
+                <Button className="flex items-center gap-2 justify-center w-full md:w-auto">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Producto
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="w-full sm:w-auto sm:max-w-2xl lg:max-w-3xl sm:mx-auto max-h-[90vh] overflow-y-auto overflow-x-hidden px-4 sm:px-6">
             <DialogHeader>
               <DialogTitle>
                 {editingProduct ? 'Editar Producto' : 'Agregar Nuevo Producto'}
@@ -591,7 +689,7 @@ export default function AdminProductsPage() {
             </DialogHeader>
             
             <div className="space-y-4 overflow-x-hidden" style={{ maxWidth: '100%', width: '100%' }}>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="category">Categoría *</Label>
                   <Select 
@@ -655,8 +753,8 @@ export default function AdminProductsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-1">
                   <Label htmlFor="cost">Costo *</Label>
                   <Input
                     id="cost"
@@ -669,7 +767,7 @@ export default function AdminProductsPage() {
                   />
                 </div>
 
-                <div>
+                <div className="sm:col-span-1">
                   <Label htmlFor="price">Precio de Venta *</Label>
                   <Input
                     id="price"
@@ -682,7 +780,7 @@ export default function AdminProductsPage() {
                   />
                 </div>
 
-                <div>
+                <div className="sm:col-span-1">
                   <Label htmlFor="stock">Stock Disponible</Label>
                   <Input
                     id="stock"
@@ -704,11 +802,11 @@ export default function AdminProductsPage() {
                 <div className="border-b pb-2">
                   <h3 className="text-lg font-semibold">Imágenes de Portada</h3>
                   <p className="text-sm text-muted-foreground">
-                    Estas imágenes se mostrarán en las tarjetas de producto. La imagen hover aparece al pasar el mouse.
+                    Estas imágenes se mostrarán en las tarjetas de producto. La imagen hover aparece al pasar el mouse. Puedes subir un archivo o pegar una URL directa.
                   </p>
                 </div>
                 
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
                     {(() => {
                       console.log('🖼️ ProductsPage: Rendering cover ImageUpload with currentImageUrl:', formData.cover_image);
@@ -776,7 +874,7 @@ export default function AdminProductsPage() {
                 />
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Switch
                   id="is_active"
                   checked={formData.is_active}
@@ -785,7 +883,7 @@ export default function AdminProductsPage() {
                 <Label htmlFor="is_active">Producto activo</Label>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Switch
                   id="is_featured"
                   checked={formData.is_featured}
@@ -794,7 +892,7 @@ export default function AdminProductsPage() {
                 <Label htmlFor="is_featured">Producto destacado</Label>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Switch
                   id="is_new"
                   checked={formData.is_new}
@@ -822,6 +920,140 @@ export default function AdminProductsPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Search and Filters Section - Desktop */}
+      <div className="hidden md:block">
+        <Card className="p-4">
+          <div className="flex items-center gap-4">
+            {/* Search Bar on the left */}
+            <div className="flex-1 max-w-md">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Buscar productos..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            
+            {/* Filters and Sort on the right */}
+            <div className="flex gap-2 flex-wrap">
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Todas las categorías" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las categorías</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedSubcategory} onValueChange={setSelectedSubcategory}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Todas las subcategorías" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las subcategorías</SelectItem>
+                  {getAvailableSubcategories().map((subcategory) => (
+                    <SelectItem key={subcategory.id} value={subcategory.id}>
+                      {subcategory.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Ordenar por" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name-asc">Nombre A-Z</SelectItem>
+                  <SelectItem value="name-desc">Nombre Z-A</SelectItem>
+                  <SelectItem value="price-asc">Precio menor a mayor</SelectItem>
+                  <SelectItem value="price-desc">Precio mayor a menor</SelectItem>
+                  <SelectItem value="stock-asc">Stock menor a mayor</SelectItem>
+                  <SelectItem value="stock-desc">Stock mayor a menor</SelectItem>
+                  <SelectItem value="newest">Más nuevo primero</SelectItem>
+                  <SelectItem value="oldest">Más viejo primero</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      </div>
+      </div>
+
+      {/* Mobile Search and Filters Section */}
+      <div className="md:hidden space-y-4">
+        <Card className="p-4">
+          <div className="space-y-4">
+            {/* Mobile Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Buscar productos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Mobile Filters */}
+            <div className="grid grid-cols-1 gap-3">
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas las categorías" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las categorías</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedSubcategory} onValueChange={setSelectedSubcategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas las subcategorías" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las subcategorías</SelectItem>
+                  {getAvailableSubcategories().map((subcategory) => (
+                    <SelectItem key={subcategory.id} value={subcategory.id}>
+                      {subcategory.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Ordenar por" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name-asc">Nombre A-Z</SelectItem>
+                  <SelectItem value="name-desc">Nombre Z-A</SelectItem>
+                  <SelectItem value="price-asc">Precio menor a mayor</SelectItem>
+                  <SelectItem value="price-desc">Precio mayor a menor</SelectItem>
+                  <SelectItem value="stock-asc">Stock menor a mayor</SelectItem>
+                  <SelectItem value="stock-desc">Stock mayor a menor</SelectItem>
+                  <SelectItem value="newest">Más nuevo primero</SelectItem>
+                  <SelectItem value="oldest">Más viejo primero</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </Card>
       </div>
 
       {/* Stats Card */}
@@ -831,16 +1063,19 @@ export default function AdminProductsPage() {
           <Package className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{products.length}</div>
+          <div className="text-2xl font-bold">{filteredProducts.length}</div>
           <p className="text-xs text-muted-foreground">
-            Productos registrados en el catálogo
+            {searchTerm || selectedCategory !== 'all' || selectedSubcategory !== 'all' 
+              ? 'Productos filtrados' 
+              : 'Productos registrados en el catálogo'}
           </p>
         </CardContent>
       </Card>
 
       {/* Products Table */}
-      <div className="border rounded-lg">
-        <Table>
+      <div className="hidden md:block">
+        <div className="overflow-x-auto rounded-lg border">
+          <Table className="min-w-[900px]">
           <TableHeader>
             <TableRow>
               <TableHead>Producto</TableHead>
@@ -870,11 +1105,11 @@ export default function AdminProductsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              products.map((product) => (
+              filteredProducts.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell>
                     <div className="flex items-center space-x-3">
-                      <div className="relative">
+                      <div className="relative mr-3">
                         {product.cover_image && (
                           <img
                             src={product.cover_image}
@@ -1036,7 +1271,205 @@ export default function AdminProductsPage() {
               ))
             )}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
+      </div>
+
+      {/* Mobile Product Accordion */}
+      <div className="md:hidden">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 p-6 text-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <p className="mt-2 text-sm text-muted-foreground">Cargando productos...</p>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 p-6 text-center">
+            <ShoppingBag className="h-10 w-10 text-muted-foreground" />
+            <h3 className="mt-3 text-base font-semibold">No hay productos registrados</h3>
+            <p className="text-sm text-muted-foreground">Comienza agregando tu primer producto</p>
+          </div>
+        ) : (
+          <Accordion type="single" collapsible className="flex flex-col gap-3">
+            {filteredProducts.map((product) => (
+              <AccordionItem
+                key={product.id}
+                value={product.id}
+                className="overflow-hidden rounded-lg border bg-card"
+              >
+                <div className="relative">
+                  <div className="absolute right-3 top-3 flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleToggleFeatured(product);
+                      }}
+                      title={product.is_featured ? 'Quitar de destacados' : 'Marcar como destacado'}
+                      className={product.is_featured ? 'text-yellow-600 hover:text-yellow-700' : 'text-muted-foreground hover:text-yellow-600'}
+                    >
+                      <Star className={`h-4 w-4 ${product.is_featured ? 'fill-current' : ''}`} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleToggleNew(product);
+                      }}
+                      title={product.is_new ? 'Quitar de nuevos' : 'Marcar como nuevo'}
+                      className={product.is_new ? 'text-blue-600 hover:text-blue-700' : 'text-muted-foreground hover:text-blue-600'}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setSelectedProductForSale(product);
+                        setIsProductSalesModalOpen(true);
+                      }}
+                      title="Registrar venta"
+                      className="text-green-600 hover:text-green-700"
+                    >
+                      <ShoppingBag className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleEdit(product);
+                      }}
+                      title="Editar producto"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleDelete(product.id);
+                      }}
+                      title="Eliminar producto"
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <AccordionTrigger className="w-full px-4 pr-16 py-4 text-left text-base font-semibold hover:no-underline">
+                    <div className="flex w-full items-center gap-3">
+                      {product.cover_image ? (
+                        <img
+                          src={product.cover_image}
+                          alt={product.name}
+                          className="h-16 w-16 flex-shrink-0 rounded-md border object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-md border bg-muted text-[10px] text-muted-foreground">
+                          Sin imagen
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold">{product.name}</p>
+                        <div className="mt-1 flex flex-wrap gap-2 text-xs font-medium">
+                          <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-blue-700">
+                            {getCategoryName(product.category_id || '')}
+                          </span>
+                          <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-green-700">
+                            {getSubcategoryName(product.subcategory_id || '')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+
+                  <AccordionContent className="px-4 pb-4 pt-0">
+                    <div className="space-y-3 border-t pt-4">
+                      {product.description && (
+                        <p className="text-sm text-muted-foreground">
+                          {product.description}
+                        </p>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Precio</p>
+                          <p className="font-medium">{product.price ? formatPrice(product.price) : 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Costo</p>
+                          <p className="font-medium">{product.cost ? formatPrice(product.cost) : 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Stock</p>
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                            (product.stock || 0) > 10
+                              ? 'bg-green-100 text-green-700'
+                              : (product.stock || 0) > 0
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            {product.stock || 0} unidades
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Estado</p>
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                            product.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                          }`}>
+                            {product.is_active ? 'Activo' : 'Inactivo'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        {product.hover_image && (
+                          <span className="rounded bg-blue-50 px-2 py-0.5 text-blue-600">Imagen hover</span>
+                        )}
+                        {product.product_images && product.product_images.length > 0 && (
+                          <span className="rounded bg-green-50 px-2 py-0.5 text-green-600">
+                            {product.product_images.length} en galería
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => {
+                            setSelectedProductForSale(product);
+                            setIsProductSalesModalOpen(true);
+                          }}
+                        >
+                          <ShoppingBag className="mr-2 h-4 w-4" />
+                          Registrar venta
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => handleEdit(product)}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Editar
+                        </Button>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </div>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        )}
       </div>
 
       {/* Sales Registration Modal */}

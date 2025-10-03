@@ -22,7 +22,7 @@ async function testMercadoPago() {
           title: 'Test Product',
           unit_price: 10,
           quantity: 1,
-          currency_id: 'USD'
+          currency_id: process.env.MERCADOPAGO_CURRENCY_ID || 'ARS'
         }],
         payer: {
           name: 'Test User'

@@ -210,9 +210,9 @@ export default function AdminCategoriesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="text-center space-y-4">
         <div>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center justify-center gap-2 mb-2">
             <h1 className="text-2xl font-bold">Gestión de Categorías</h1>
             {(!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project-id')) && (
               <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">

@@ -211,9 +211,9 @@ export default function AnnouncementBarPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="text-center space-y-4">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
+          <h1 className="text-3xl font-bold flex items-center justify-center gap-2">
             <Megaphone className="h-8 w-8" />
             Announcement Bar
           </h1>

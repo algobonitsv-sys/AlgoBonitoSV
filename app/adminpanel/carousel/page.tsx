@@ -209,7 +209,7 @@ export default function AdminCarouselPage() {
 
     return (
         <div className="container mx-auto px-4 py-8">
-            <div className="flex justify-between items-center mb-6">
+            <div className="text-center space-y-4 mb-6">
                 <div>
                     <h1 className="text-3xl font-bold">Gestión de Carrusel</h1>
                     <p className="text-muted-foreground">Administra las imágenes del carrusel principal</p>

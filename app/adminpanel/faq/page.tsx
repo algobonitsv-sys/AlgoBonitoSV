@@ -290,13 +290,13 @@ export default function AdminFaqPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="text-center space-y-4">
         <div>
           <h1 className="text-2xl font-bold">Gestión de Preguntas Frecuentes</h1>
           <p className="text-muted-foreground">Administra las preguntas frecuentes de tu sitio web</p>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex justify-center gap-2">
           <Button 
             variant="outline" 
             onClick={() => setPreviewMode(!previewMode)}

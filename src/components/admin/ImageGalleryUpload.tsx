@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, X, ArrowUp, ArrowDown, Image as ImageIcon } from 'lucide-react';
 import { ImageUpload } from '@/components/admin/ImageUpload';
+import { tempImageStore } from '@/lib/temp-image-store';
 
 interface ImageGalleryUploadProps {
   images: string[];
@@ -25,6 +26,20 @@ export function ImageGalleryUpload({
   productId
 }: ImageGalleryUploadProps) {
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+
+  // Función para obtener la URL correcta de la imagen
+  const getImageUrl = (imageUrl: string): string => {
+    if (!imageUrl) return '';
+    
+    // Si es un ID temporal, obtener la URL del blob del store
+    const tempImage = tempImageStore.getImage(imageUrl);
+    if (tempImage) {
+      return tempImage.previewUrl;
+    }
+    
+    // Si no es temporal, usar la URL directamente
+    return imageUrl;
+  };
 
   // Añadir nueva imagen
   const addImage = () => {
@@ -138,7 +153,7 @@ export function ImageGalleryUpload({
               <div className="mt-4 flex justify-center">
                 <div className="relative bg-gray-100 rounded-lg overflow-hidden" style={{ width: '80px', height: '128px' }}>
                   <img
-                    src={imageUrl}
+                    src={getImageUrl(imageUrl)}
                     alt={`Imagen ${index + 1}`}
                     className="w-full h-full object-cover"
                     onError={(e) => {

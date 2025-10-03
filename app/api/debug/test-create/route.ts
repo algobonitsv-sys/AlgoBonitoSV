@@ -16,6 +16,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('Request body:', JSON.stringify(body, null, 2));
 
+    const defaultCurrencyId = process.env.MERCADOPAGO_CURRENCY_ID ?? 'ARS';
+
     // Crear preferencia con back_urls y notification_url
     const preferenceData = {
       items: [{
@@ -23,7 +25,7 @@ export async function POST(request: NextRequest) {
         title: 'Test Product',
         unit_price: 10,
         quantity: 1,
-        currency_id: 'USD'
+        currency_id: defaultCurrencyId
       }],
       back_urls: {
         success: 'http://localhost:9002/payment/success',
