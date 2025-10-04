@@ -8,8 +8,14 @@ import type { CartItem } from '@/types/database';
 
 interface MercadoPagoCheckoutProps {
   items: CartItem[];
+  subtotal: number;
+  shippingCost: number;
+  shippingLabel?: string;
+  paymentSurcharge?: number;
   total: number;
   customerName: string;
+  paymentMethod?: string;
+  deliveryMethod?: string;
   onSuccess?: () => void;
   onError?: (error: string) => void;
 }
@@ -26,8 +32,14 @@ const preferSandboxCheckout = mpEnvironment !== 'production';
 
 export default function MercadoPagoCheckout({ 
   items, 
+  subtotal,
+  shippingCost,
+  shippingLabel,
+  paymentSurcharge = 0,
   total, 
   customerName, 
+  paymentMethod = 'mercadopago',
+  deliveryMethod = 'entrega',
   onSuccess, 
   onError 
 }: MercadoPagoCheckoutProps) {
@@ -78,27 +90,101 @@ export default function MercadoPagoCheckout({
   setMpError(null);
 
     try {
-      // Crear la preferencia de pago
+      const computedShippingLabel = shippingLabel ?? 'Envío';
+      const normalizedSurcharge = Number(paymentSurcharge.toFixed(2));
+
+      // Primero guardar la orden en la base de datos
+      const orderData = {
+        customer_name: customerName,
+        customer_phone: '+503 0000-0000', // Placeholder ya que no pedimos teléfono
+        customer_email: '', // Opcional
+        payment_method: paymentMethod,
+        shipping_method: deliveryMethod,
+        shipping_cost: shippingCost,
+        payment_surcharge: normalizedSurcharge,
+        total_amount: total,
+        notes: `Método de entrega: ${computedShippingLabel}.`,
+        metadata: {
+          subtotal,
+          shipping_label: computedShippingLabel,
+          payment_surcharge: normalizedSurcharge,
+        },
+        items: items.map(item => ({
+          product_id: item.product_id,
+          product_name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          subtotal: item.price * item.quantity
+        }))
+      };
+
+      // Guardar orden en la base de datos
+      const orderResponse = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      const orderResult = await orderResponse.json();
+
+      if (!orderResult.success) {
+        throw new Error('Error al crear la orden: ' + orderResult.error);
+      }
+
+      const orderId = orderResult.data?.id;
+
+      // Crear la lista de items para Mercado Pago, incluyendo envío y recargo
+      const preferenceItems = [
+        ...items.map(item => ({
+          id: item.product_id,
+          title: item.name,
+          unit_price: item.price,
+          quantity: item.quantity,
+          currency_id: currencyId,
+        })),
+        ...(shippingCost > 0
+          ? [{
+              id: 'shipping',
+              title: `Envío - ${computedShippingLabel}`,
+              unit_price: Number(shippingCost.toFixed(2)),
+              quantity: 1,
+              currency_id: currencyId,
+            }]
+          : []),
+        ...(normalizedSurcharge > 0
+          ? [{
+              id: 'mercadopago_surcharge',
+              title: 'Recargo Mercado Pago (10%)',
+              unit_price: normalizedSurcharge,
+              quantity: 1,
+              currency_id: currencyId,
+            }]
+          : []),
+      ];
+
+      // Crear la preferencia de pago con el ID de la orden como referencia externa
       const response = await fetch('/api/mercadopago/create-preference', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          items: items.map(item => ({
-            id: item.product_id,
-            title: item.name,
-            unit_price: item.price,
-            quantity: item.quantity,
-            currency_id: currencyId,
-          })),
+          items: preferenceItems,
           payer: {
             name: customerName,
           },
           metadata: {
             customer_name: customerName,
             order_total: total,
+            subtotal,
+            shipping_cost: shippingCost,
+            shipping_label: computedShippingLabel,
+            payment_surcharge: normalizedSurcharge,
+            order_id: orderId,
           },
+          external_reference: orderId, // Usar el ID de la orden como referencia externa
         }),
       });
 
@@ -139,15 +225,31 @@ export default function MercadoPagoCheckout({
       </div>
 
       <div className="bg-gray-50 p-4 rounded-lg">
-        <div className="flex justify-between items-center mb-2">
-          <span className="font-medium">Total a pagar:</span>
-          <span className="text-xl font-bold text-green-600">
-            ${total.toFixed(2)}
-          </span>
-        </div>
-        <div className="text-sm text-gray-600">
-          <p>Cliente: {customerName}</p>
-          <p>Artículos: {items.reduce((sum, item) => sum + item.quantity, 0)}</p>
+        <div className="space-y-2 text-sm text-gray-600">
+          <div className="flex justify-between">
+            <span>Subtotal</span>
+            <span>${subtotal.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Envío ({shippingLabel ?? 'Envío'})</span>
+            <span>${shippingCost.toFixed(2)}</span>
+          </div>
+          {paymentSurcharge > 0 && (
+            <div className="flex justify-between text-red-600">
+              <span>Recargo Mercado Pago (10%)</span>
+              <span>${paymentSurcharge.toFixed(2)}</span>
+            </div>
+          )}
+          <div className="border-t pt-2 flex justify-between items-center">
+            <span className="font-medium">Total a pagar:</span>
+            <span className="text-xl font-bold text-green-600">
+              ${total.toFixed(2)}
+            </span>
+          </div>
+          <div>
+            <p>Cliente: {customerName}</p>
+            <p>Artículos: {items.reduce((sum, item) => sum + item.quantity, 0)}</p>
+          </div>
         </div>
       </div>
 

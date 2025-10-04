@@ -1501,235 +1501,6 @@ export const carouselImagesApi = {
 };
 
 // =====================================================
-// ORDERS API
-// =====================================================
-
-const ordersApi = {
-  // Get all orders
-  async getAll(): Promise<ApiResponse<OrderWithItems[]>> {
-    try {
-      if (!isSupabaseConfigured()) {
-        console.log('⚠️ Supabase not configured, returning empty array');
-        return createResponse([], null);
-      }
-
-      const { data: orders, error: ordersError } = await supabase!
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (ordersError) throw ordersError;
-
-      // Get order items for each order
-      const ordersWithItems: OrderWithItems[] = [];
-      
-      for (const order of orders || []) {
-        const { data: items, error: itemsError } = await supabase!
-          .from('order_items')
-          .select('*')
-          .eq('order_id', order.id);
-
-        if (itemsError) throw itemsError;
-
-        ordersWithItems.push({
-          ...order,
-          items: items || []
-        });
-      }
-
-      return createResponse(ordersWithItems, null);
-    } catch (error) {
-      return createResponse([], handleError(error));
-    }
-  },
-
-  // Get order by ID with items
-  async getById(id: string): Promise<ApiResponse<OrderWithItems | null>> {
-    try {
-      if (!isSupabaseConfigured()) {
-        console.log('⚠️ Supabase not configured, returning null');
-        return createResponse(null, null);
-      }
-
-      const { data: order, error: orderError } = await supabase!
-        .from('orders')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (orderError) throw orderError;
-
-      const { data: items, error: itemsError } = await supabase!
-        .from('order_items')
-        .select('*')
-        .eq('order_id', id);
-
-      if (itemsError) throw itemsError;
-
-      const orderWithItems: OrderWithItems = {
-        ...order,
-        items: items || []
-      };
-
-      return createResponse(orderWithItems, null);
-    } catch (error) {
-      return createResponse(null, handleError(error));
-    }
-  },
-
-  // Create order with items
-  async create(orderData: OrderInsert, items: any[]): Promise<ApiResponse<OrderWithItems | null>> {
-    try {
-      if (!isSupabaseConfigured()) {
-        console.log('⚠️ Supabase not configured, returning mock order');
-        const mockOrder: OrderWithItems = {
-          id: `mock-${Date.now()}`,
-          customer_name: orderData.customer_name,
-          customer_phone: orderData.customer_phone,
-          customer_email: orderData.customer_email || null,
-          status: orderData.status || 'pending',
-          total_amount: orderData.total_amount || 0,
-          notes: orderData.notes || null,
-          whatsapp_sent_at: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          items: items.map((item, index) => ({
-            id: `mock-item-${index}`,
-            order_id: `mock-${Date.now()}`,
-            product_id: item.product_id,
-            product_name: item.product_name,
-            product_price: item.product_price,
-            quantity: item.quantity,
-            subtotal: item.subtotal,
-            created_at: new Date().toISOString()
-          }))
-        };
-        return createResponse(mockOrder, null);
-      }
-
-      // Create order first
-      const { data: order, error: orderError } = await supabase!
-        .from('orders')
-        .insert(orderData as any)
-        .select()
-        .single();
-
-      if (orderError) throw orderError;
-      if (!order) throw new Error('Order creation failed');
-
-      // Create order items
-      const itemsWithOrderId = items.map((item: any) => ({
-        ...item,
-        order_id: (order as any).id
-      }));
-
-      const { data: createdItems, error: itemsError } = await supabase!
-        .from('order_items')
-        .insert(itemsWithOrderId as any)
-        .select();
-
-      if (itemsError) throw itemsError;
-
-      const orderWithItems: OrderWithItems = {
-        ...(order as any),
-        items: createdItems || []
-      };
-
-      return createResponse(orderWithItems, null);
-    } catch (error) {
-      return createResponse(null, handleError(error));
-    }
-  },
-
-  // Update order status
-  async updateStatus(id: string, status: OrderStatus, whatsappSent?: boolean): Promise<ApiResponse<Order | null>> {
-    try {
-      if (!isSupabaseConfigured()) {
-        console.log('⚠️ Supabase not configured, returning null');
-        return createResponse(null, null);
-      }
-
-      const updateData: any = { status };
-      
-      if (whatsappSent) {
-        updateData.whatsapp_sent_at = new Date().toISOString();
-      }
-
-      const { data, error } = await supabase!
-        .from('orders')
-        .update(updateData as any)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return createResponse(data as any, null);
-    } catch (error) {
-      return createResponse(null, handleError(error));
-    }
-  },
-
-  // Get orders by status
-  async getByStatus(status: OrderStatus): Promise<ApiResponse<OrderWithItems[]>> {
-    try {
-      if (!isSupabaseConfigured()) {
-        console.log('⚠️ Supabase not configured, returning empty array');
-        return createResponse([], null);
-      }
-
-      const { data: orders, error: ordersError } = await supabase!
-        .from('orders')
-        .select('*')
-        .eq('status', status)
-        .order('created_at', { ascending: false });
-
-      if (ordersError) throw ordersError;
-
-      // Get order items for each order
-      const ordersWithItems: OrderWithItems[] = [];
-      
-      for (const order of orders || []) {
-        const { data: items, error: itemsError } = await supabase!
-          .from('order_items')
-          .select('*')
-          .eq('order_id', order.id);
-
-        if (itemsError) throw itemsError;
-
-        ordersWithItems.push({
-          ...order,
-          items: items || []
-        });
-      }
-
-      return createResponse(ordersWithItems, null);
-    } catch (error) {
-      return createResponse([], handleError(error));
-    }
-  },
-
-  // Delete order
-  async delete(id: string): Promise<ApiResponse<boolean>> {
-    try {
-      if (!isSupabaseConfigured()) {
-        console.log('⚠️ Supabase not configured, returning true');
-        return createResponse(true, null);
-      }
-
-      const { error } = await supabase!
-        .from('orders')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      return createResponse(true, null);
-    } catch (error) {
-      return createResponse(false, handleError(error));
-    }
-  }
-};
-
-// =====================================================
 // EXPORT ALL APIs
 // =====================================================
 
@@ -3150,6 +2921,272 @@ const aboutContentApi = {
       const { error } = await (supabase! as any)
         .from('about_content')
         .update({ display_order: newOrder })
+        .eq('id', id);
+
+      if (error) throw error;
+      return createResponse(true, null);
+    } catch (error) {
+      return createResponse(false, handleError(error));
+    }
+  },
+};
+
+// =====================================================
+// ORDERS API
+// =====================================================
+
+export const ordersApi = {
+  // Get all orders with items
+  async getAll(): Promise<ApiResponse<OrderWithItems[]>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning empty orders array');
+        return createResponse([], null);
+      }
+
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          items:order_items(
+            *,
+            product:products(*)
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Transform the data to match OrderWithItems type
+      const transformedData = (data || []).map((order: any) => ({
+        ...order,
+        items: order.items || []
+      }));
+
+      return createResponse(transformedData, null);
+    } catch (error) {
+      return createResponse([], handleError(error));
+    }
+  },
+
+  // Get order by ID with items
+  async getById(id: string): Promise<ApiResponse<OrderWithItems | null>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning null');
+        return createResponse(null, null);
+      }
+
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          items:order_items(
+            *,
+            product:products(*)
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      // Transform the data to match OrderWithItems type
+      const transformedData = data ? {
+        ...data,
+        items: data.items || []
+      } : null;
+
+      return createResponse(transformedData, null);
+    } catch (error) {
+      return createResponse(null, handleError(error));
+    }
+  },
+
+  // Create order with items
+  async create(order: OrderInsert, items: OrderItemInsert[]): Promise<ApiResponse<OrderWithItems | null>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock order');
+        const mockOrder: OrderWithItems = {
+          id: `mock_${Date.now()}`,
+          customer_name: order.customer_name,
+          customer_phone: order.customer_phone || '',
+          customer_email: order.customer_email || null,
+          status: order.status || 'pending',
+          total_amount: order.total_amount || 0,
+          payment_method: order.payment_method || null,
+          shipping_method: order.shipping_method || null,
+          shipping_cost: order.shipping_cost || 0,
+          notes: order.notes || null,
+          whatsapp_sent_at: order.whatsapp_sent_at || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          items: items.map(item => ({
+            id: `mock_item_${Date.now()}_${Math.random()}`,
+            order_id: `mock_${Date.now()}`,
+            product_id: item.product_id,
+            product_name: item.product_name,
+            product_price: item.product_price,
+            quantity: item.quantity,
+            subtotal: item.subtotal,
+            created_at: new Date().toISOString(),
+          }))
+        };
+        return createResponse(mockOrder, null);
+      }
+
+      // Start transaction
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert(order)
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Add order_id to each item and create them
+      const itemsWithOrderId = items.map(item => ({
+        ...item,
+        order_id: orderData.id
+      }));
+
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('order_items')
+        .insert(itemsWithOrderId)
+        .select(`
+          *,
+          product:products(*)
+        `);
+
+      if (itemsError) throw itemsError;
+
+      // Return the complete order with items
+      const completeOrder: OrderWithItems = {
+        ...orderData,
+        items: itemsData || []
+      };
+
+      return createResponse(completeOrder, null);
+    } catch (error) {
+      return createResponse(null, handleError(error));
+    }
+  },
+
+  // Update order
+  async update(id: string, updates: Partial<OrderInsert>): Promise<ApiResponse<OrderWithItems | null>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock updated order');
+        const mockOrder: OrderWithItems = {
+          id,
+          customer_name: updates.customer_name || 'Mock Customer',
+          customer_phone: updates.customer_phone || '',
+          customer_email: updates.customer_email || null,
+          status: updates.status || 'pending',
+          total_amount: updates.total_amount || 0,
+          payment_method: updates.payment_method || null,
+          shipping_method: updates.shipping_method || null,
+          shipping_cost: updates.shipping_cost || 0,
+          notes: updates.notes || null,
+          whatsapp_sent_at: updates.whatsapp_sent_at || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          items: []
+        };
+        return createResponse(mockOrder, null);
+      }
+
+      const { data, error } = await supabase
+        .from('orders')
+        .update(updates)
+        .eq('id', id)
+        .select(`
+          *,
+          items:order_items(
+            *,
+            product:products(*)
+          )
+        `)
+        .single();
+
+      if (error) throw error;
+
+      // Transform the data to match OrderWithItems type
+      const transformedData = data ? {
+        ...data,
+        items: data.items || []
+      } : null;
+
+      return createResponse(transformedData, null);
+    } catch (error) {
+      return createResponse(null, handleError(error));
+    }
+  },
+
+  // Update order status
+  async updateStatus(id: string, status: OrderStatus, whatsappSent?: boolean): Promise<ApiResponse<Order | null>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock updated order');
+        const mockOrder: Order = {
+          id,
+          customer_name: 'Mock Customer',
+          customer_phone: '',
+          customer_email: null,
+          status: status,
+          total_amount: 0,
+          payment_method: null,
+          shipping_method: null,
+          shipping_cost: 0,
+          notes: null,
+          whatsapp_sent_at: whatsappSent ? new Date().toISOString() : null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        return createResponse(mockOrder, null);
+      }
+
+      const updateData: any = { status };
+      
+      if (whatsappSent) {
+        updateData.whatsapp_sent_at = new Date().toISOString();
+      }
+
+      const { data, error } = await supabase
+        .from('orders')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data as Order, null);
+    } catch (error) {
+      return createResponse(null, handleError(error));
+    }
+  },
+
+  // Delete order
+  async delete(id: string): Promise<ApiResponse<boolean>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock deletion');
+        return createResponse(true, null);
+      }
+
+      // Delete order items first
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .delete()
+        .eq('order_id', id);
+
+      if (itemsError) throw itemsError;
+
+      // Delete order
+      const { error } = await supabase
+        .from('orders')
+        .delete()
         .eq('id', id);
 
       if (error) throw error;

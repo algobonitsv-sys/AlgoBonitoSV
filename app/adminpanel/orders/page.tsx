@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api/products";
-import type { OrderWithItems, OrderStatus, Product } from "@/types/database";
+import type { OrderWithItems, OrderStatus, Product, SaleItem } from "@/types/database";
 import { Edit, Trash2, Check, X, Plus, Minus, Package, TrendingDown, TrendingUp, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,7 @@ interface ProductWithStock extends Product {
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [sales, setSales] = useState<SaleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingOrder, setEditingOrder] = useState<string | null>(null);
   const [editingItems, setEditingItems] = useState<any[]>([]);
@@ -22,6 +23,10 @@ export default function OrdersPage() {
     customer_name: "",
     status: "pending" as OrderStatus
   });
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 8;
 
   // Analytics state
   const [lowStockProducts, setLowStockProducts] = useState<ProductWithStock[]>([]);
@@ -35,17 +40,18 @@ export default function OrdersPage() {
   }, []);
 
   useEffect(() => {
-    if (orders.length > 0 && products.length > 0) {
-      updateAnalytics(orders, products);
+    if (orders.length > 0 && products.length > 0 && sales.length > 0) {
+      updateAnalytics(orders, products, sales);
     }
-  }, [orders, products]);
+  }, [orders, products, sales]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [ordersResponse, productsResponse] = await Promise.all([
+      const [ordersResponse, productsResponse, salesResponse] = await Promise.all([
         api.orders.getAll(),
-        api.products.getAll()
+        api.products.getAll(),
+        api.productSales.getAll()
       ]);
       
       if (ordersResponse.data) {
@@ -54,10 +60,13 @@ export default function OrdersPage() {
       if (productsResponse.data) {
         setProducts(productsResponse.data);
       }
+      if (salesResponse.data) {
+        setSales(salesResponse.data);
+      }
 
       // Update analytics after data is loaded
-      if (ordersResponse.data && productsResponse.data) {
-        updateAnalytics(ordersResponse.data, productsResponse.data);
+      if (ordersResponse.data && productsResponse.data && salesResponse.data) {
+        updateAnalytics(ordersResponse.data, productsResponse.data, salesResponse.data);
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -66,14 +75,13 @@ export default function OrdersPage() {
     }
   };
 
-  const updateAnalytics = (ordersData: OrderWithItems[], productsData: Product[]) => {
+  const updateAnalytics = (ordersData: OrderWithItems[], productsData: Product[], salesData: SaleItem[]) => {
     // Calculate analytics with the loaded data
     const lowStock = productsData.filter(product => {
-      // Mock stock calculation - in real app would join with inventory
-      const mockStock = Math.floor(Math.random() * 20) + 1;
-      return mockStock <= 10 && product.is_active;
-    }).slice(0, 5);
-    setLowStockProducts(lowStock.map(product => ({ ...product, stock_quantity: Math.floor(Math.random() * 10) + 1 })));
+      // Filter products with stock <= 5 and active
+      return product.stock <= 5 && product.is_active;
+    });
+    setLowStockProducts(lowStock.map(product => ({ ...product, stock_quantity: product.stock })));
 
     const pending = ordersData.filter(order => order.status === 'pending' || order.status === 'confirmed');
     setPendingOrders(pending);
@@ -84,11 +92,12 @@ export default function OrdersPage() {
     const unsatisfiedDemand = pending.reduce((total, order) => total + order.total_amount, 0);
     setTotalUnsatisfiedDemand(unsatisfiedDemand);
 
+    // Calculate weekly sales from sale_items table instead of completed orders
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    const weeklySalesAmount = completed
-      .filter(order => new Date(order.created_at) >= oneWeekAgo)
-      .reduce((total, order) => total + order.total_amount, 0);
+    const weeklySalesAmount = salesData
+      .filter(sale => new Date(sale.created_at) >= oneWeekAgo)
+      .reduce((total, sale) => total + sale.total_price, 0);
     setWeeklySales(weeklySalesAmount);
   };
 
@@ -120,6 +129,29 @@ export default function OrdersPage() {
     setEditingOrder(null);
     setEditingItems([]);
     setEditForm({ customer_name: "", status: "pending" });
+  };
+
+  // Pagination logic
+  const totalPages = Math.ceil(orders.length / ordersPerPage);
+  const startIndex = (currentPage - 1) * ordersPerPage;
+  const endIndex = startIndex + ordersPerPage;
+  const currentOrders = orders.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setEditingOrder(null); // Cancel any ongoing edit when changing pages
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    }
   };
 
   const handleDeleteOrder = async (orderId: string) => {
@@ -178,8 +210,8 @@ export default function OrdersPage() {
 
   // Real data calculations
   const getLowStockProducts = () => {
-    // Simulate low stock products - in real app this would check inventory
-    return products.filter(product => product.is_active).slice(0, 3);
+    // Filter products with stock <= 5 and active
+    return products.filter(product => product.stock <= 5 && product.is_active);
   };
 
   const getPendingOrders = () => {
@@ -366,27 +398,29 @@ export default function OrdersPage() {
                 Demanda Satisfecha (Ventas Concretadas)
               </CardTitle>
               <CardDescription className="text-green-600">
-                Historial de todas las ventas completadas exitosamente
+                Historial de todas las ventas completadas exitosamente desde la tabla sale_items
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-4">
               <div className="space-y-3 max-h-60 overflow-y-auto">
-                {completedOrders.length > 0 ? (
-                  completedOrders.slice(0, 3).map((order) => (
+                {sales.length > 0 ? (
+                  sales.slice(0, 5).map((sale) => (
                     <div 
-                      key={order.id}
+                      key={sale.id}
                       className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200"
                     >
                       <div>
-                        <p className="font-medium text-green-900">{order.customer_name}</p>
+                        <p className="font-medium text-green-900">
+                          {sale.product_id ? `Producto vendido` : 'Venta registrada'}
+                        </p>
                         <p className="text-sm text-green-600">
-                          Vendido hace {Math.floor((new Date().getTime() - new Date(order.created_at).getTime()) / (1000 * 60 * 60 * 24))} días
+                          Cantidad: {sale.quantity} | Vendido hace {Math.floor((new Date().getTime() - new Date(sale.created_at).getTime()) / (1000 * 60 * 60 * 24))} días
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-green-900">${order.total_amount.toFixed(2)}</p>
+                        <p className="font-bold text-green-900">${sale.total_price.toFixed(2)}</p>
                         <Badge variant="outline" className="text-green-600 border-green-600">
-                          Completado
+                          Vendido
                         </Badge>
                       </div>
                     </div>
@@ -394,13 +428,13 @@ export default function OrdersPage() {
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     <TrendingUp className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                    <p>No hay ventas completadas</p>
+                    <p>No hay ventas registradas</p>
                   </div>
                 )}
               </div>
               <div className="mt-4 pt-4 border-t">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-green-800">Ventas esta semana:</span>
+                  <span className="text-sm font-medium text-green-800">Ventas esta semana (sale_items):</span>
                   <span className="text-lg font-bold text-green-900">${weeklySales.toFixed(2)}</span>
                 </div>
                 <Link href="/admin/finances" className="text-sm text-green-600 hover:text-green-800 font-medium mt-2 block">
@@ -517,7 +551,8 @@ export default function OrdersPage() {
             <p className="text-gray-500">No se han creado órdenes aún.</p>
           </div>
         ) : (
-          orders.map((order) => (
+          <>
+            {currentOrders.map((order) => (
             <div key={order.id} className="bg-white rounded-lg shadow-sm border p-6">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
@@ -655,41 +690,85 @@ export default function OrdersPage() {
               </div>
               
               {/* Mostrar detalles del pedido (método de pago y entrega) */}
-              {order.notes && (
-                <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                  <h4 className="text-sm font-semibold text-blue-900 mb-2">📋 Detalles del Pedido</h4>
-                  <div className="space-y-2">
-                    {order.notes.split('.').filter(detail => detail.trim()).map((detail, idx) => {
-                      const trimmedDetail = detail.trim();
-                      if (trimmedDetail.includes('Método de pago:')) {
-                        const paymentMethod = trimmedDetail.replace('Método de pago:', '').trim();
-                        return (
-                          <div key={idx} className="flex items-center gap-2">
-                            <span className="text-blue-600">💳</span>
-                            <span className="text-sm text-blue-800">
-                              <strong>Pago:</strong> <span className="bg-blue-100 px-2 py-1 rounded-full text-xs">{paymentMethod}</span>
-                            </span>
-                          </div>
-                        );
-                      }
-                      if (trimmedDetail.includes('Entrega:')) {
-                        const deliveryMethod = trimmedDetail.replace('Entrega:', '').trim();
-                        return (
-                          <div key={idx} className="flex items-center gap-2">
-                            <span className="text-blue-600">🚚</span>
-                            <span className="text-sm text-blue-800">
-                              <strong>Entrega:</strong> <span className="bg-indigo-100 px-2 py-1 rounded-full text-xs">{deliveryMethod}</span>
-                            </span>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })}
-                  </div>
+              <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                <h4 className="text-sm font-semibold text-blue-900 mb-2">📋 Detalles del Pedido</h4>
+                <div className="space-y-2">
+                  {order.payment_method && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-blue-600">💳</span>
+                      <span className="text-sm text-blue-800">
+                        <strong>Pago:</strong> <span className="bg-blue-100 px-2 py-1 rounded-full text-xs">
+                          {order.payment_method === 'mercadopago' ? 'Mercado Pago' :
+                           order.payment_method === 'cash' ? 'Efectivo' :
+                           order.payment_method === 'transfer' ? 'Transferencia bancaria' :
+                           order.payment_method}
+                        </span>
+                      </span>
+                    </div>
+                  )}
+                  {order.shipping_method && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-blue-600">🚚</span>
+                      <span className="text-sm text-blue-800">
+                        <strong>Entrega:</strong> <span className="bg-indigo-100 px-2 py-1 rounded-full text-xs">
+                          {order.shipping_method === 'entrega' ? 'Entrega a domicilio' :
+                           order.shipping_method === 'recoger' ? 'Recoger en tienda' :
+                           order.shipping_method === 'coordinamos' ? 'Coordinamos' :
+                           order.shipping_method}
+                        </span>
+                      </span>
+                    </div>
+                  )}
+                  {order.shipping_cost !== null && order.shipping_cost > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-600">💰</span>
+                      <span className="text-sm text-green-800">
+                        <strong>Costo de envío:</strong> <span className="bg-green-100 px-2 py-1 rounded-full text-xs">${order.shipping_cost.toFixed(2)}</span>
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
-          ))
+            ))}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-4 mt-8">
+                <button
+                  onClick={handlePrevPage}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Anterior
+                </button>
+                
+                <div className="flex gap-2">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`px-3 py-2 rounded-lg ${
+                        currentPage === page
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+                
+                <button
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Siguiente
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

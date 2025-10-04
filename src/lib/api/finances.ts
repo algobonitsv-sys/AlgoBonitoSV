@@ -69,13 +69,13 @@ const createResponse = <T>(data: T | null, error: string | null): ApiResponse<T>
 // =====================================================
 
 export const salesApi = {
-  // Get all sales with items - TEMPORAL: usando product_sales hasta migrar datos
+  // Get all sales with items - usando sale_items table
   async getAll(): Promise<ApiResponse<any[]>> {
     try {
-      console.log('🔍 financeApi.sales.getAll() - Iniciando consulta a product_sales...');
-      
+      console.log('🔍 financeApi.sales.getAll() - Iniciando consulta a sale_items...');
+
       const { data, error } = await supabase
-        .from('product_sales')
+        .from('sale_items')
         .select(`
           *,
           product:products(*)
@@ -88,17 +88,17 @@ export const salesApi = {
         console.error('❌ financeApi.sales.getAll() - Error en consulta:', error);
         throw error;
       }
-      
+
       console.log('📊 financeApi.sales.getAll() - Datos crudos recibidos:', data);
       console.log('📊 financeApi.sales.getAll() - Cantidad de registros:', data?.length || 0);
-      
+
       // Transformar datos para que coincidan con el formato esperado
       console.log('🔄 financeApi.sales.getAll() - Iniciando transformación...');
       const transformedData = (data as any)?.map((sale: any, index: number) => {
         console.log(`🔄 Transformando venta ${index + 1}:`, sale);
         console.log(`🔄 sale.total_price:`, sale.total_price);
-        console.log(`🔄 sale.unit_price:`, sale.unit_price);
-        
+        console.log(`🔄 sale.price_per_unit:`, sale.price_per_unit);
+
         const transformed = {
           id: sale.id,
           // Mapear campos principales
@@ -119,19 +119,19 @@ export const salesApi = {
             id: sale.id,
             product_id: sale.product_id,
             quantity: sale.quantity,
-            price_per_unit: sale.unit_price,
+            price_per_unit: sale.price_per_unit,
             total_price: sale.total_price,
             product: sale.product
           }]
         };
-        
+
         console.log(`✅ Venta transformada ${index + 1}:`, transformed);
         return transformed;
       }) || [];
-      
+
       console.log('🔄 financeApi.sales.getAll() - Datos transformados:', transformedData);
       console.log('✅ financeApi.sales.getAll() - Retornando éxito con', transformedData.length, 'ventas');
-      
+
       return createResponse(transformedData, null);
     } catch (error) {
       console.error('💥 financeApi.sales.getAll() - Error capturado:', error);

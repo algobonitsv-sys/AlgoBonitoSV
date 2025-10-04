@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { initMercadoPago, Wallet } from "@mercadopago/sdk-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api/products";
 
 export interface MercadoPagoItem {
   id: string;

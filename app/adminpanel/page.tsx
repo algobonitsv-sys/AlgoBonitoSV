@@ -307,6 +307,8 @@ export default function AdminPage() {
     availableCapital: 0
   });
 
+  const [salesTrendData, setSalesTrendData] = useState<any[]>([]);
+
   // Función para formatear números de manera consistente
   const formatCurrency = (amount: number): string => {
     return Math.round(amount).toLocaleString('en-US');
@@ -623,14 +625,45 @@ export default function AdminPage() {
         const totalOrders = sales.length; // Asumiendo que cada venta es un pedido
         const conversionRate = totalOrders > 0 ? (sales.length / totalOrders) * 100 : 0;
         
-        console.log('📊 Métricas calculadas:', {
-          productRevenue,
-          netMonetaryMovements,
-          totalFixedCosts,
-          totalSalaryWithdrawals,
-          orderCosts,
-          profit
-        });
+        // Calcular datos del gráfico de tendencia de ventas (últimos 6 meses)
+        const calculateSalesTrend = (allSales: any[]) => {
+          const now = new Date();
+          const months: Array<{year: number, month: number, label: string, total: number}> = [];
+          
+          // Generar los últimos 6 meses
+          for (let i = 5; i >= 0; i--) {
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            months.push({
+              year: date.getFullYear(),
+              month: date.getMonth(),
+              label: date.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' }),
+              total: 0
+            });
+          }
+          
+          // Agrupar ventas por mes
+          allSales.forEach(sale => {
+            const saleDate = new Date(sale.created_at);
+            const monthIndex = months.findIndex(m => 
+              m.year === saleDate.getFullYear() && m.month === saleDate.getMonth()
+            );
+            
+            if (monthIndex !== -1) {
+              months[monthIndex].total += sale.total_amount || 0;
+            }
+          });
+          
+          // Convertir al formato esperado por el gráfico
+          return months.map(month => ({
+            month: month.label,
+            ventas: Math.round(month.total)
+          }));
+        };
+        
+        const salesTrend = calculateSalesTrend(allSalesData);
+        setSalesTrendData(salesTrend);
+        
+        console.log('📊 Datos del gráfico de ventas calculados:', salesTrend);
         
         // Actualizar estado con datos reales calculados correctamente
         setQuickStats({
@@ -834,7 +867,7 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={overviewData}>
+              <LineChart data={salesTrendData.length > 0 ? salesTrendData : overviewData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
