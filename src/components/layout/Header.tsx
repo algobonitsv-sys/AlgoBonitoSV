@@ -607,7 +607,7 @@ function CartBadge() {
   if (itemCount <= 0) return null;
   
   return (
-    <span className="absolute -top-1 -right-1 min-w-[1.15rem] h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-medium flex items-center justify-center animate-in fade-in zoom-in">
+    <span className="absolute -top-1 -right-1 min-w-[1rem] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-medium flex items-center justify-center animate-in fade-in zoom-in">
       {itemCount > 99 ? '99+' : itemCount}
     </span>
   );
