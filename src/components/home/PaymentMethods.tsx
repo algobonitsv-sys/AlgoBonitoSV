@@ -93,7 +93,7 @@ export default function PaymentMethods() {
 								key={`${method}-${index}`}
 								className="flex flex-col items-center gap-3 sm:gap-4 p-6 sm:p-8 bg-white/10 backdrop-blur-sm rounded-xl shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl"
 							>
-								<Icon className="h-12 w-12 sm:h-16 sm:w-16 text-primary mb-1 sm:mb-2" />
+								<Icon className="h-12 w-12 sm:h-16 sm:w-16 text-[#E3D5CA] mb-1 sm:mb-2" />
 								<p className="text-sm sm:text-lg font-medium text-white leading-snug">
 									{method}
 								</p>

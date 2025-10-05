@@ -124,7 +124,7 @@ function SearchPageContent() {
                 <Button 
                   type="submit" 
                   disabled={!searchQuery.trim()}
-                  className="px-8 py-3 bg-gradient-to-r from-neutral-700 to-gray-900 hover:from-neutral-800 hover:to-black text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`px-8 h-10 text-black rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${searchQuery.trim() ? 'bg-[#E3D5CA] hover:bg-[#E3D5CA]/90' : 'bg-[#F5EBE0] hover:bg-[#F5EBE0]/90'}`}
                 >
                   Buscar
                 </Button>
@@ -206,7 +206,7 @@ function SearchPageContent() {
           <div className="text-center py-16">
             <div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-lg border border-neutral-200 max-w-lg mx-auto p-8">
               <div className="w-20 h-20 bg-gradient-to-br from-neutral-500 to-gray-700 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Package className="h-10 w-10 text-white" />
+                <Package className="h-10 w-10 text-black" />
               </div>
               <h3 className="text-2xl font-bold text-neutral-800 mb-3">No encontramos resultados</h3>
               <p className="text-neutral-600 mb-6 text-lg">
@@ -230,7 +230,7 @@ function SearchPageContent() {
                 </ul>
               </div>
               <Link href="/products">
-                <Button className="bg-gradient-to-r from-neutral-700 to-gray-900 hover:from-neutral-800 hover:to-black text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">
+                <Button className="bg-[#E3D5CA] hover:bg-[#F5EBE0] text-black px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">
                   Explorar todos los productos
                 </Button>
               </Link>

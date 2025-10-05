@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Menu,
   Search,
@@ -46,6 +46,24 @@ export default function Header() {
   const [isSheetOpen, setSheetOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const pathname = usePathname();
+  const searchRef = useRef<HTMLDivElement | null>(null);
+
+  // Handle clicks outside search bar
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node) && isSearchOpen) {
+        setIsSearchOpen(false);
+      }
+    };
+
+    if (isSearchOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isSearchOpen]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -182,7 +200,7 @@ export default function Header() {
       </div>
 
       {isSearchOpen && (
-        <div className="container pb-4 absolute w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div ref={searchRef} className="container pb-4 absolute w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input

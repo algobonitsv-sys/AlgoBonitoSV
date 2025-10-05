@@ -114,7 +114,7 @@ export default function VistaPrincipal() {
               <p className="text-sm sm:text-lg text-muted-foreground">
                 {displayData.descripcion}
               </p>
-              <Button asChild size="lg" className="w-full xs:w-auto">
+              <Button asChild size="lg" className="w-full xs:w-auto bg-[#F5EBE0] text-black hover:bg-[#F5EBE0]/90">
                 <Link href={displayData.enlace}>
                   {displayData.enlace_texto}
                   <ArrowRight className="ml-2 h-5 w-5" />

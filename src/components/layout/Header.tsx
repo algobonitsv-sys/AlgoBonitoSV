@@ -55,6 +55,7 @@ export default function Header() {
   
   const categoriesRef = useRef<HTMLDivElement | null>(null);
   const productsButtonRef = useRef<HTMLButtonElement | null>(null);
+  const searchRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const { toggleSidebar } = useAdminSidebar();
@@ -190,6 +191,23 @@ export default function Header() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
+  // Handle clicks outside search bar
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node) && isSearchOpen) {
+        setIsSearchOpen(false);
+      }
+    };
+
+    if (isSearchOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isSearchOpen]);
 
   const handleBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -454,7 +472,7 @@ export default function Header() {
           </div>
         </div>
         {isSearchOpen && (
-          <div className="absolute left-0 right-0 pb-4 w-full flex justify-center bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b z-50">
+          <div ref={searchRef} className="absolute left-0 right-0 pb-4 w-full flex justify-center bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b z-50">
             <div className="relative w-full max-w-xl mt-4 px-4 flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -472,7 +490,7 @@ export default function Header() {
                 onClick={performSearch}
                 disabled={!searchQuery.trim()}
                 size="sm"
-                className="px-4"
+                className={`px-4 h-10 text-black ${searchQuery.trim() ? 'bg-[#E3D5CA] hover:bg-[#E3D5CA]/90' : 'bg-[#F5EBE0] hover:bg-[#F5EBE0]/90'}`}
               >
                 Buscar
               </Button>

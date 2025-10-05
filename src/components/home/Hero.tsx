@@ -127,7 +127,7 @@ export default function Hero() {
                       </p>
                       <Button 
                         size="lg" 
-                        className="mt-8 bg-primary text-primary-foreground hover:bg-primary/90"
+                        className="mt-8 bg-[#F5EBE0] text-black hover:bg-[#F5EBE0]/90 rounded-xl"
                         onClick={linkUrl ? () => window.open(linkUrl, '_blank') : undefined}
                       >
                         {linkUrl ? 'Ver Más' : 'Ver Colección'}
