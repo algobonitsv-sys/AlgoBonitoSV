@@ -13,6 +13,24 @@ import { toast } from 'sonner';
 
 const PRODUCTS_PER_PAGE = 12;
 
+// Helper function to validate image URLs
+const isValidImageUrl = (url: string | null | undefined): boolean => {
+  if (!url || typeof url !== 'string') return false;
+  
+  // Check if it's a valid HTTP/HTTPS URL
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+// Helper function to get a valid image URL or fallback
+const getValidImageUrl = (url: string | null | undefined, fallback?: string): string | null => {
+  return isValidImageUrl(url) ? (url as string) : (fallback || null);
+};
+
 // Map category names from URL to database
 const categoryMapping: Record<string, string> = {
   'aros': 'aros',
@@ -281,40 +299,52 @@ function ProductsContent() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-0 md:gap-6 bg-background mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 md:gap-6 bg-background mb-8 max-w-full overflow-hidden">
               {paginatedProducts.map((product, index) => {
                 const slug = (product.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
                 const categoryName = getCategoryName(product.category_id);
                 const subcategoryName = getSubcategoryName(product.subcategory_id);
-                // Calculate padding based on position in grid for mobile
-                const isLeftColumn = index % 2 === 0; // For mobile 2-column layout
-                const paddingClasses = `md:p-0 ${isLeftColumn ? 'pr-1' : 'pl-1'}`; // Only apply padding on mobile
                 return (
-                  <div key={product.id} className={paddingClasses}>
+                  <div key={product.id} className="md:p-0">
                     <Link href={`/public/products/${slug}`} className="block">
                       <Card className="group overflow-hidden transition-shadow duration-300 border-none bg-background shadow-none rounded-none h-full flex flex-col">
                         <CardContent className="p-0 flex-grow">
-                        <div className="aspect-[9/16] overflow-hidden relative h-full" style={{ maxWidth: '453px', maxHeight: '807px' }}>
-                          {product.cover_image ? (
+                        <div className="aspect-[9/16] overflow-hidden relative h-full w-full">
+                          {getValidImageUrl(product.cover_image) ? (
                             <>
-                              <Image
-                                src={product.cover_image}
-                                alt={product.name || 'Producto'}
-                                width={453}
-                                height={807}
-                                className="w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-0"
-                                sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                              />
-                              {product.product_images && product.product_images.length > 1 && (
-                                <Image
-                                  src={product.product_images[1]}
-                                  alt={`${product.name} - vista alternativa`}
-                                  width={453}
-                                  height={807}
-                                  className="w-full h-full object-cover absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                                />
-                              )}
+                              {(() => {
+                                // Determine hover image: prefer hover_image, fallback to first product_images
+                                const hoverImageUrl = getValidImageUrl(product.hover_image) || 
+                                  (product.product_images && product.product_images.length > 0 && getValidImageUrl(product.product_images[0]));
+                                
+                                // Only apply hover opacity transition if there's a hover image
+                                const coverImageClass = hoverImageUrl 
+                                  ? "w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-0"
+                                  : "w-full h-full object-cover";
+                                
+                                return (
+                                  <>
+                                    <Image
+                                      src={getValidImageUrl(product.cover_image)!}
+                                      alt={product.name || 'Producto'}
+                                      width={453}
+                                      height={807}
+                                      className={coverImageClass}
+                                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                                    />
+                                    {hoverImageUrl && (
+                                      <Image
+                                        src={hoverImageUrl}
+                                        alt={`${product.name} - vista alternativa`}
+                                        width={453}
+                                        height={807}
+                                        className="w-full h-full object-cover absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                                        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                                      />
+                                    )}
+                                  </>
+                                );
+                              })()}
                             </>
                           ) : (
                             <div className="w-full h-full bg-gray-200 flex items-center justify-center">
