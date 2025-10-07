@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
+import type { SVGProps } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from "next/image";
 import Link from "next/link";
 import { ProductsControlsClient } from "@/components/products/ProductsControlsClient";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@/components/ui/pagination";
 import { Loader2 } from "lucide-react";
 import { productApi } from '@/lib/api/products_safe';
 import { toast } from 'sonner';
@@ -48,6 +49,36 @@ const materialMapping: Record<string, string> = {
   'acero-dorado': 'Acero dorado', 
   'plata-925': 'Plata 925'
 };
+
+const ArrowLeftIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    {...props}
+  >
+    <path d="M15 18l-6-6 6-6" />
+  </svg>
+);
+
+const ArrowRightIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    {...props}
+  >
+    <path d="M9 6l6 6-6 6" />
+  </svg>
+);
 
 function ProductsContent() {
   const searchParams = useSearchParams();
@@ -204,6 +235,12 @@ function ProductsContent() {
   const validCurrentPage = Math.min(currentPage, totalPages);
   const startIndex = (validCurrentPage - 1) * PRODUCTS_PER_PAGE;
   const paginatedProducts = filteredProducts.slice(startIndex, startIndex + PRODUCTS_PER_PAGE);
+  const baseQuery = Object.fromEntries(searchParams?.entries() || []) as Record<string, string>;
+  const getPageHref = (page: number) => {
+    const params = new URLSearchParams(baseQuery);
+    params.set('page', String(page));
+    return `/public/products?${params.toString()}`;
+  };
 
   // Calculate price range for filters
   const allPrices = products.map(p => p.price || 0).filter(p => p > 0);
@@ -375,39 +412,85 @@ function ProductsContent() {
             {totalPages > 1 && (
               <Pagination className="justify-center px-4 md:px-0">
                 <PaginationContent>
-                  {validCurrentPage > 1 && (
-                    <PaginationItem>
-                      <PaginationPrevious 
-                        href={`/public/products?${new URLSearchParams({
-                          ...Object.fromEntries(searchParams?.entries() || []),
-                          page: String(validCurrentPage - 1)
-                        }).toString()}`}
-                      />
-                    </PaginationItem>
-                  )}
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <PaginationItem key={page}>
-                      <PaginationLink 
-                        href={`/public/products?${new URLSearchParams({
-                          ...Object.fromEntries(searchParams?.entries() || []),
-                          page: String(page)
-                        }).toString()}`}
-                        isActive={page === validCurrentPage}
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-                  {validCurrentPage < totalPages && (
-                    <PaginationItem>
-                      <PaginationNext 
-                        href={`/public/products?${new URLSearchParams({
-                          ...Object.fromEntries(searchParams?.entries() || []),
-                          page: String(validCurrentPage + 1)
-                        }).toString()}`}
-                      />
-                    </PaginationItem>
-                  )}
+                  {/* Generate pagination items with arrows, compact range, and ellipsis */}
+                  {(() => {
+                    const paginationItems: JSX.Element[] = [];
+                    const displayedPages = new Set<number>();
+                    const previousPage = validCurrentPage > 1 ? validCurrentPage - 1 : null;
+                    const nextPage = validCurrentPage < totalPages ? validCurrentPage + 1 : null;
+
+                    const addPageNumber = (page: number | null) => {
+                      if (!page || page < 1 || page > totalPages || displayedPages.has(page)) {
+                        return;
+                      }
+                      displayedPages.add(page);
+                      paginationItems.push(
+                        <PaginationItem key={`page-${page}`}>
+                          <PaginationLink
+                            href={getPageHref(page)}
+                            isActive={page === validCurrentPage}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    };
+
+                    paginationItems.push(
+                      <PaginationItem key="prev-arrow">
+                        <PaginationLink
+                          href={previousPage ? getPageHref(previousPage) : '#'}
+                          aria-label="Página anterior"
+                          aria-disabled={!previousPage}
+                          tabIndex={previousPage ? undefined : -1}
+                          className={!previousPage ? 'pointer-events-none opacity-50' : undefined}
+                        >
+                          <ArrowLeftIcon className="h-4 w-4" />
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+
+                    addPageNumber(previousPage);
+                    addPageNumber(validCurrentPage);
+                    addPageNumber(nextPage);
+
+                    const highestDisplayed = displayedPages.size
+                      ? Math.max(...Array.from(displayedPages))
+                      : 0;
+
+                    const shouldShowEllipsis =
+                      totalPages > 0 &&
+                      !displayedPages.has(totalPages) &&
+                      highestDisplayed < totalPages - 1;
+
+                    if (shouldShowEllipsis) {
+                      paginationItems.push(
+                        <PaginationItem key="ellipsis">
+                          <span className="px-3 py-2">...</span>
+                        </PaginationItem>
+                      );
+                    }
+
+                    if (!displayedPages.has(totalPages)) {
+                      addPageNumber(totalPages);
+                    }
+
+                    paginationItems.push(
+                      <PaginationItem key="next-arrow">
+                        <PaginationLink
+                          href={nextPage ? getPageHref(nextPage) : '#'}
+                          aria-label="Página siguiente"
+                          aria-disabled={!nextPage}
+                          tabIndex={nextPage ? undefined : -1}
+                          className={!nextPage ? 'pointer-events-none opacity-50' : undefined}
+                        >
+                          <ArrowRightIcon className="h-4 w-4" />
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+
+                    return paginationItems;
+                  })()}
                 </PaginationContent>
               </Pagination>
             )}

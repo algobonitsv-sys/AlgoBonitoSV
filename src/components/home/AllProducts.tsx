@@ -8,14 +8,43 @@ import {
   PaginationContent,
   PaginationItem,
   PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useState, useEffect } from "react";
+import type { SVGProps } from "react";
 import { productApi } from '@/lib/api';
 import type { Product } from '@/types/database';
 
 const PRODUCTS_PER_PAGE = 8;
+
+const ArrowLeftIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    {...props}
+  >
+    <path d="M15 18l-6-6 6-6" />
+  </svg>
+);
+
+const ArrowRightIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    {...props}
+  >
+    <path d="M9 6l6 6-6 6" />
+  </svg>
+);
 
 export default function AllProducts() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -50,15 +79,17 @@ export default function AllProducts() {
     loadProducts();
   }, []);
 
-  const totalPages = Math.ceil(products.length / PRODUCTS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(products.length / PRODUCTS_PER_PAGE));
+  const validCurrentPage = Math.min(Math.max(currentPage, 1), totalPages);
 
   const paginatedProducts = products.slice(
-    (currentPage - 1) * PRODUCTS_PER_PAGE,
-    currentPage * PRODUCTS_PER_PAGE
+    (validCurrentPage - 1) * PRODUCTS_PER_PAGE,
+    validCurrentPage * PRODUCTS_PER_PAGE
   );
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    const nextPage = Math.min(Math.max(page, 1), totalPages);
+    setCurrentPage(nextPage);
     const section = document.getElementById('all-products-section');
     if (section) {
       section.scrollIntoView({ behavior: 'smooth' });
@@ -219,38 +250,100 @@ export default function AllProducts() {
         <div className="mt-12 sm:mt-16">
           <Pagination>
             <PaginationContent>
-              <PaginationItem>
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="disabled:opacity-50"
-                >
-                  <PaginationPrevious href="#" onClick={(e) => e.preventDefault()} />
-                </button>
-              </PaginationItem>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <PaginationItem key={page}>
-                  <PaginationLink
-                    href="#"
-                    isActive={currentPage === page}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handlePageChange(page);
-                    }}
-                  >
-                    {page}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
-              <PaginationItem>
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="disabled:opacity-50"
-                >
-                  <PaginationNext href="#" onClick={(e) => e.preventDefault()} />
-                </button>
-              </PaginationItem>
+              {(() => {
+                const paginationItems: JSX.Element[] = [];
+                const displayedPages = new Set<number>();
+                const previousPage = validCurrentPage > 1 ? validCurrentPage - 1 : null;
+                const nextPage = validCurrentPage < totalPages ? validCurrentPage + 1 : null;
+
+                const addPageNumber = (page: number | null) => {
+                  if (!page || page < 1 || page > totalPages || displayedPages.has(page)) {
+                    return;
+                  }
+                  displayedPages.add(page);
+                  paginationItems.push(
+                    <PaginationItem key={`page-${page}`}>
+                      <PaginationLink
+                        href="#"
+                        isActive={page === validCurrentPage}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePageChange(page);
+                        }}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                };
+
+                paginationItems.push(
+                  <PaginationItem key="prev-arrow">
+                    <PaginationLink
+                      href="#"
+                      aria-label="Página anterior"
+                      aria-disabled={!previousPage}
+                      tabIndex={previousPage ? undefined : -1}
+                      className={!previousPage ? 'pointer-events-none opacity-50' : undefined}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (previousPage) {
+                          handlePageChange(previousPage);
+                        }
+                      }}
+                    >
+                      <ArrowLeftIcon className="h-4 w-4" />
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+
+                addPageNumber(previousPage);
+                addPageNumber(validCurrentPage);
+                addPageNumber(nextPage);
+
+                const highestDisplayed = displayedPages.size
+                  ? Math.max(...Array.from(displayedPages))
+                  : 0;
+
+                const shouldShowEllipsis =
+                  totalPages > 0 &&
+                  !displayedPages.has(totalPages) &&
+                  highestDisplayed < totalPages - 1;
+
+                if (shouldShowEllipsis) {
+                  paginationItems.push(
+                    <PaginationItem key="ellipsis">
+                      <span className="px-3 py-2">...</span>
+                    </PaginationItem>
+                  );
+                }
+
+                if (!displayedPages.has(totalPages)) {
+                  addPageNumber(totalPages);
+                }
+
+                paginationItems.push(
+                  <PaginationItem key="next-arrow">
+                    <PaginationLink
+                      href="#"
+                      aria-label="Página siguiente"
+                      aria-disabled={!nextPage}
+                      tabIndex={nextPage ? undefined : -1}
+                      className={!nextPage ? 'pointer-events-none opacity-50' : undefined}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (nextPage) {
+                          handlePageChange(nextPage);
+                        }
+                      }}
+                    >
+                      <ArrowRightIcon className="h-4 w-4" />
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+
+                return paginationItems;
+              })()}
             </PaginationContent>
           </Pagination>
         </div>
