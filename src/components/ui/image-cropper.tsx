@@ -80,7 +80,7 @@ export default function ImageCropper({
         }
       } else {
         // Para 16:9, el ancho será mayor que la altura
-        initialWidth = Math.min(maxWidth, 350);
+        initialWidth = Math.min(maxWidth, 500); // Aumentado de 350 a 500 para mayor calidad
         initialHeight = initialWidth / aspectRatioValue;
         
         if (initialHeight > maxHeight) {

@@ -38,7 +38,7 @@ export default function ImagePreview({
 
   const maxWidthClass = aspectRatio === '9:16' 
     ? 'max-w-[200px]' // Más ancho para funcionalidad
-    : 'max-w-[280px]'; // Más ancho para landscape
+    : 'max-w-[500px]'; // Más ancho para carousel landscape - aumentado para mayor calidad
 
   // Handle URL input change
   const handleUrlChange = (url: string) => {
@@ -57,9 +57,9 @@ export default function ImagePreview({
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('La imagen debe ser menor a 5MB');
+    // Validate file size (max 10MB for better quality)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('La imagen debe ser menor a 10MB');
       return;
     }
 
@@ -237,7 +237,7 @@ export default function ImagePreview({
                 <span>Archivo</span>
               </div>
               <div>
-                JPG, PNG, WebP • 5MB
+                JPG, PNG, WebP • 10MB
               </div>
             </div>
           </div>
