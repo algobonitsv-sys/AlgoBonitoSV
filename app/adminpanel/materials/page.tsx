@@ -56,6 +56,8 @@ export default function MaterialsAdminPage() {
     } catch (error) {
       console.error('Error loading materials:', error);
       toast.error('Error al cargar materiales');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -343,15 +345,14 @@ export default function MaterialsAdminPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Gestión de Materiales</h1>
-          <p className="text-muted-foreground">Administra los materiales y contenido de la página /materials</p>
-        </div>
+      <div className="text-center">
+        <h1 className="text-3xl font-bold">Gestión de Materiales</h1>
+        <p className="text-muted-foreground">Administra los materiales y contenido de la página /materials</p>
       </div>
 
       <Tabs defaultValue="materials" className="space-y-4">
-        <TabsList>
+        <div className="flex justify-center">
+          <TabsList>
           <TabsTrigger value="materials" className="flex items-center gap-2">
             <Gem className="h-4 w-4" />
             Materiales Principales
@@ -361,6 +362,7 @@ export default function MaterialsAdminPage() {
             Contenido Adicional
           </TabsTrigger>
         </TabsList>
+        </div>
 
         <TabsContent value="materials" className="space-y-4">
           <div className="flex justify-between items-center">
