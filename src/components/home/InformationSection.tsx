@@ -1,7 +1,78 @@
+
+"use client";
+
+import { useEffect, useState } from "react";
 import { CreditCard, Truck, Landmark, HandCoins, HelpCircle } from "lucide-react";
 import Faq from "./Faq";
+import { productApi } from "@/lib/api";
+
+type ShippingDetails = {
+  national: {
+    title: string;
+    delivery_time: string;
+    cost: string;
+    packaging: string;
+  };
+  international: {
+    title: string;
+    description: string;
+  };
+};
+
+const DEFAULT_SHIPPING: ShippingDetails = {
+  national: {
+    title: "Envíos Nacionales (El Salvador)",
+    delivery_time: "2-3 días hábiles",
+    cost: "$3.50 tarifa estándar",
+    packaging: "Tus joyas viajan seguras en nuestro empaque de regalo"
+  },
+  international: {
+    title: "Envíos Internacionales",
+    description: "¿Vives fuera de El Salvador? ¡No hay problema! Contáctanos directamente por WhatsApp para cotizar tu envío a cualquier parte del mundo."
+  }
+};
+
+const DEFAULT_PAYMENT_METHODS = [
+  "Tarjetas de crédito/débito (pago en línea seguro)",
+  "Transferencia bancaria (Banco Agrícola, BAC)",
+  "Pago contra entrega (disponible en San Salvador)"
+];
 
 export default function InformationSection() {
+  const [shipping, setShipping] = useState<ShippingDetails>(DEFAULT_SHIPPING);
+  const [paymentMethods, setPaymentMethods] = useState<string[]>(DEFAULT_PAYMENT_METHODS);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchShippingAndPayment = async () => {
+      try {
+        const shippingRes = await productApi.aboutContent.getBySection("shipping");
+        if (shippingRes?.data?.extra_data && isMounted) {
+          setShipping({
+            national: {
+              title: shippingRes.data.extra_data.national?.title || DEFAULT_SHIPPING.national.title,
+              delivery_time: shippingRes.data.extra_data.national?.delivery_time || DEFAULT_SHIPPING.national.delivery_time,
+              cost: shippingRes.data.extra_data.national?.cost || DEFAULT_SHIPPING.national.cost,
+              packaging: shippingRes.data.extra_data.national?.packaging || DEFAULT_SHIPPING.national.packaging,
+            },
+            international: {
+              title: shippingRes.data.extra_data.international?.title || DEFAULT_SHIPPING.international.title,
+              description: shippingRes.data.extra_data.international?.description || DEFAULT_SHIPPING.international.description,
+            }
+          });
+        }
+        const paymentRes = await productApi.aboutContent.getBySection("payment");
+        if (paymentRes?.data?.extra_data?.methods && isMounted) {
+          setPaymentMethods(paymentRes.data.extra_data.methods);
+        }
+      } catch (error) {
+        // fallback to defaults
+      }
+    };
+    fetchShippingAndPayment();
+    return () => { isMounted = false; };
+  }, []);
+
   return (
     <section className="pt-0 pb-10 sm:pb-16 bg-background">
       <div className="container py-10 sm:py-16">
@@ -13,9 +84,9 @@ export default function InformationSection() {
                 Detalles de Envío
               </h3>
               <div className="space-y-3 sm:space-y-4 text-muted-foreground text-sm sm:text-base leading-relaxed">
-                <p><strong>Envíos Nacionales:</strong> Entregas en todo El Salvador en 2-3 días hábiles. Costo de envío estándar de $3.50.</p>
-                <p><strong>Envíos Internacionales:</strong> Contáctanos para cotizar tu envío a cualquier parte del mundo. Los tiempos y costos varían según el destino.</p>
-                <p><strong>Empaque Seguro:</strong> Todas tus joyas se envían en un empaque seguro y elegante para garantizar que lleguen en perfectas condiciones.</p>
+                <p><strong>{shipping.national.title}:</strong> Entregas en todo El Salvador en {shipping.national.delivery_time}. Costo de envío estándar de {shipping.national.cost}.</p>
+                <p><strong>{shipping.international.title}:</strong> {shipping.international.description}</p>
+                <p><strong>Empaque Seguro:</strong> {shipping.national.packaging}</p>
               </div>
             </div>
 
@@ -25,9 +96,14 @@ export default function InformationSection() {
                 Métodos de Pago
               </h3>
               <ul className="space-y-2.5 sm:space-y-3 text-muted-foreground text-sm sm:text-base">
-                <li className="flex items-start"><CreditCard className="mr-3 mt-0.5 h-4 w-4 sm:h-5 sm:w-5 text-accent-foreground/60" /> Tarjetas de crédito/débito (pago en línea seguro).</li>
-                <li className="flex items-start"><Landmark className="mr-3 mt-0.5 h-4 w-4 sm:h-5 sm:w-5 text-accent-foreground/60" /> Transferencia bancaria (Banco Agrícola, BAC).</li>
-                <li className="flex items-start"><HandCoins className="mr-3 mt-0.5 h-4 w-4 sm:h-5 sm:w-5 text-accent-foreground/60" /> Pago contra entrega (disponible en San Salvador).</li>
+                {paymentMethods.map((method, idx) => (
+                  <li key={method} className="flex items-start">
+                    {idx === 0 && <CreditCard className="mr-3 mt-0.5 h-4 w-4 sm:h-5 sm:w-5 text-accent-foreground/60" />}
+                    {idx === 1 && <Landmark className="mr-3 mt-0.5 h-4 w-4 sm:h-5 sm:w-5 text-accent-foreground/60" />}
+                    {idx === 2 && <HandCoins className="mr-3 mt-0.5 h-4 w-4 sm:h-5 sm:w-5 text-accent-foreground/60" />}
+                    {method}
+                  </li>
+                ))}
               </ul>
             </div>
           </div>

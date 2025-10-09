@@ -2686,9 +2686,9 @@ const aboutContentApi = {
             background_image_url: 'https://picsum.photos/1200/400?v=61',
             extra_data: {
               methods: [
-                'Tarjetas de Crédito/Débito',
-                'Transferencia Bancaria',
-                'Pago Contra Entrega (San Salvador)'
+                'Tarjetas de crédito/débito (pago en línea seguro)',
+                'Transferencia bancaria (Banco Agrícola, BAC)',
+                'Pago contra entrega (disponible en San Salvador)'
               ]
             },
             is_active: true,
@@ -2764,10 +2764,13 @@ const aboutContentApi = {
         .select('*')
         .eq('section_type', sectionType)
         .eq('is_active', true)
-        .single();
+        .order('created_at', { ascending: false })
+        .limit(1);
 
       if (error) throw error;
-      return createResponse(data, null);
+      // Return the first item if array, or the single item
+      const result = Array.isArray(data) ? data[0] : data;
+      return createResponse(result, null);
     } catch (error) {
       return createResponse(null, handleError(error));
     }

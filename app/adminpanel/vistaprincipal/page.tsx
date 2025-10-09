@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Plus, Eye, EyeOff, Trash2 } from "lucide-react";
+import { Loader2, Save, Plus, Eye, EyeOff, Trash2, Truck } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ImageUpload } from "@/components/admin/ImageUpload";
@@ -27,10 +27,18 @@ const DEFAULT_PAYMENT_TITLE = 'Métodos de Pago';
 const DEFAULT_PAYMENT_SUBTITLE = 'Paga de forma rápida y segura.';
 const DEFAULT_PAYMENT_BACKGROUND_IMAGE = 'https://picsum.photos/1200/400?v=63';
 const DEFAULT_PAYMENT_METHODS = [
-  'Tarjetas de Crédito / Débito',
-  'Transferencia Bancaria',
-  'Pago Contra Entrega',
+  'Tarjetas de crédito/débito (pago en línea seguro)',
+  'Transferencia bancaria (Banco Agrícola, BAC)',
+  'Pago contra entrega (disponible en San Salvador)',
 ];
+
+const DEFAULT_SHIPPING_TITLE = 'Detalles de Envío';
+const DEFAULT_SHIPPING_NATIONAL_TITLE = 'Envíos Nacionales (El Salvador)';
+const DEFAULT_SHIPPING_NATIONAL_DELIVERY_TIME = '2-3 días hábiles';
+const DEFAULT_SHIPPING_NATIONAL_COST = '$3.50 tarifa estándar';
+const DEFAULT_SHIPPING_NATIONAL_PACKAGING = 'Tus joyas viajan seguras en nuestro empaque de regalo';
+const DEFAULT_SHIPPING_INTERNATIONAL_TITLE = 'Envíos Internacionales';
+const DEFAULT_SHIPPING_INTERNATIONAL_DESCRIPTION = '¿Vives fuera de El Salvador? ¡No hay problema! Contáctanos directamente por WhatsApp para cotizar tu envío a cualquier parte del mundo.';
 
 export default function VistaPrincipalAdminPage() {
   const [vistaPrincipal, setVistaPrincipal] = useState<VistaPrincipal | null>(null);
@@ -55,6 +63,18 @@ export default function VistaPrincipalAdminPage() {
   const [paymentMethods, setPaymentMethods] = useState<string[]>([...DEFAULT_PAYMENT_METHODS]);
   const [isLoadingPayment, setIsLoadingPayment] = useState(true);
   const [isSavingPayment, setIsSavingPayment] = useState(false);
+
+  // Shipping details section state
+  const [shippingSectionId, setShippingSectionId] = useState<string | null>(null);
+  const [shippingTitle, setShippingTitle] = useState(DEFAULT_SHIPPING_TITLE);
+  const [shippingNationalTitle, setShippingNationalTitle] = useState(DEFAULT_SHIPPING_NATIONAL_TITLE);
+  const [shippingNationalDeliveryTime, setShippingNationalDeliveryTime] = useState(DEFAULT_SHIPPING_NATIONAL_DELIVERY_TIME);
+  const [shippingNationalCost, setShippingNationalCost] = useState(DEFAULT_SHIPPING_NATIONAL_COST);
+  const [shippingNationalPackaging, setShippingNationalPackaging] = useState(DEFAULT_SHIPPING_NATIONAL_PACKAGING);
+  const [shippingInternationalTitle, setShippingInternationalTitle] = useState(DEFAULT_SHIPPING_INTERNATIONAL_TITLE);
+  const [shippingInternationalDescription, setShippingInternationalDescription] = useState(DEFAULT_SHIPPING_INTERNATIONAL_DESCRIPTION);
+  const [isLoadingShipping, setIsLoadingShipping] = useState(true);
+  const [isSavingShipping, setIsSavingShipping] = useState(false);
   
   const { toast } = useToast();
 
@@ -153,6 +173,7 @@ export default function VistaPrincipalAdminPage() {
   useEffect(() => {
     loadVistaPrincipal();
     loadPaymentMethods();
+    loadShippingDetails();
   }, []);
 
   const loadVistaPrincipal = async () => {
@@ -249,6 +270,56 @@ export default function VistaPrincipalAdminPage() {
       setPaymentMethods([...DEFAULT_PAYMENT_METHODS]);
     } finally {
       setIsLoadingPayment(false);
+    }
+  };
+
+  const loadShippingDetails = async () => {
+    try {
+      setIsLoadingShipping(true);
+      const response = await productApi.aboutContent.getBySection('shipping');
+
+      if (response.error) {
+        console.error('Error loading shipping details:', response.error);
+      }
+
+      if (response.data) {
+        setShippingSectionId(response.data.id);
+        setShippingTitle(response.data.title || DEFAULT_SHIPPING_TITLE);
+
+        const extraData = response.data.extra_data || {};
+        setShippingNationalTitle(extraData.national?.title || DEFAULT_SHIPPING_NATIONAL_TITLE);
+        setShippingNationalDeliveryTime(extraData.national?.delivery_time || DEFAULT_SHIPPING_NATIONAL_DELIVERY_TIME);
+        setShippingNationalCost(extraData.national?.cost || DEFAULT_SHIPPING_NATIONAL_COST);
+        setShippingNationalPackaging(extraData.national?.packaging || DEFAULT_SHIPPING_NATIONAL_PACKAGING);
+        setShippingInternationalTitle(extraData.international?.title || DEFAULT_SHIPPING_INTERNATIONAL_TITLE);
+        setShippingInternationalDescription(extraData.international?.description || DEFAULT_SHIPPING_INTERNATIONAL_DESCRIPTION);
+      } else {
+        setShippingSectionId(null);
+        setShippingTitle(DEFAULT_SHIPPING_TITLE);
+        setShippingNationalTitle(DEFAULT_SHIPPING_NATIONAL_TITLE);
+        setShippingNationalDeliveryTime(DEFAULT_SHIPPING_NATIONAL_DELIVERY_TIME);
+        setShippingNationalCost(DEFAULT_SHIPPING_NATIONAL_COST);
+        setShippingNationalPackaging(DEFAULT_SHIPPING_NATIONAL_PACKAGING);
+        setShippingInternationalTitle(DEFAULT_SHIPPING_INTERNATIONAL_TITLE);
+        setShippingInternationalDescription(DEFAULT_SHIPPING_INTERNATIONAL_DESCRIPTION);
+      }
+    } catch (error) {
+      console.error('Error loading shipping details:', error);
+      toast({
+        title: "Error",
+        description: "Error al cargar los detalles de envío",
+        variant: "destructive",
+      });
+      setShippingSectionId(null);
+      setShippingTitle(DEFAULT_SHIPPING_TITLE);
+      setShippingNationalTitle(DEFAULT_SHIPPING_NATIONAL_TITLE);
+      setShippingNationalDeliveryTime(DEFAULT_SHIPPING_NATIONAL_DELIVERY_TIME);
+      setShippingNationalCost(DEFAULT_SHIPPING_NATIONAL_COST);
+      setShippingNationalPackaging(DEFAULT_SHIPPING_NATIONAL_PACKAGING);
+      setShippingInternationalTitle(DEFAULT_SHIPPING_INTERNATIONAL_TITLE);
+      setShippingInternationalDescription(DEFAULT_SHIPPING_INTERNATIONAL_DESCRIPTION);
+    } finally {
+      setIsLoadingShipping(false);
     }
   };
 
@@ -415,6 +486,92 @@ export default function VistaPrincipalAdminPage() {
       });
     } finally {
       setIsSavingPayment(false);
+    }
+  };
+
+  const handleSaveShipping = async () => {
+    const sanitizedTitle = shippingTitle.trim();
+    const sanitizedNationalTitle = shippingNationalTitle.trim();
+    const sanitizedNationalDeliveryTime = shippingNationalDeliveryTime.trim();
+    const sanitizedNationalCost = shippingNationalCost.trim();
+    const sanitizedNationalPackaging = shippingNationalPackaging.trim();
+    const sanitizedInternationalTitle = shippingInternationalTitle.trim();
+    const sanitizedInternationalDescription = shippingInternationalDescription.trim();
+
+    if (!sanitizedTitle) {
+      toast({
+        title: "Error",
+        description: "El título de detalles de envío es obligatorio",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSavingShipping(true);
+
+      const payload = {
+        title: sanitizedTitle,
+        subtitle: '',
+        background_image_url: undefined,
+        extra_data: {
+          national: {
+            title: sanitizedNationalTitle,
+            delivery_time: sanitizedNationalDeliveryTime,
+            cost: sanitizedNationalCost,
+            packaging: sanitizedNationalPackaging,
+          },
+          international: {
+            title: sanitizedInternationalTitle,
+            description: sanitizedInternationalDescription,
+          }
+        },
+        is_active: true,
+        section_type: 'shipping' as const,
+      };
+
+      let response;
+      if (shippingSectionId) {
+        response = await productApi.aboutContent.update(shippingSectionId, payload);
+      } else {
+        response = await productApi.aboutContent.create({
+          ...payload,
+          image_url: undefined,
+          display_order: 0,
+        });
+      }
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      if (response.data?.id) {
+        setShippingSectionId(response.data.id);
+      }
+
+      setShippingTitle(sanitizedTitle);
+      setShippingNationalTitle(sanitizedNationalTitle);
+      setShippingNationalDeliveryTime(sanitizedNationalDeliveryTime);
+      setShippingNationalCost(sanitizedNationalCost);
+      setShippingNationalPackaging(sanitizedNationalPackaging);
+      setShippingInternationalTitle(sanitizedInternationalTitle);
+      setShippingInternationalDescription(sanitizedInternationalDescription);
+
+      toast({
+        title: "Éxito",
+        description: "Detalles de envío actualizados correctamente",
+      });
+
+      await loadShippingDetails();
+    } catch (error) {
+      console.error('Error saving shipping details:', error);
+      toast({
+        title: "Error",
+        description: "Error al guardar los detalles de envío",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingShipping(false);
     }
   };
 
@@ -808,6 +965,137 @@ ALTER TABLE novedad RENAME TO vista_principal;
                       <Save className="h-4 w-4 mr-2" />
                     )}
                     Guardar Métodos de Pago
+                  </Button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Shipping Details Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Truck className="h-5 w-5" />
+              Detalles de Envío
+            </CardTitle>
+            <CardDescription>
+              Configura la información de envío que se muestra en la página principal
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingShipping ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                Cargando detalles de envío...
+              </div>
+            ) : (
+              <>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="shippingTitle">Título de la sección</Label>
+                    <Input
+                      id="shippingTitle"
+                      value={shippingTitle}
+                      onChange={(e) => setShippingTitle(e.target.value)}
+                      placeholder="Detalles de Envío"
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                      Envíos Nacionales (El Salvador)
+                    </h4>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="shippingNationalTitle">Título</Label>
+                        <Input
+                          id="shippingNationalTitle"
+                          value={shippingNationalTitle}
+                          onChange={(e) => setShippingNationalTitle(e.target.value)}
+                          placeholder="Envíos Nacionales (El Salvador)"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="shippingNationalDeliveryTime">Tiempo de entrega</Label>
+                        <Input
+                          id="shippingNationalDeliveryTime"
+                          value={shippingNationalDeliveryTime}
+                          onChange={(e) => setShippingNationalDeliveryTime(e.target.value)}
+                          placeholder="2-3 días hábiles"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="shippingNationalCost">Costo</Label>
+                        <Input
+                          id="shippingNationalCost"
+                          value={shippingNationalCost}
+                          onChange={(e) => setShippingNationalCost(e.target.value)}
+                          placeholder="$3.50 tarifa estándar"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="shippingNationalPackaging">Empaque</Label>
+                        <Input
+                          id="shippingNationalPackaging"
+                          value={shippingNationalPackaging}
+                          onChange={(e) => setShippingNationalPackaging(e.target.value)}
+                          placeholder="Tus joyas viajan seguras en nuestro empaque de regalo"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                      Envíos Internacionales
+                    </h4>
+
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="shippingInternationalTitle">Título</Label>
+                        <Input
+                          id="shippingInternationalTitle"
+                          value={shippingInternationalTitle}
+                          onChange={(e) => setShippingInternationalTitle(e.target.value)}
+                          placeholder="Envíos Internacionales"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="shippingInternationalDescription">Descripción</Label>
+                        <Textarea
+                          id="shippingInternationalDescription"
+                          value={shippingInternationalDescription}
+                          onChange={(e) => setShippingInternationalDescription(e.target.value)}
+                          placeholder="¿Vives fuera de El Salvador? ¡No hay problema! Contáctanos directamente por WhatsApp para cotizar tu envío a cualquier parte del mundo."
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end mt-6">
+                  <Button
+                    onClick={handleSaveShipping}
+                    disabled={isSavingShipping || isLoadingShipping}
+                    size="lg"
+                  >
+                    {isSavingShipping ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Guardar Detalles de Envío
                   </Button>
                 </div>
               </>

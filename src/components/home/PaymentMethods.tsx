@@ -17,9 +17,9 @@ const DEFAULT_PAYMENT_SECTION: PaymentSectionContent = {
 	subtitle: "Paga de forma rápida y segura.",
 	backgroundImage: "https://picsum.photos/1200/400?v=63",
 	methods: [
-		"Tarjetas de Crédito / Débito",
-		"Transferencia Bancaria",
-		"Pago Contra Entrega",
+		"Tarjetas de crédito/débito (pago en línea seguro)",
+		"Transferencia bancaria (Banco Agrícola, BAC)",
+		"Pago contra entrega (disponible en San Salvador)",
 	],
 };
 
