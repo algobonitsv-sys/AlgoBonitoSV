@@ -134,7 +134,7 @@ export default function ImageCropper({
   return (
     <>
       <Dialog open={isOpen && !showCropper} onOpenChange={handleClose}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             {description && (

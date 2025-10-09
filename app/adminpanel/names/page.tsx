@@ -243,7 +243,7 @@ export default function AdminCategoriesPage() {
               Agregar Categoría
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingCategory ? 'Editar Categoría' : 'Agregar Nueva Categoría'}

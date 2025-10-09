@@ -42,6 +42,7 @@ export default function ImageCropper({
   const [imageError, setImageError] = useState<string | null>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
+  const [isMobile, setIsMobile] = useState(false);
 
   // Calcular proporción numérica
   const aspectRatioValue = aspectRatio === '9:16' ? 9/16 : 16/9;
@@ -64,6 +65,14 @@ export default function ImageCropper({
     }
   }, [isOpen, imageUrl]);
 
+  // Detectar cambios de tamaño de pantalla para ajustar layout responsive
+  useEffect(() => {
+    const updateIsMobile = () => setIsMobile(window.innerWidth < 768);
+    updateIsMobile();
+    window.addEventListener('resize', updateIsMobile);
+    return () => window.removeEventListener('resize', updateIsMobile);
+  }, []);
+
   // Inicializar área de recorte cuando la imagen se carga
   useEffect(() => {
     if (imageLoaded && imageRef.current) {
@@ -74,8 +83,8 @@ export default function ImageCropper({
       setContainerSize({ width: imageWidth, height: imageHeight });
       
       // Calcular tamaño inicial del área de recorte
-      const maxWidth = imageWidth * 0.6;
-      const maxHeight = imageHeight * 0.6;
+  const maxWidth = imageWidth * (isMobile ? 0.85 : 0.6);
+  const maxHeight = imageHeight * (isMobile ? 0.85 : 0.6);
       
       let initialWidth, initialHeight;
       
@@ -106,7 +115,7 @@ export default function ImageCropper({
         height: initialHeight
       });
     }
-  }, [imageLoaded, aspectRatio, aspectRatioValue]);
+  }, [imageLoaded, aspectRatio, aspectRatioValue, isMobile]);
 
   const handleImageLoad = () => {
     setImageLoaded(true);
@@ -143,7 +152,7 @@ export default function ImageCropper({
     }
   };
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
     if (!imageRef.current) return;
 
@@ -176,10 +185,11 @@ export default function ImageCropper({
       setIsDragging(true);
       setDragStart({ x: x - cropArea.x, y: y - cropArea.y });
     }
+    e.currentTarget.setPointerCapture(e.pointerId);
   }, [cropArea]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!imageRef.current) return;
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if ((!isDragging && !isResizing) || !imageRef.current) return;
 
     const imageRect = imageRef.current.getBoundingClientRect();
     const x = e.clientX - imageRect.left;
@@ -239,9 +249,12 @@ export default function ImageCropper({
     }
   }, [isDragging, isResizing, dragStart, resizeStart, containerSize, cropArea, aspectRatio, aspectRatioValue]);
 
-  const handleMouseUp = useCallback(() => {
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
     setIsDragging(false);
     setIsResizing(false);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
   }, []);
 
   const handleReset = () => {
@@ -406,7 +419,7 @@ export default function ImageCropper({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Crop className="h-5 w-5" />
@@ -423,10 +436,11 @@ export default function ImageCropper({
           <div 
             ref={containerRef}
             className="relative border rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center"
-            style={{ height: '60vh' }}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+            style={{ height: isMobile ? '50vh' : '55vh', minHeight: '300px' }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerUp}
           >
             {imageUrl && (
               <div className="relative inline-block w-full h-full">
@@ -490,7 +504,6 @@ export default function ImageCropper({
                             backgroundSize: `${containerSize.width}px ${containerSize.height}px`,
                             backgroundRepeat: 'no-repeat'
                           }}
-                          onMouseDown={handleMouseDown}
                         >
                           {/* Líneas de guía */}
                           <div className="absolute inset-0 border border-white border-opacity-50">

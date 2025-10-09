@@ -221,7 +221,7 @@ export default function AdminCarouselPage() {
                             Agregar Imagen
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-md">
+                    <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle>Agregar Nueva Imagen</DialogTitle>
                             <DialogDescription>
@@ -424,7 +424,7 @@ export default function AdminCarouselPage() {
 
             {/* Edit Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Editar Imagen</DialogTitle>
                         <DialogDescription>

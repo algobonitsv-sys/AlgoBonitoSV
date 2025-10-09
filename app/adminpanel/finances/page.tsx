@@ -1367,7 +1367,7 @@ ${closureRegistered ? '✅ Registro guardado en base de datos' : '⚠️ Continu
                 Cierre de Caja
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-red-600">🔐 Cierre de Mes</DialogTitle>
               </DialogHeader>
@@ -1433,7 +1433,7 @@ ${closureRegistered ? '✅ Registro guardado en base de datos' : '⚠️ Continu
                 Revertir Último Cierre
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-orange-600">🔄 Revertir Cierre de Caja</DialogTitle>
               </DialogHeader>
@@ -1498,7 +1498,7 @@ ${closureRegistered ? '✅ Registro guardado en base de datos' : '⚠️ Continu
                 Nuevo Gasto
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingExpense ? 'Editar Gasto' : 'Registrar Nuevo Gasto'}
