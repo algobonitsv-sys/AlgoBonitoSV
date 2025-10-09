@@ -95,7 +95,7 @@ export default function FullWidthCategoryCarousel() {
             Explora Nuestras Categorías
           </h2>
           <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
-            Encuentra la joya perfecta para cada ocasión navegando por nuestras colecciones.
+            Encontra todo lo que necesitas en un solo lugar!
           </p>
       </div>
       

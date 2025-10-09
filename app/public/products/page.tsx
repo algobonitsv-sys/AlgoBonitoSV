@@ -278,7 +278,7 @@ function ProductsContent() {
         return `Explora nuestra colección completa de ${categoryName.toLowerCase()}`;
       }
     }
-    return 'Explora todas nuestras piezas, diseñadas con amor y cuidado para ti.';
+    return 'Recorre nuestra web, te vas a enamorar!';
   };
 
   if (loading) {

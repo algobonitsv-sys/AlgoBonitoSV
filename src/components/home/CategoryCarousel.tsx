@@ -106,7 +106,7 @@ export default function CategoryCarousel() {
               Nuestras Categorías
             </h2>
             <p className="mt-3 sm:mt-4 max-w-2xl mx-auto text-sm sm:text-lg text-muted-foreground">
-              Encuentra la joya perfecta para cada estilo.
+            Encuentra tu nuevo accesorio favorito.
             </p>
           </div>
           <div className="flex justify-center items-center py-8">
@@ -124,7 +124,7 @@ export default function CategoryCarousel() {
             Nuestras Categorías
           </h2>
           <p className="mt-3 sm:mt-4 max-w-2xl mx-auto text-sm sm:text-lg text-muted-foreground">
-            Encuentra la joya perfecta para cada estilo.
+            Encuentra tu nuevo accesorio favorito.
           </p>
         </div>
         <Carousel
