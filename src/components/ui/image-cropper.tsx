@@ -368,48 +368,15 @@ export default function ImageCropper({
         return;
       }
 
-      // Convertir el canvas a blob y luego a URL
+      // Convertir el canvas directamente a data URL (más confiable)
       try {
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const croppedUrl = URL.createObjectURL(blob);
-            onCrop(croppedUrl);
-            onClose();
-            toast.success('Imagen recortada exitosamente');
-          } else {
-            // Fallback: usar toDataURL si toBlob falla
-            try {
-              const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-              onCrop(dataUrl);
-              onClose();
-              toast.success('Imagen recortada exitosamente');
-            } catch (dataUrlError) {
-              console.error('Error al generar data URL:', dataUrlError);
-              toast.error('Error al generar la imagen recortada');
-            }
-          }
-        }, 'image/jpeg', 0.9);
-      } catch (blobError) {
-        // Si toBlob falla completamente (CORS), usar toDataURL
-        console.warn('toBlob failed, using toDataURL fallback:', blobError);
-        
-        // Verificación adicional de seguridad antes de usar toDataURL
-        const isBlobUrlFallback = imageUrl && imageUrl.startsWith('blob:');
-        if (isBlobUrlFallback) {
-          console.error('Cannot use toDataURL with tainted canvas from blob URL');
-          toast.error('Error al procesar la imagen (restricciones de seguridad)');
-          return;
-        }
-        
-        try {
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-          onCrop(dataUrl);
-          onClose();
-          toast.success('Imagen recortada exitosamente');
-        } catch (dataUrlError) {
-          console.error('Error al generar data URL:', dataUrlError);
-          toast.error('Error al procesar la imagen (problema de CORS)');
-        }
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        onCrop(dataUrl);
+        onClose();
+        toast.success('Imagen recortada exitosamente');
+      } catch (dataUrlError) {
+        console.error('Error al generar data URL:', dataUrlError);
+        toast.error('Error al generar la imagen recortada');
       }
     } catch (error) {
       console.error('Error al recortar imagen:', error);

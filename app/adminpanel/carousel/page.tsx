@@ -21,6 +21,7 @@ export default function AdminCarouselPage() {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [editingImage, setEditingImage] = useState<CarouselImage | null>(null);
+    const [isProcessingImage, setIsProcessingImage] = useState(false);
     
     // Form data
     const [formData, setFormData] = useState({
@@ -63,6 +64,7 @@ export default function AdminCarouselPage() {
             link_url: '',
             is_active: true
         });
+        setIsProcessingImage(false);
     };
 
     // Create new image
@@ -72,12 +74,57 @@ export default function AdminCarouselPage() {
             return;
         }
 
+        // Si se está procesando una imagen (subiendo después de crop), esperar
+        if (isProcessingImage) {
+            toast.error('Espera a que termine de procesarse la imagen recortada');
+            return;
+        }
+
+        console.log('🖼️ handleCreate: Starting with image_url:', formData.image_url.substring(0, 50) + '...');
+
         try {
+            let finalImageUrl = formData.image_url;
+
+            // Si es una data URL o blob URL, subirla primero a R2
+            if (formData.image_url.startsWith('data:') || formData.image_url.startsWith('blob:')) {
+                console.log('🖼️ handleCreate: Detected data/blob URL, uploading to R2...');
+                const response = await fetch(formData.image_url);
+                const blob = await response.blob();
+                const file = new File([blob], `carousel-image-${Date.now()}.jpg`, { type: 'image/jpeg' });
+
+                const formDataUpload = new FormData();
+                formDataUpload.append('file', file);
+                formDataUpload.append('folder', 'carousel');
+
+                const uploadResponse = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formDataUpload,
+                });
+
+                const uploadResult = await uploadResponse.json();
+
+                if (uploadResult.success) {
+                    finalImageUrl = uploadResult.url;
+                    console.log('✅ handleCreate: Image uploaded successfully:', finalImageUrl);
+                } else {
+                    toast.error('Error al subir la imagen: ' + uploadResult.error);
+                    return;
+                }
+            }
+
             const newCarouselImage = {
                 ...formData,
+                image_url: finalImageUrl,
                 alt_text: formData.alt_text || formData.title,
                 order_index: images.length + 1
             };
+
+            if (finalImageUrl.startsWith('data:') || finalImageUrl.startsWith('blob:')) {
+                toast.error('La imagen aún se está procesando, intenta de nuevo en unos segundos');
+                return;
+            }
+
+            console.log('💾 handleCreate: Saving to database with URL:', finalImageUrl);
 
             const response = await api.carouselImages.create(newCarouselImage);
             
@@ -97,6 +144,7 @@ export default function AdminCarouselPage() {
 
     // Edit image
     const handleEdit = (image: CarouselImage) => {
+        setIsProcessingImage(false);
         setEditingImage(image);
         setFormData({
             title: image.title,
@@ -116,11 +164,52 @@ export default function AdminCarouselPage() {
             return;
         }
 
+        if (isProcessingImage) {
+            toast.error('Espera a que termine de procesarse la imagen recortada');
+            return;
+        }
+
         try {
+            let finalImageUrl = formData.image_url;
+
+            if (formData.image_url.startsWith('data:') || formData.image_url.startsWith('blob:')) {
+                console.log('🖼️ handleUpdate: Detected data/blob URL, uploading to R2...');
+                const response = await fetch(formData.image_url);
+                const blob = await response.blob();
+                const file = new File([blob], `carousel-image-${Date.now()}.jpg`, { type: 'image/jpeg' });
+
+                const formDataUpload = new FormData();
+                formDataUpload.append('file', file);
+                formDataUpload.append('folder', 'carousel');
+
+                const uploadResponse = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formDataUpload,
+                });
+
+                const uploadResult = await uploadResponse.json();
+
+                if (uploadResult.success) {
+                    finalImageUrl = uploadResult.url;
+                    console.log('✅ handleUpdate: Image uploaded successfully:', finalImageUrl);
+                } else {
+                    toast.error('Error al subir la imagen: ' + uploadResult.error);
+                    return;
+                }
+            }
+
             const updateData = {
                 ...formData,
+                image_url: finalImageUrl,
                 alt_text: formData.alt_text || formData.title
             };
+
+            if (finalImageUrl.startsWith('data:') || finalImageUrl.startsWith('blob:')) {
+                toast.error('La imagen aún se está procesando, intenta de nuevo en unos segundos');
+                return;
+            }
+
+                console.log('💾 handleUpdate: Saving to database with URL:', finalImageUrl);
 
             const response = await api.carouselImages.update(editingImage.id, updateData);
             
@@ -233,7 +322,17 @@ export default function AdminCarouselPage() {
                                 <ImagePreview
                                     label="Imagen del Carrusel *"
                                     value={formData.image_url}
-                                    onChange={(url) => setFormData({...formData, image_url: url})}
+                                    onChange={(url) => {
+                                        console.log('📝 ImagePreview onChange:', url.substring(0, 50) + '...');
+                                        setFormData({...formData, image_url: url});
+                                        // Si la URL es una data o blob URL, marcar como procesando
+                                        if (url.startsWith('data:') || url.startsWith('blob:')) {
+                                            setIsProcessingImage(true);
+                                        } else {
+                                            setIsProcessingImage(false);
+                                        }
+                                    }}
+                                    onProcessingChange={setIsProcessingImage}
                                     aspectRatio="16:9"
                                     placeholder="Sube una imagen para el carrusel o ingresa una URL"
                                 />
@@ -283,8 +382,12 @@ export default function AdminCarouselPage() {
                                 <Label htmlFor="is_active">Imagen activa</Label>
                             </div>
                             <div className="flex gap-2">
-                                <Button onClick={handleCreate} className="flex-1">
-                                    Agregar Imagen
+                                <Button 
+                                    onClick={handleCreate} 
+                                    className="flex-1"
+                                    disabled={isProcessingImage}
+                                >
+                                    {isProcessingImage ? 'Procesando imagen...' : 'Agregar Imagen'}
                                 </Button>
                                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                                     Cancelar
@@ -436,7 +539,16 @@ export default function AdminCarouselPage() {
                             <ImagePreview
                                 label="Imagen del Carrusel *"
                                 value={formData.image_url}
-                                onChange={(url) => setFormData({...formData, image_url: url})}
+                                onChange={(url) => {
+                                    console.log('📝 ImagePreview onChange (edit):', url.substring(0, 50) + '...');
+                                    setFormData({...formData, image_url: url});
+                                    if (url.startsWith('data:') || url.startsWith('blob:')) {
+                                        setIsProcessingImage(true);
+                                    } else {
+                                        setIsProcessingImage(false);
+                                    }
+                                }}
+                                onProcessingChange={setIsProcessingImage}
                                 aspectRatio="16:9"
                                 placeholder="Sube una imagen para el carrusel o ingresa una URL"
                             />

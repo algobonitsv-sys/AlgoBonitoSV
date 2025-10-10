@@ -16,6 +16,7 @@ interface ImagePreviewProps {
   label: string;
   placeholder?: string;
   className?: string;
+  onProcessingChange?: (processing: boolean) => void;
 }
 
 export default function ImagePreview({
@@ -24,7 +25,8 @@ export default function ImagePreview({
   aspectRatio,
   label,
   placeholder = "https://ejemplo.com/imagen.jpg",
-  className = ""
+  className = "",
+  onProcessingChange
 }: ImagePreviewProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>(value);
@@ -57,13 +59,14 @@ export default function ImagePreview({
       return;
     }
 
-    // Validate file size (max 10MB for better quality)
-    if (file.size > 10 * 1024 * 1024) {
+    // Validate file size (max 10MB) solo si no es carrusel
+    if (aspectRatio !== '16:9' && file.size > 10 * 1024 * 1024) {
       toast.error('La imagen debe ser menor a 10MB');
       return;
     }
 
-    setIsLoading(true);
+  setIsLoading(true);
+  onProcessingChange?.(true);
 
     // Create object URL for preview
     const objectUrl = URL.createObjectURL(file);
@@ -99,14 +102,74 @@ export default function ImagePreview({
       toast.error('Error al subir la imagen');
     } finally {
       setIsLoading(false);
+      onProcessingChange?.(false);
     }
   };
 
   // Handle image crop
-  const handleCrop = (croppedImageUrl: string) => {
-    setPreviewUrl(croppedImageUrl);
-    onChange(croppedImageUrl);
-    toast.success('Imagen recortada aplicada');
+  const handleCrop = async (croppedImageUrl: string) => {
+    console.log('🎨 handleCrop: Starting crop handling with URL:', croppedImageUrl.substring(0, 50) + '...');
+    setIsLoading(true);
+    onProcessingChange?.(true);
+
+    try {
+      // Convert cropped image URL to blob
+      let blob: Blob;
+
+      if (croppedImageUrl.startsWith('data:')) {
+        console.log('📊 handleCrop: Processing data URL');
+        // Handle data URL
+        const response = await fetch(croppedImageUrl);
+        blob = await response.blob();
+        console.log('✅ handleCrop: Data URL converted to blob, size:', blob.size);
+      } else if (croppedImageUrl.startsWith('blob:')) {
+        console.log('🗂️ handleCrop: Processing blob URL');
+        // Handle blob URL
+        const response = await fetch(croppedImageUrl);
+        blob = await response.blob();
+        console.log('✅ handleCrop: Blob URL converted to blob, size:', blob.size);
+      } else {
+        console.error('❌ handleCrop: Unsupported image URL format:', croppedImageUrl.substring(0, 50));
+        throw new Error('Unsupported image URL format');
+      }
+
+      // Create file from blob
+      const file = new File([blob], `cropped-image-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      console.log('📁 handleCrop: Created file:', file.name, 'size:', file.size);
+
+      // Create FormData for upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'carousel');
+
+      console.log('🚀 handleCrop: Starting upload to /api/upload...');
+
+      // Upload to API
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+      console.log('📊 handleCrop: Upload response:', result);
+
+      if (result.success) {
+        console.log('✅ handleCrop: Upload successful, URL:', result.url);
+        // Use the real uploaded URL
+        setPreviewUrl(result.url);
+        onChange(result.url);
+        toast.success('Imagen recortada y subida correctamente');
+      } else {
+        console.error('❌ handleCrop: Upload failed:', result.error);
+        toast.error(result.error || 'Error al subir la imagen recortada');
+      }
+    } catch (error) {
+      console.error('❌ handleCrop: Unexpected error:', error);
+      toast.error('Error al procesar la imagen recortada');
+    } finally {
+      setIsLoading(false);
+      onProcessingChange?.(false);
+    }
   };
 
   // Clear image
@@ -116,6 +179,7 @@ export default function ImagePreview({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    onProcessingChange?.(false);
   };
 
   // Handle image load error

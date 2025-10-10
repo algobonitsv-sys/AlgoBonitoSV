@@ -73,7 +73,7 @@ export default function Hero() {
 
   if (isLoading) {
     return (
-      <section className="w-full h-screen md:h-[80vh] flex items-center justify-center bg-gray-100">
+      <section className="w-screen relative left-1/2 right-1/2 -mx-[50vw] aspect-video md:h-[80vh] flex items-center justify-center bg-gray-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-gray-600">Cargando carrusel...</p>
@@ -83,7 +83,7 @@ export default function Hero() {
   }
 
   return (
-    <section className="w-full">
+    <section className="w-screen relative left-1/2 right-1/2 -mx-[50vw]">
       <Carousel
         plugins={[
           Autoplay({
@@ -108,7 +108,7 @@ export default function Hero() {
 
             return (
               <CarouselItem key={isCarouselImage ? (item as CarouselImage).id : index}>
-                <div className="relative h-screen md:h-[80vh] w-full">
+                <div className="relative aspect-video md:h-[80vh] w-full">
                   <Image
                     src={imageUrl}
                     alt={altText}
@@ -119,15 +119,15 @@ export default function Hero() {
                   <div className="absolute inset-0 bg-black/30" />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center text-white p-4">
-                      <h1 className="font-headline text-4xl md:text-6xl lg:text-7xl drop-shadow-md">
+                      <h1 className="font-headline text-xl md:text-6xl lg:text-7xl drop-shadow-md">
                         {title}
                       </h1>
-                      <p className="mt-4 max-w-lg text-lg md:text-xl drop-shadow">
+                      <p className="mt-4 max-w-lg text-sm md:text-xl drop-shadow">
                         {description}
                       </p>
                       <Button 
-                        size="lg" 
-                        className="mt-8 bg-[#F5EBE0] text-black hover:bg-[#F5EBE0]/90 rounded-xl"
+                        size="sm" 
+                        className="mt-8 bg-[#F5EBE0] text-black hover:bg-[#F5EBE0]/90 rounded-[2rem] md:h-12 md:px-10 md:text-base"
                         onClick={linkUrl ? () => window.open(linkUrl, '_blank') : undefined}
                       >
                         {linkUrl ? 'Ver Más' : 'Ver Colección'}
