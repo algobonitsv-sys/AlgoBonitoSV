@@ -105,6 +105,7 @@ export default function Hero() {
             const title = item.title;
             const description = item.description;
             const linkUrl = isCarouselImage ? (item as CarouselImage).link_url : (item as any).link_url;
+            const hasDescription = typeof description === 'string' && description.trim().length > 0;
 
             return (
               <CarouselItem key={isCarouselImage ? (item as CarouselImage).id : index}>
@@ -122,12 +123,14 @@ export default function Hero() {
                       <h1 className="font-headline text-xl md:text-6xl lg:text-7xl drop-shadow-md">
                         {title}
                       </h1>
-                      <p className="mt-4 max-w-lg text-sm md:text-xl drop-shadow">
-                        {description}
-                      </p>
+                      {hasDescription && (
+                        <p className="mt-4 max-w-lg text-sm md:text-xl drop-shadow">
+                          {description}
+                        </p>
+                      )}
                       <Button 
                         size="sm" 
-                        className="mt-8 bg-[#F5EBE0] text-black hover:bg-[#F5EBE0]/90 rounded-[2rem] md:h-12 md:px-10 md:text-base"
+                        className={`${hasDescription ? 'mt-8' : 'mt-0 md:mt-6'} bg-[#F5EBE0] text-black hover:bg-[#F5EBE0]/90 rounded-[2rem] md:h-12 md:px-10 md:text-base`}
                         onClick={linkUrl ? () => window.open(linkUrl, '_blank') : undefined}
                       >
                         {linkUrl ? 'Ver Más' : 'Ver Colección'}
