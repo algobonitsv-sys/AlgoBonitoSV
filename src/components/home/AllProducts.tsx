@@ -200,6 +200,7 @@ export default function AllProducts() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-0 md:gap-6">
           {paginatedProducts.map((product, index) => {
             const slug = generateSlug(product.name);
+            const isSoldOut = typeof product.stock === "number" ? product.stock <= 0 : false;
             
             // Calculate padding based on position in grid for mobile
             const isLeftColumn = index % 2 === 0; // For mobile 2-column layout
@@ -225,6 +226,18 @@ export default function AllProducts() {
                         height={1600}
                         className="w-full h-full object-cover absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                       />
+                      {isSoldOut && (
+                        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                          <Image
+                            src="/SOLDOUT.png"
+                            alt="Agotado"
+                            width={320}
+                            height={320}
+                            className="object-contain"
+                            priority={false}
+                          />
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                   <div className="py-3 sm:py-4 px-1.5 sm:px-2 bg-background">

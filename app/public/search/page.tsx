@@ -255,6 +255,7 @@ function SearchPageContent() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {products.map((product) => {
                 const slug = generateSlug(product.name);
+                const isSoldOut = typeof product.stock === "number" ? product.stock <= 0 : false;
                 
                 return (
                   <Link key={product.id} href={`/public/products/${slug}`} className="block">
@@ -276,6 +277,17 @@ function SearchPageContent() {
                               height={600}
                               className="w-full h-full object-cover absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                             />
+                          )}
+                          {isSoldOut && (
+                            <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                              <Image
+                                src="/SOLDOUT.png"
+                                alt="Agotado"
+                                width={280}
+                                height={280}
+                                className="object-contain"
+                              />
+                            </div>
                           )}
                           
                           {/* Badges */}

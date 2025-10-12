@@ -106,6 +106,7 @@ className="w-full"
 <CarouselContent className="-ml-1 md:-ml-4">
 {featuredProducts.map((product) => {
 const slug = generateSlug(product.name);
+const isSoldOut = typeof product.stock === "number" ? product.stock <= 0 : false;
 
 return (
 <CarouselItem key={product.id} className="pl-1 md:pl-4 basis-1/2 md:basis-1/4">
@@ -137,6 +138,17 @@ priority={false}
 ) : (
 <div className="w-full h-full bg-gray-200 flex items-center justify-center">
 <span className="text-gray-400">Sin imagen</span>
+</div>
+)}
+{isSoldOut && (
+<div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+<Image
+src="/SOLDOUT.png"
+alt="Agotado"
+width={280}
+height={280}
+className="object-contain"
+/>
 </div>
 )}
 </div>
