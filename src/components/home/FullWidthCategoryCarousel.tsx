@@ -125,7 +125,7 @@ export default function FullWidthCategoryCarousel() {
                       data-ai-hint={`${category.name.toLowerCase()} collection`}
                     />
                     <div className="absolute inset-0 bg-black/30" />
-                    <div className="absolute bottom-0 left-0 p-4 pr-16 flex items-center justify-start w-full">
+                    <div className="absolute bottom-0 left-0 p-4 pr-16 flex items-center justify-center w-full">
                       <h3 className="font-headline text-xl text-white font-semibold drop-shadow">
                         {category.name}
                       </h3>

@@ -125,7 +125,7 @@ export default function Hero() {
                         {title}
                       </h1>
                       {hasDescription && (
-                        <p className="mt-4 max-w-lg text-sm md:text-xl drop-shadow">
+                        <p className="mt-4 max-w-lg text-sm md:text-xl drop-shadow text-center mx-auto">
                           {description}
                         </p>
                       )}

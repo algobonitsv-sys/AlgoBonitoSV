@@ -100,14 +100,14 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
       }
 
       // Si se guardó exitosamente, crear mensaje para WhatsApp
-      let message = `¡Hola! ${EMOJI.wave}\n\n`;
+      let message = `¡Hola! ${EMOJI.wave}\n`;
       message += "Quiero confirmar mi pedido:\n\n";
       
       // Agregar nombre del cliente
-      message += `${EMOJI.person} *Mi nombre:* ${checkoutData.customer_name}\n\n`;
+      message += `${EMOJI.person} Mi nombre: ${checkoutData.customer_name}\n\n`;
       
       // Agregar productos
-      message += `${EMOJI.package} *Productos:*\n`;
+      message += `${EMOJI.package} Productos:\n`;
       items.forEach((item, index) => {
         message += `${index + 1}. ${item.name}\n`;
         message += `   Cantidad: ${item.quantity}\n`;
@@ -115,23 +115,20 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
       });
       
       // Agregar total
-      message += `${EMOJI.moneyBag} *Subtotal: $${cartSubtotal.toFixed(2)}*\n`;
-      if (shippingCost > 0) {
-        message += `${EMOJI.deliveryTruck} *Envío (${selectedShipping.label}):* $${shippingCost.toFixed(2)}\n`;
-      }
-      if (paymentSurcharge > 0) {
-        message += `${EMOJI.creditCard} *Recargo Mercado Pago (10%):* $${paymentSurcharge.toFixed(2)}\n`;
-      }
-      message += `\n${EMOJI.moneyBag} *Total: $${finalTotal.toFixed(2)}*\n\n`;
+      message += `${EMOJI.moneyBag} Subtotal: $${cartSubtotal.toFixed(2)}\n\n`;
+      message += `${EMOJI.moneyBag} Total: $${finalTotal.toFixed(2)}\n\n`;
       
       // Agregar método de pago y entrega
-      message += `${EMOJI.creditCard} *Método de pago:* ${getPaymentMethodLabel(checkoutData.payment_method)}\n`;
-      message += `${EMOJI.deliveryTruck} *Método de entrega:* ${selectedShipping.label}\n\n`;
+      message += `${EMOJI.creditCard} Método de pago: ${getPaymentMethodLabel(checkoutData.payment_method)}\n`;
+      message += `${EMOJI.deliveryTruck} Método de entrega: ${selectedShipping.label}\n\n`;
       
       // Agregar información bancaria si es transferencia
       if (checkoutData.payment_method === 'transfer') {
-        message += `${EMOJI.bank} *Alias:* AlgoBonitoSV\n`;
-        message += `${EMOJI.creditCard} *CBU:* 0000000000000000000000\n\n`;
+        message += `${EMOJI.bank} Alias: sofi.vagliente\n`;
+        message += `${EMOJI.creditCard} CVU: 0000003100172149504650\n`;
+        message += `CUIT/CUIL: 27446619778\n`;
+        message += `Sofía Vagliente\n`;
+        message += `Mercado Pago\n\n`;
       }
       
       message += `¡Espero su confirmación! ${EMOJI.prayerHands}`;
