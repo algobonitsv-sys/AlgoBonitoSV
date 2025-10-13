@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Gem, ShieldCheck, Wrench } from 'lucide-react';
 import { api } from '@/lib/api/products';
-import type { WebsiteMaterial, MaterialsContent } from '@/types/database';
+import type { MaterialsContent } from '@/types/database';
 
 // Datos de respaldo en caso de que no haya conexión con el admin
 const fallbackMaterials = [
@@ -74,7 +74,7 @@ function formatContent(content: string) {
 }
 
 export default function MaterialsPage() {
-    const [materials, setMaterials] = useState<WebsiteMaterial[]>([]);
+    const [materials, setMaterials] = useState<any[]>([]);
   const [contents, setContents] = useState<MaterialsContent[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -82,9 +82,9 @@ export default function MaterialsPage() {
     const loadData = async () => {
       try {
         // Cargar materiales del admin
-        const materialsResponse = await api.websiteMaterials.getAll();
+        const materialsResponse = await api.materials.getAll();
         if (materialsResponse.data && materialsResponse.data.length > 0) {
-          setMaterials(materialsResponse.data.filter(m => m.is_active));
+          setMaterials(materialsResponse.data.filter((m: any) => m.is_active !== false));
         } else {
           // Usar datos de respaldo si no hay datos del admin
           console.log('📦 Usando datos de respaldo para materiales');
@@ -151,9 +151,9 @@ export default function MaterialsPage() {
             const isAdminData = materials.length > 0;
             
             return (
-              <Card key={isAdminData ? (material as WebsiteMaterial).id : index} className="overflow-hidden border-none bg-primary/20">
+              <Card key={isAdminData ? (material as any).id : index} className="overflow-hidden border-none bg-primary/20">
                 <Image
-                  src={isAdminData ? (material as WebsiteMaterial).image_url : (material as any).image}
+                  src={isAdminData ? (material as any).image_url : (material as any).image}
                   alt={material.title}
                   width={500}
                   height={300}
