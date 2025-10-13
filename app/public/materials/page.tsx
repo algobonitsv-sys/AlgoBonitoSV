@@ -141,7 +141,7 @@ export default function MaterialsPage() {
             Nuestros Materiales
           </h1>
           <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
-            Calidad y transparencia en cada pieza que creamos.
+            Calidad y transparencia en cada pieza.
           </p>
         </div>
 
