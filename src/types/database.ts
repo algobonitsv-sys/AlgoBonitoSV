@@ -145,6 +145,11 @@ export interface Database {
         Insert: AboutContentInsert;
         Update: AboutContentUpdate;
       };
+      shipping_methods: {
+        Row: ShippingMethod;
+        Insert: ShippingMethodInsert;
+        Update: ShippingMethodUpdate;
+      };
     };
     Views: {
       sales_summary: {
@@ -318,6 +323,11 @@ export interface Material {
   unit_type: UnitType;
   current_stock: number;
   min_stock: number;
+  title?: string;
+  description?: string;
+  image_url?: string;
+  is_active?: boolean;
+  display_order?: number;
   created_at: string;
   updated_at: string;
 }
@@ -328,6 +338,11 @@ export interface MaterialInsert {
   unit_type?: UnitType;
   current_stock?: number;
   min_stock?: number;
+  title?: string;
+  description?: string;
+  image_url?: string;
+  is_active?: boolean;
+  display_order?: number;
 }
 
 export interface MaterialUpdate {
@@ -336,6 +351,11 @@ export interface MaterialUpdate {
   unit_type?: UnitType;
   current_stock?: number;
   min_stock?: number;
+  title?: string;
+  description?: string;
+  image_url?: string;
+  is_active?: boolean;
+  display_order?: number;
 }
 
 export interface Product {
@@ -1439,6 +1459,35 @@ export interface AboutContentUpdate {
   image_url?: string;
   background_image_url?: string;
   extra_data?: Record<string, any>;
+  is_active?: boolean;
+  display_order?: number;
+}
+
+export interface ShippingMethod {
+  id: string;
+  title: string;
+  description: string;
+  icon_name?: string;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+}
+
+export interface ShippingMethodInsert {
+  title: string;
+  description: string;
+  icon_name?: string;
+  is_active?: boolean;
+  display_order?: number;
+  created_by?: string;
+}
+
+export interface ShippingMethodUpdate {
+  title?: string;
+  description?: string;
+  icon_name?: string;
   is_active?: boolean;
   display_order?: number;
 }

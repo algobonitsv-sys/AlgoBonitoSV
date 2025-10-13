@@ -26,16 +26,17 @@ export default function MaterialsAdminPage() {
   const [isContentDialogOpen, setIsContentDialogOpen] = useState(false);
   const [materialFormData, setMaterialFormData] = useState<MaterialInsert>({
     name: '',
-    title: '',
-    description: '',
-    image_url: '',
     cost_per_unit: 0,
     unit_type: 'piece',
     current_stock: 0,
     min_stock: 0,
+    title: '',
+    description: '',
+    image_url: '',
     is_active: true,
     display_order: 0,
   });
+  const [materialImageUrl, setMaterialImageUrl] = useState<string>('');
   const [contentFormData, setContentFormData] = useState<MaterialsContentInsert>({
     section_type: 'care_tips',
     title: '',
@@ -117,12 +118,12 @@ export default function MaterialsAdminPage() {
       reader.readAsDataURL(file);
       
       // Limpiar URL si había una
-      setMaterialFormData({ ...materialFormData, image_url: '' });
+      setMaterialImageUrl('');
     }
   };
 
   const handleImageUrlChange = (url: string) => {
-    setMaterialFormData({ ...materialFormData, image_url: url });
+    setMaterialImageUrl(url);
     if (url.trim()) {
       setImagePreview(url);
       setImageFile(null); // Limpiar archivo si se usa URL
@@ -146,18 +147,18 @@ export default function MaterialsAdminPage() {
     e.preventDefault();
     
     // Validar que haya imagen (archivo o URL)
-    if (!imageFile && !materialFormData.image_url.trim()) {
+    if (!imageFile && !materialImageUrl.trim()) {
       toast.error('Por favor proporciona una imagen (archivo o URL)');
       return;
     }
     
-    if (!materialFormData.name.trim() || !materialFormData.title.trim() || !materialFormData.description.trim()) {
+    if (!materialFormData.name.trim() || !materialFormData.title?.trim() || !materialFormData.description?.trim()) {
       toast.error('Por favor completa todos los campos obligatorios');
       return;
     }
 
     try {
-      let imageUrl = materialFormData.image_url;
+      let imageUrl = materialImageUrl;
       
       // Si hay un archivo, subirlo primero
       if (imageFile) {
@@ -245,16 +246,17 @@ export default function MaterialsAdminPage() {
     setEditingMaterial(material);
     setMaterialFormData({
       name: material.name,
-      title: material.title || '',
-      description: material.description || '',
-      image_url: material.image_url || '',
       cost_per_unit: material.cost_per_unit,
       unit_type: material.unit_type,
       current_stock: material.current_stock,
       min_stock: material.min_stock,
+      title: material.title || '',
+      description: material.description || '',
+      image_url: material.image_url || '',
       is_active: material.is_active ?? true,
       display_order: material.display_order ?? 0,
     });
+    setMaterialImageUrl(material.image_url || '');
     setImagePreview(material.image_url || null);
     setImageFile(null);
     setIsMaterialDialogOpen(true);
@@ -309,16 +311,15 @@ export default function MaterialsAdminPage() {
 
   const handleToggleActiveMaterial = async (material: Material) => {
     try {
-      const response = material.is_active 
-        ? await api.materials.deactivate(material.id)
-        : await api.materials.activate(material.id);
+      const newActiveState = !material.is_active;
+      const response = await api.materials.update(material.id, { is_active: newActiveState });
       
       if (response.error) {
         toast.error('Error al cambiar estado: ' + response.error);
         return;
       }
 
-      toast.success(`Material ${material.is_active ? 'desactivado' : 'activado'} exitosamente`);
+      toast.success(`Material ${newActiveState ? 'activado' : 'desactivado'} exitosamente`);
       await loadMaterials();
     } catch (error) {
       console.error('Error toggling material status:', error);
@@ -331,15 +332,16 @@ export default function MaterialsAdminPage() {
     setEditingMaterial(null);
     setImagePreview(null);
     setImageFile(null);
+    setMaterialImageUrl('');
     setMaterialFormData({
       name: '',
-      title: '',
-      description: '',
-      image_url: '',
       cost_per_unit: 0,
       unit_type: 'piece',
       current_stock: 0,
       min_stock: 0,
+      title: '',
+      description: '',
+      image_url: '',
       is_active: true,
       display_order: 0,
     });
@@ -425,8 +427,8 @@ export default function MaterialsAdminPage() {
                       </Label>
                       <Input
                         id="material_title"
-                        placeholder="Ej: Oro de Calidad"
-                        value={materialFormData.title}
+                        placeholder="Ej: Plata 925"
+                        value={materialFormData.title || ''}
                         onChange={(e) => setMaterialFormData({ ...materialFormData, title: e.target.value })}
                         required
                       />
@@ -484,18 +486,6 @@ export default function MaterialsAdminPage() {
                         onChange={(e) => setMaterialFormData({ ...materialFormData, min_stock: parseFloat(e.target.value) || 0 })}
                       />
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="display_order">Orden de Visualización</Label>
-                      <Input
-                        id="display_order"
-                        type="number"
-                        min="0"
-                        placeholder="0"
-                        value={materialFormData.display_order}
-                        onChange={(e) => setMaterialFormData({ ...materialFormData, display_order: parseInt(e.target.value) || 0 })}
-                      />
-                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -503,7 +493,7 @@ export default function MaterialsAdminPage() {
                     <Textarea
                       id="material_description"
                       placeholder="Describe las características y beneficios del material..."
-                      value={materialFormData.description}
+                      value={materialFormData.description || ''}
                       onChange={(e) => setMaterialFormData({ ...materialFormData, description: e.target.value })}
                       rows={3}
                       required
@@ -551,7 +541,7 @@ export default function MaterialsAdminPage() {
                           id="material_image_url"
                           type="url"
                           placeholder="https://ejemplo.com/imagen-material.jpg"
-                          value={materialFormData.image_url}
+                          value={materialImageUrl}
                           onChange={(e) => handleImageUrlChange(e.target.value)}
                           disabled={!!imageFile}
                         />
@@ -592,7 +582,7 @@ export default function MaterialsAdminPage() {
                           onClick={() => {
                             setImagePreview(null);
                             setImageFile(null);
-                            setMaterialFormData({ ...materialFormData, image_url: '' });
+                            setMaterialImageUrl('');
                           }}
                           className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
                         >
@@ -602,15 +592,29 @@ export default function MaterialsAdminPage() {
                     </div>
                   )}
 
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="material_is_active"
-                      checked={materialFormData.is_active}
-                      onChange={(e) => setMaterialFormData({ ...materialFormData, is_active: e.target.checked })}
-                      className="rounded border-gray-300"
-                    />
-                    <Label htmlFor="material_is_active">Material activo (visible en la página)</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="display_order">Orden de Visualización</Label>
+                      <Input
+                        id="display_order"
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={materialFormData.display_order || 0}
+                        onChange={(e) => setMaterialFormData({ ...materialFormData, display_order: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="material_is_active"
+                        checked={materialFormData.is_active ?? true}
+                        onChange={(e) => setMaterialFormData({ ...materialFormData, is_active: e.target.checked })}
+                        className="rounded border-gray-300"
+                      />
+                      <Label htmlFor="material_is_active">Material activo (visible)</Label>
+                    </div>
                   </div>
                 </form>
 
@@ -802,20 +806,26 @@ function MaterialsGrid({
       {materials.map((material) => (
         <Card key={material.id} className="overflow-hidden">
           <div className="aspect-video overflow-hidden">
-            <img
-              src={material.image_url}
-              alt={material.title}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src = '/placeholder-image.jpg';
-              }}
-            />
+            {material.image_url ? (
+              <img
+                src={material.image_url}
+                alt={material.title || material.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = '/placeholder-image.jpg';
+                }}
+              />
+            ) : (
+              <div className="w-full h-full bg-muted flex items-center justify-center">
+                <Gem className="h-12 w-12 text-muted-foreground" />
+              </div>
+            )}
           </div>
           
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <CardTitle className="text-lg line-clamp-1">{material.title}</CardTitle>
+                <CardTitle className="text-lg line-clamp-1">{material.title || material.name}</CardTitle>
               </div>
               <Badge variant={material.is_active ? "default" : "secondary"}>
                 {material.is_active ? "Activo" : "Inactivo"}
@@ -824,14 +834,9 @@ function MaterialsGrid({
           </CardHeader>
 
           <CardContent className="pb-3">
-            <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
-              {material.description}
+            <p className="text-sm text-muted-foreground line-clamp-3">
+              {material.description || 'Sin descripción'}
             </p>
-            
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Orden: {material.display_order ?? 0}</span>
-              <span>Creado: {new Date(material.created_at).toLocaleDateString()}</span>
-            </div>
           </CardContent>
 
           <CardFooter className="pt-0 gap-2">
@@ -863,7 +868,7 @@ function MaterialsGrid({
                 <AlertDialogHeader>
                   <AlertDialogTitle>¿Eliminar material?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Esta acción no se puede deshacer. El material "{material.title}" será eliminado permanentemente.
+                    Esta acción no se puede deshacer. El material "{material.title || material.name}" será eliminado permanentemente.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

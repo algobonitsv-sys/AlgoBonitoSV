@@ -62,6 +62,9 @@ import type {
   AboutContent,
   AboutContentInsert,
   AboutContentUpdate,
+  ShippingMethod,
+  ShippingMethodInsert,
+  ShippingMethodUpdate,
 } from '@/types/database';
 
 // =====================================================
@@ -2956,6 +2959,246 @@ const aboutContentApi = {
 };
 
 // =====================================================
+// SHIPPING METHODS API
+// =====================================================
+
+const shippingMethodsApi = {
+  // Get all active shipping methods
+  async getAll(): Promise<ApiResponse<ShippingMethod[]>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock shipping methods');
+        const mockData: ShippingMethod[] = [
+          {
+            id: '1',
+            title: 'Envíos a todo el país',
+            description: 'Entregas en todo El Salvador en 3-5 días hábiles. Costo de envío estándar de Consultar cotización. Envío gratis a sucursal comprando $70000 o más!.',
+            icon_name: 'Truck',
+            is_active: true,
+            display_order: 1,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          {
+            id: '2',
+            title: 'Envíos a la zona',
+            description: 'Hacemos envíos a la zona a través de Transporte Morteros, o comisionistas a coordinar. No dudes en consultarme 🦋',
+            icon_name: 'MapPin',
+            is_active: true,
+            display_order: 2,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          {
+            id: '3',
+            title: 'Empaque Seguro',
+            description: 'Tus joyas viajan seguras. No te preocupes 🫶🏻',
+            icon_name: 'Shield',
+            is_active: true,
+            display_order: 3,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ];
+        return createResponse(mockData, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('shipping_methods')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+      return createResponse(data || [], null);
+    } catch (error) {
+      return createResponse([], handleError(error));
+    }
+  },
+
+  // Get shipping method by ID
+  async getById(id: string): Promise<ApiResponse<ShippingMethod | null>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock shipping method');
+        const mockData: ShippingMethod = {
+          id,
+          title: 'Mock Shipping Method',
+          description: 'Mock description',
+          icon_name: 'Truck',
+          is_active: true,
+          display_order: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        return createResponse(mockData, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('shipping_methods')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse(null, handleError(error));
+    }
+  },
+
+  // Create new shipping method
+  async create(method: ShippingMethodInsert): Promise<ApiResponse<ShippingMethod>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock created shipping method');
+        
+        const mockMethod: ShippingMethod = {
+          id: `mock_${Date.now()}`,
+          title: method.title,
+          description: method.description,
+          icon_name: method.icon_name || 'Truck',
+          is_active: method.is_active !== false,
+          display_order: method.display_order || 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          created_by: method.created_by,
+        };
+        
+        return createResponse(mockMethod, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('shipping_methods')
+        .insert(method)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse({} as ShippingMethod, handleError(error));
+    }
+  },
+
+  // Update shipping method
+  async update(id: string, updates: ShippingMethodUpdate): Promise<ApiResponse<ShippingMethod>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock updated shipping method');
+        const mockMethod: ShippingMethod = {
+          id,
+          title: updates.title || 'Mock Title',
+          description: updates.description || 'Mock Description',
+          icon_name: updates.icon_name || 'Truck',
+          is_active: updates.is_active ?? true,
+          display_order: updates.display_order ?? 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        return createResponse(mockMethod, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('shipping_methods')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse({} as ShippingMethod, handleError(error));
+    }
+  },
+
+  // Delete shipping method
+  async delete(id: string): Promise<ApiResponse<boolean>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock deletion');
+        return createResponse(true, null);
+      }
+
+      const { error } = await (supabase! as any)
+        .from('shipping_methods')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return createResponse(true, null);
+    } catch (error) {
+      return createResponse(false, handleError(error));
+    }
+  },
+
+  // Activate shipping method
+  async activate(id: string): Promise<ApiResponse<ShippingMethod>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock activation');
+        return createResponse({} as ShippingMethod, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('shipping_methods')
+        .update({ is_active: true })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse({} as ShippingMethod, handleError(error));
+    }
+  },
+
+  // Deactivate shipping method
+  async deactivate(id: string): Promise<ApiResponse<ShippingMethod>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock deactivation');
+        return createResponse({} as ShippingMethod, null);
+      }
+
+      const { data, error } = await (supabase! as any)
+        .from('shipping_methods')
+        .update({ is_active: false })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return createResponse(data, null);
+    } catch (error) {
+      return createResponse({} as ShippingMethod, handleError(error));
+    }
+  },
+
+  // Update display order
+  async updateOrder(id: string, newOrder: number): Promise<ApiResponse<boolean>> {
+    try {
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured, returning mock order update');
+        return createResponse(true, null);
+      }
+
+      const { error } = await (supabase! as any)
+        .from('shipping_methods')
+        .update({ display_order: newOrder })
+        .eq('id', id);
+
+      if (error) throw error;
+      return createResponse(true, null);
+    } catch (error) {
+      return createResponse(false, handleError(error));
+    }
+  },
+};
+
+// =====================================================
 // ORDERS API
 // =====================================================
 
@@ -3238,4 +3481,5 @@ export const api = {
   websiteMaterials: websiteMaterialsApi,
   materialsContent: materialsContentApi,
   aboutContent: aboutContentApi,
+  shippingMethods: shippingMethodsApi,
 };

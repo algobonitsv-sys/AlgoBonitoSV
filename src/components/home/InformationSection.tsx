@@ -2,35 +2,41 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CreditCard, Truck, Landmark, HandCoins, HelpCircle } from "lucide-react";
+import { Truck, MapPin, Shield, CreditCard, Landmark, HandCoins, HelpCircle } from "lucide-react";
 import Faq from "./Faq";
 import { productApi } from "@/lib/api";
 
-type ShippingDetails = {
-  national: {
-    title: string;
-    delivery_time: string;
-    cost: string;
-    packaging: string;
-  };
-  international: {
-    title: string;
-    description: string;
-  };
+type ShippingMethod = {
+  id: string;
+  title: string;
+  description: string;
+  icon_name?: string;
+  display_order: number;
 };
 
-const DEFAULT_SHIPPING: ShippingDetails = {
-  national: {
-    title: "Envíos Nacionales (El Salvador)",
-    delivery_time: "2-3 días hábiles",
-    cost: "$3.50 tarifa estándar",
-    packaging: "Tus joyas viajan seguras en nuestro empaque de regalo"
+const DEFAULT_SHIPPING_METHODS: ShippingMethod[] = [
+  {
+    id: '1',
+    title: 'Envíos a todo el país',
+    description: 'Entregas en todo El Salvador en 3-5 días hábiles. Costo de envío estándar de Consultar cotización. Envío gratis a sucursal comprando $70000 o más!.',
+    icon_name: 'Truck',
+    display_order: 1,
   },
-  international: {
-    title: "Envíos Internacionales",
-    description: "¿Vives fuera de El Salvador? ¡No hay problema! Contáctanos directamente por WhatsApp para cotizar tu envío a cualquier parte del mundo."
-  }
-};
+  {
+    id: '2',
+    title: 'Envíos a la zona',
+    description: 'Hacemos envíos a la zona a través de Transporte Morteros, o comisionistas a coordinar. No dudes en consultarme 🦋',
+    icon_name: 'MapPin',
+    display_order: 2,
+  },
+  {
+    id: '3',
+    title: 'Empaque Seguro',
+    description: 'Tus joyas viajan seguras. No te preocupes 🫶🏻',
+    icon_name: 'Shield',
+    display_order: 3,
+  },
+];
 
 const DEFAULT_PAYMENT_METHODS = [
   "Tarjetas de crédito/débito (pago en línea seguro)",
@@ -39,28 +45,20 @@ const DEFAULT_PAYMENT_METHODS = [
 ];
 
 export default function InformationSection() {
-  const [shipping, setShipping] = useState<ShippingDetails>(DEFAULT_SHIPPING);
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>(DEFAULT_SHIPPING_METHODS);
   const [paymentMethods, setPaymentMethods] = useState<string[]>(DEFAULT_PAYMENT_METHODS);
 
   useEffect(() => {
     let isMounted = true;
     const fetchShippingAndPayment = async () => {
       try {
-        const shippingRes = await productApi.aboutContent.getBySection("shipping");
-        if (shippingRes?.data?.extra_data && isMounted) {
-          setShipping({
-            national: {
-              title: shippingRes.data.extra_data.national?.title || DEFAULT_SHIPPING.national.title,
-              delivery_time: shippingRes.data.extra_data.national?.delivery_time || DEFAULT_SHIPPING.national.delivery_time,
-              cost: shippingRes.data.extra_data.national?.cost || DEFAULT_SHIPPING.national.cost,
-              packaging: shippingRes.data.extra_data.national?.packaging || DEFAULT_SHIPPING.national.packaging,
-            },
-            international: {
-              title: shippingRes.data.extra_data.international?.title || DEFAULT_SHIPPING.international.title,
-              description: shippingRes.data.extra_data.international?.description || DEFAULT_SHIPPING.international.description,
-            }
-          });
+        // Fetch shipping methods from the new table
+        const shippingRes = await productApi.shippingMethods.getAll();
+        if (shippingRes?.data && isMounted) {
+          setShippingMethods(shippingRes.data);
         }
+
+        // Fetch payment methods from about_content
         const paymentRes = await productApi.aboutContent.getBySection("payment");
         if (paymentRes?.data?.extra_data?.methods && isMounted) {
           setPaymentMethods(paymentRes.data.extra_data.methods);
@@ -73,6 +71,20 @@ export default function InformationSection() {
     return () => { isMounted = false; };
   }, []);
 
+  // Function to get icon component based on icon_name
+  const getIcon = (iconName?: string) => {
+    switch (iconName) {
+      case 'Truck':
+        return Truck;
+      case 'MapPin':
+        return MapPin;
+      case 'Shield':
+        return Shield;
+      default:
+        return Truck;
+    }
+  };
+
   return (
     <section className="pt-0 pb-10 sm:pb-16 bg-background">
       <div className="container py-10 sm:py-16">
@@ -83,10 +95,18 @@ export default function InformationSection() {
                 <Truck className="mr-3 h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground/80" />
                 Detalles de Envío
               </h3>
-              <div className="space-y-3 sm:space-y-4 text-muted-foreground text-sm sm:text-base leading-relaxed">
-                <p><strong>{shipping.national.title}:</strong> Entregas en todo El Salvador en {shipping.national.delivery_time}. Costo de envío estándar de {shipping.national.cost}.</p>
-                <p><strong>{shipping.international.title}:</strong> {shipping.international.description}</p>
-                <p><strong>Empaque Seguro:</strong> {shipping.national.packaging}</p>
+              <div className="space-y-4 sm:space-y-5 text-muted-foreground text-sm sm:text-base leading-relaxed">
+                {shippingMethods.map((method) => {
+                  const IconComponent = getIcon(method.icon_name);
+                  return (
+                    <div key={method.id} className="flex items-start">
+                      <IconComponent className="mr-3 mt-0.5 h-4 w-4 sm:h-5 sm:w-5 text-accent-foreground/60 flex-shrink-0" />
+                      <div>
+                        <p><strong>{method.title}:</strong> {method.description}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
