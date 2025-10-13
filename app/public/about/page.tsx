@@ -115,19 +115,45 @@ export default function AboutPage() {
     <div className="bg-background">
       {/* Hero Section */}
       <div className="container pt-16 md:pt-20 pb-12 md:pb-16 px-4 md:px-6">
-        <div className="text-center mb-12 md:mb-16">
-          <h1 className="font-headline text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-4 md:mb-6" style={{ paddingTop: "48px" }}>
-            {heroSection?.title || 'Sobre Nosotros'}
-          </h1>
-          <p className="mt-2 md:mt-4 max-w-2xl mx-auto text-base md:text-lg text-muted-foreground px-4 md:px-0">
-            {heroSection?.subtitle || 'Conoce la historia detrás de cada joya.'}
-          </p>
-          
-          {/* Imagen hero eliminada. La imagen intercambiable estará solo en la misión. */}
+        {/* Grid layout: Title left, Image right */}
+        <div className="grid md:grid-cols-2 gap-8 md:gap-16 items-center mb-8 md:mb-12">
+          <div className="order-2 md:order-1">
+            <h2 className="font-headline text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight mb-4 md:mb-6">
+              {heroSection?.title || 'Conoce a quien esta detrás de este emprendimiento'}
+            </h2>
+            <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-4 md:mb-6">
+              {heroSection?.subtitle || 'Conoce la historia detrás de cada joya.'}
+            </p>
+            {heroSection?.content && (
+              <div className="space-y-4">
+                {heroSection.content.split('\n\n').map((paragraph: string, index: number) => (
+                  <p key={index} className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="order-1 md:order-2">
+            {heroSection?.image_url && (
+              <Image 
+                src={heroSection.image_url}
+                alt={heroSection.title || 'Sofi - Fundadora de Algo Bonito SV'}
+                width={400}
+                height={500}
+                quality={100}
+                className="rounded-lg shadow-lg object-cover w-full aspect-[4/5]"
+              />
+            )}
+          </div>
         </div>
 
-        {/* Mission Section */}
-        <div className="grid md:grid-cols-2 gap-8 md:gap-16 items-center mb-16 md:mb-20">
+        {/* Removed: Full description section below */}
+      </div>
+
+      {/* Mission Section */}
+      <div className="container mb-16 md:mb-20 px-4 md:px-6">
+        <div className="grid md:grid-cols-2 gap-8 md:gap-16 items-center">
           <div className="order-2 md:order-1">
             {missionSection?.image_url && (
               <Image 
@@ -135,6 +161,7 @@ export default function AboutPage() {
                 alt="Fundadora de Algo Bonito SV"
                 width={600}
                 height={800}
+                quality={100}
                 className="rounded-lg shadow-lg object-cover aspect-[3/4] w-full"
               />
             )}
@@ -144,6 +171,7 @@ export default function AboutPage() {
                 alt="Fundadora de Algo Bonito SV"
                 width={600}
                 height={800}
+                quality={100}
                 className="rounded-lg shadow-lg object-cover aspect-[3/4] w-full"
               />
             )}
@@ -181,6 +209,7 @@ export default function AboutPage() {
             src={shippingSection?.background_image_url || "https://picsum.photos/1200/400?v=60"}
             alt="Mapa de envíos"
             fill
+            quality={100}
             className="object-cover"
           />
           <div className="absolute inset-0 bg-black/70" />
@@ -221,6 +250,7 @@ export default function AboutPage() {
             src={paymentSection?.background_image_url || "https://picsum.photos/1200/400?v=61"}
             alt="Métodos de pago seguros"
             fill
+            quality={100}
             className="object-cover"
           />
           <div className="absolute inset-0 bg-primary/85" />
@@ -243,11 +273,12 @@ export default function AboutPage() {
         </section>
 
         {/* Returns Section */}
-        <section className="relative py-16 md:py-24 overflow-hidden mt-8 md:mt-12">
+        <section className="relative py-16 md:py-24 overflow-hidden mt-8 md:mt-12 mb-16 md:mb-24">
           <Image 
             src={returnsSection?.background_image_url || "https://picsum.photos/1200/400?v=62"}
             alt="Empaque de regalo"
             fill
+            quality={100}
             className="object-cover"
           />
           <div className="absolute inset-0 bg-black/70" />
@@ -259,7 +290,7 @@ export default function AboutPage() {
             <p className="max-w-3xl mx-auto text-base md:text-lg mb-8 md:mb-12 leading-relaxed px-4 md:px-0">
               {returnsSection?.subtitle || 'Queremos que ames tus joyas. Si por alguna razón no estás completamente satisfecha, te facilitamos el proceso de cambio o devolución.'}
             </p>
-            <div className="bg-white/15 backdrop-blur-sm p-6 md:p-10 rounded-lg max-w-3xl mx-auto text-left mt-6 md:mt-8 mb-6 md:mb-8 mx-4 md:mx-auto">
+            <div className="bg-white/15 backdrop-blur-sm p-6 md:p-10 rounded-lg max-w-3xl mx-auto mt-6 md:mt-8 mb-6 md:mb-8 mx-4 md:mx-auto">
               <h3 className="font-bold text-lg md:text-xl mb-4 md:mb-6 text-white text-center">
                 {returnsSection?.extra_data?.policy?.title || 'Política de Cambios y Devoluciones'}
               </h3>
@@ -270,11 +301,25 @@ export default function AboutPage() {
                   'Los costos de envío para devoluciones corren por cuenta del cliente, a menos que se trate de un defecto de fábrica.',
                   'Para iniciar el proceso, simplemente contáctanos con tu número de orden.'
                 ]).map((rule: string, index: number) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-5 h-5 md:w-6 md:h-6 bg-white/20 rounded-full flex items-center justify-center text-xs md:text-sm font-bold text-white mt-0.5">
+                  <li key={index} className="flex items-center justify-center gap-3 text-center">
+                    <span 
+                      className="flex-shrink-0"
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        color: 'white'
+                      }}
+                    >
                       {index + 1}
                     </span>
-                    <span className="leading-relaxed text-sm md:text-base">{rule}</span>
+                    <span className="leading-relaxed text-sm md:text-base flex-1">{rule}</span>
                   </li>
                 ))}
               </ul>

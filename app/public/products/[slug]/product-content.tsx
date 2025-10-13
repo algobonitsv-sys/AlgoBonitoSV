@@ -364,7 +364,7 @@ export default function ProductGallery({
           <div className="bg-gradient-to-br from-muted/30 to-muted/10 rounded-2xl border p-6 space-y-6">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Sparkles className="h-4 w-4 text-primary" />
+                <Sparkles className="h-4 w-4 text-gray-400" />
               </div>
               <h3 className="text-lg font-semibold text-foreground">¿Por qué elegir este producto?</h3>
             </div>

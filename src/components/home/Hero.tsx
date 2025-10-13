@@ -101,11 +101,12 @@ export default function Hero() {
             // Determinar si es un elemento de CarouselImage o fallback
             const isCarouselImage = 'id' in item;
             const imageUrl = isCarouselImage ? (item as CarouselImage).image_url : (item as any).src;
-            const altText = isCarouselImage ? (item as CarouselImage).alt_text || (item as CarouselImage).title : (item as any).alt;
+            const altText = isCarouselImage ? ((item as CarouselImage).alt_text || (item as CarouselImage).title) : (item as any).alt;
             const title = item.title;
-            const description = item.description;
+            const description = isCarouselImage ? (item as CarouselImage).description : item.description;
             const linkUrl = isCarouselImage ? (item as CarouselImage).link_url : (item as any).link_url;
-            const hasDescription = typeof description === 'string' && description.trim().length > 0;
+            // Manejar correctamente valores null de la base de datos
+            const hasDescription = description && typeof description === 'string' && description.trim().length > 0;
 
             return (
               <CarouselItem key={isCarouselImage ? (item as CarouselImage).id : index}>
@@ -114,7 +115,7 @@ export default function Hero() {
                     src={imageUrl}
                     alt={altText}
                     fill
-                    className="object-cover"
+                    className="object-cover object-center"
                     priority={index === 0}
                   />
                   <div className="absolute inset-0 bg-black/30" />
@@ -128,8 +129,8 @@ export default function Hero() {
                           {description}
                         </p>
                       )}
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         className={`${hasDescription ? 'mt-8' : 'mt-0 md:mt-6'} bg-[#F5EBE0] text-black hover:bg-[#F5EBE0]/90 rounded-[2rem] md:h-12 md:px-10 md:text-base`}
                         onClick={linkUrl ? () => window.open(linkUrl, '_blank') : undefined}
                       >
