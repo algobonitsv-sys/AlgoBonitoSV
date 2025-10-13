@@ -316,7 +316,7 @@ function ProductsContent() {
       <div className="container pt-12 sm:pt-16 pb-8 sm:pb-12">
         <div className="mb-8 flex flex-col gap-6">
           <div className="text-center">
-            <h1 className="font-headline text-4xl sm:text-5xl font-bold tracking-tight" style={{ paddingTop: "80px" }}>
+            <h1 className="font-headline text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight" style={{ paddingTop: "80px", fontSize: "clamp(2rem, 2vw, 3.75rem)" }}>
               {getPageTitle()}
             </h1>
             <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground pb-4">

@@ -118,7 +118,7 @@ export default function AboutPage() {
         {/* Grid layout: Title left, Image right */}
         <div className="grid md:grid-cols-2 gap-8 md:gap-16 items-center mb-8 md:mb-12">
           <div className="order-2 md:order-1">
-            <h2 className="font-headline text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight mb-4 md:mb-6">
+            <h2 className="font-headline text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight mb-4 md:mb-6" style={{ fontSize: 'clamp(2rem, 2vw, 3.75rem)' }}>
               {heroSection?.title || 'Conoce a quien esta detrás de este emprendimiento'}
             </h2>
             <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-4 md:mb-6">
