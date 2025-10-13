@@ -44,12 +44,22 @@ const categoryMapping: Record<string, string> = {
   'accesorios': 'accesorios'
 };
 
-// Map material names from URL to database  
+// Map material names from URL to database
 const materialMapping: Record<string, string> = {
   'acero-quirurgico': 'Acero quirúrgico',
   'acero-blanco': 'Acero blanco',
-  'acero-dorado': 'Acero dorado', 
-  'plata-925': 'Plata 925'
+  'acero-dorado': 'Acero dorado',
+  'acero-inoxidable': 'Acero inoxidable',
+  'plata-925': 'Plata 925',
+  'plata': 'Plata',
+  'oro-blanco': 'Oro blanco',
+  'titanio': 'Titanio',
+  'aleaciones': 'Aleaciones',
+  'varios-materiales': 'Varios materiales',
+  // Legacy mappings for backward compatibility
+  'blanco': 'blanco',
+  'dorado': 'dorado',
+  'quirurgico': 'Acero quirúrgico'
 };
 
 const ArrowLeftIcon = (props: SVGProps<SVGSVGElement>) => (
@@ -163,12 +173,28 @@ function ProductsContent() {
     // Filter by material/subcategory
     if (materialParam) {
       const materialName = materialMapping[materialParam.toLowerCase()] || materialParam;
-      const subcategory = subcategories.find(s => 
-        s.name.toLowerCase().includes(materialName.toLowerCase()) ||
-        materialName.toLowerCase().includes(s.name.toLowerCase())
-      );
-      if (subcategory) {
-        filtered = filtered.filter(p => p.subcategory_id === subcategory.id);
+
+      // Find subcategories that match the material name (case-insensitive, partial matches)
+      const matchingSubcategories = subcategories.filter(s => {
+        const subcategoryName = s.name.toLowerCase();
+        const searchTerm = materialName.toLowerCase();
+
+        // Exact match
+        if (subcategoryName === searchTerm) return true;
+
+        // Partial match (material name contains subcategory or vice versa)
+        if (subcategoryName.includes(searchTerm) || searchTerm.includes(subcategoryName)) return true;
+
+        // Handle "Acero" prefix variations
+        if (searchTerm.startsWith('acero ') && subcategoryName === searchTerm.replace('acero ', '')) return true;
+        if (subcategoryName === 'acero' && searchTerm.includes('acero')) return true;
+
+        return false;
+      });
+
+      if (matchingSubcategories.length > 0) {
+        const subcategoryIds = matchingSubcategories.map(s => s.id);
+        filtered = filtered.filter(p => p.subcategory_id && subcategoryIds.includes(p.subcategory_id));
       }
     }
 

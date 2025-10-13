@@ -695,7 +695,11 @@ export const productsApi = {
       
       const { data, error } = await supabase!
         .from('products')
-        .select('*')
+        .select(`
+          *,
+          categories(name),
+          subcategories(name)
+        `)
         .order('name');
 
       if (error) throw error;
@@ -715,7 +719,11 @@ export const productsApi = {
 
       const { data, error } = await supabase!
         .from('products')
-        .select('*')
+        .select(`
+          *,
+          categories(name),
+          subcategories(name)
+        `)
         .eq('id', id)
         .single();
 

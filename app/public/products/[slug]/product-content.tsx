@@ -22,6 +22,9 @@ interface Product {
   category?: string | null;
   subcategory?: string | null;
   stock?: number | null;
+  // Legacy flat properties (for backward compatibility)
+  category_name?: string | null;
+  subcategory_name?: string | null;
   // Nested category and subcategory from join
   categories?: { name: string } | null;
   subcategories?: { name: string } | null;
@@ -274,29 +277,27 @@ export default function ProductGallery({
       <div className="flex flex-col gap-8">
         <div className="space-y-4">
           {/* Breadcrumb / Category Navigation */}
-          {(product.categories?.name || product.subcategories?.name || product.category || product.subcategory) && (
-            <nav className="flex items-center space-x-1 text-sm text-muted-foreground">
-              <span>Inicio</span>
-              <span className="mx-1">/</span>
-              <span>Productos</span>
-              {(product.categories?.name || product.category) && (
-                <>
-                  <span className="mx-1">/</span>
-                  <span className="text-foreground font-medium">
-                    {product.categories?.name || product.category}
-                  </span>
-                </>
-              )}
-              {(product.subcategories?.name || product.subcategory) && (
-                <>
-                  <span className="mx-1">/</span>
-                  <span className="text-foreground font-medium">
-                    {product.subcategories?.name || product.subcategory}
-                  </span>
-                </>
-              )}
-            </nav>
-          )}
+          <nav className="flex items-center space-x-1 text-sm text-muted-foreground">
+            <span>Inicio</span>
+            <span className="mx-1">&gt;</span>
+            <span>Catalogo</span>
+            {(product.categories?.name || product.category_name) && (
+              <>
+                <span className="mx-1">&gt;</span>
+                <span className="text-foreground font-medium">
+                  {product.categories?.name || product.category_name}
+                </span>
+              </>
+            )}
+            {(product.subcategories?.name || product.subcategory_name) && (
+              <>
+                <span className="mx-1">&gt;</span>
+                <span className="text-foreground font-medium">
+                  {product.subcategories?.name || product.subcategory_name}
+                </span>
+              </>
+            )}
+          </nav>
 
           {/* Product Title and Basic Info */}
           <div className="space-y-3">

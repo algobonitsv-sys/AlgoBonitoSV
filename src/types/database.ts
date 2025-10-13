@@ -377,6 +377,12 @@ export interface Product {
   stock: number;
   created_at: string;
   updated_at: string;
+  // Legacy flat properties (for backward compatibility)
+  category_name?: string | null;
+  subcategory_name?: string | null;
+  // Joined relations
+  categories?: { name: string } | null;
+  subcategories?: { name: string } | null;
 }
 
 export interface ProductInsert {
