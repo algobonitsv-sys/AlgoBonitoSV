@@ -25,7 +25,7 @@ export default function FloatingButtons() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button asChild size="icon" className="rounded-full h-14 w-14 bg-accent hover:bg-accent/90 shadow-lg">
-              <Link href="#" aria-label="WhatsApp">
+              <Link href="https://wa.me/+5493564358803" aria-label="WhatsApp" target="_blank" rel="noopener noreferrer">
                 <WhatsAppIcon className="h-7 w-7 text-accent-foreground" />
               </Link>
             </Button>
@@ -38,7 +38,7 @@ export default function FloatingButtons() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button asChild size="icon" className="rounded-full h-14 w-14 bg-accent hover:bg-accent/90 shadow-lg">
-              <Link href="#" aria-label="Instagram">
+              <Link href="https://www.instagram.com/algobonit_sv?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" aria-label="Instagram" target="_blank" rel="noopener noreferrer">
                 <Instagram className="h-7 w-7 text-accent-foreground" />
               </Link>
             </Button>

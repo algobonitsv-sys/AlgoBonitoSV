@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,9 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Search, ArrowLeft, Package } from "lucide-react";
 import { productApi } from '@/lib/api';
 import type { Product } from '@/types/database';
+import { buildProductSlug } from '@/lib/utils/productSlug';
 
 function SearchPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const query = searchParams?.get('q') || '';
   
   const [products, setProducts] = useState<Product[]>([]);
@@ -25,6 +27,11 @@ function SearchPageContent() {
   // Load search results
   useEffect(() => {
     if (query) {
+      // Check if the query is "admin" and redirect to admin panel
+      if (query.toLowerCase() === 'admin') {
+        router.push('/adminpanel');
+        return;
+      }
       loadSearchResults(query);
       setSearchQuery(query);
     } else {
@@ -66,10 +73,6 @@ function SearchPageContent() {
     }).format(price);
   };
 
-  const generateSlug = (name: string) => {
-    return name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
-  };
-
   const getImageUrl = (imageUrl: string | null) => {
     if (!imageUrl) return "https://picsum.photos/900/1600?v=1";
     
@@ -83,8 +86,8 @@ function SearchPageContent() {
   const handleNewSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      // Update URL to trigger new search
-      window.location.href = `/search?q=${encodeURIComponent(searchQuery.trim())}`;
+      // Update URL within public section
+      router.push(`/public/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
@@ -242,7 +245,7 @@ function SearchPageContent() {
           <div className="space-y-8">
             {/* Results Header */}
             <div className="text-center">
-              <div className="inline-flex items-center gap-3 bg-white/70 backdrop-blur-sm rounded-2xl px-6 py-3 border border-neutral-200 shadow-sm">
+              <div className="inline-flex items-center gap-3 bg-white/70 backdrop-blur-sm rounded-2xl px-6 py-3 border border-neutral-200 shadow-sm mb-4">
                 <div className="w-3 h-3 bg-gradient-to-r from-neutral-600 to-gray-800 rounded-full"></div>
                 <p className="text-neutral-700 font-medium">
                   {products.length} {products.length === 1 ? 'joya encontrada' : 'joyas encontradas'} para "{query}"
@@ -254,8 +257,9 @@ function SearchPageContent() {
             {/* Enhanced Results Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {products.map((product) => {
-                const slug = generateSlug(product.name);
+                const slug = buildProductSlug({ id: product.id, name: product.name });
                 const isSoldOut = typeof product.stock === "number" ? product.stock <= 0 : false;
+                const hasStock = typeof product.stock === "number" ? product.stock > 0 : true;
                 
                 return (
                   <Link key={product.id} href={`/public/products/${slug}`} className="block">
@@ -289,7 +293,7 @@ function SearchPageContent() {
                               />
                             </div>
                           )}
-                          
+
                           {/* Badges */}
                           <div className="absolute top-2 left-2 flex flex-col gap-1">
                             {product.is_featured && (
@@ -305,46 +309,27 @@ function SearchPageContent() {
                           </div>
                         </div>
                       </CardContent>
-                      
-                      <div className="p-3">
+                      <div className="py-3 sm:py-4 px-1.5 sm:px-2 bg-background">
                         <CardHeader className="p-0">
-                          <CardTitle className="text-sm font-medium leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                          <CardTitle className="font-headline text-sm sm:text-xl tracking-normal text-left leading-snug line-clamp-2">
                             {product.name}
                           </CardTitle>
                         </CardHeader>
-                        
-                        <CardFooter className="p-0 pt-2">
-                          <div className="flex items-center justify-between w-full">
-                            <p className="text-sm font-bold text-primary">
-                              {formatPrice(product.price)}
-                            </p>
-                            {product.stock > 0 ? (
-                              <Badge variant="outline" className="text-xs">
-                                En stock
-                              </Badge>
-                            ) : (
-                              <Badge variant="destructive" className="text-xs">
-                                Sin stock
-                              </Badge>
-                            )}
-                          </div>
+                        <CardFooter className={`p-0 pt-1.5 sm:pt-2 flex items-center ${hasStock ? 'justify-start' : 'justify-between'}`}>
+                          <p className="text-sm sm:text-lg font-semibold">
+                            {formatPrice(product.price)}
+                          </p>
+                          {!hasStock && (
+                            <Badge variant="destructive" className="text-xs">
+                              Sin stock
+                            </Badge>
+                          )}
                         </CardFooter>
                       </div>
                     </Card>
                   </Link>
                 );
               })}
-            </div>
-
-            {/* Enhanced Results Summary */}
-            <div className="flex justify-center pt-6">
-              <div className="bg-white/70 backdrop-blur-sm rounded-2xl px-8 py-4 border border-neutral-200 shadow-sm">
-                <p className="text-neutral-600 font-medium text-center">
-                  🎉 Has encontrado {products.length} {products.length === 1 ? 'joya perfecta' : 'joyas perfectas'} 
-                  <br />
-                  <span className="text-neutral-800 font-semibold">¡Explora y encuentra tu favorita!</span>
-                </p>
-              </div>
             </div>
           </div>
         )}

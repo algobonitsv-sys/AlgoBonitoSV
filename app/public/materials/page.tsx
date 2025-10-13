@@ -74,7 +74,7 @@ function formatContent(content: string) {
 }
 
 export default function MaterialsPage() {
-  const [materials, setMaterials] = useState<WebsiteMaterial[]>([]);
+    const [materials, setMaterials] = useState<WebsiteMaterial[]>([]);
   const [contents, setContents] = useState<MaterialsContent[]>([]);
   const [loading, setLoading] = useState(true);
 

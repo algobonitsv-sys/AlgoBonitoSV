@@ -13,6 +13,7 @@ import { useState, useEffect } from "react";
 import type { SVGProps } from "react";
 import { productApi } from '@/lib/api';
 import type { Product } from '@/types/database';
+import { buildProductSlug } from '@/lib/utils/productSlug';
 
 const PRODUCTS_PER_PAGE = 8;
 
@@ -102,10 +103,6 @@ export default function AllProducts() {
       currency: 'USD',
       minimumFractionDigits: 2,
     }).format(price);
-  };
-
-  const generateSlug = (name: string) => {
-    return name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
   };
 
   const getImageUrl = (imageUrl: string | null) => {
@@ -199,7 +196,7 @@ export default function AllProducts() {
       <div className="px-0 md:container md:mx-auto">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-0 md:gap-6">
           {paginatedProducts.map((product, index) => {
-            const slug = generateSlug(product.name);
+            const slug = buildProductSlug({ id: product.id, name: product.name });
             const isSoldOut = typeof product.stock === "number" ? product.stock <= 0 : false;
             
             // Calculate padding based on position in grid for mobile

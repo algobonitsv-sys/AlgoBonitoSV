@@ -5,15 +5,29 @@ import { Separator } from '@/components/ui/separator';
 import ProductContent from './product-content';
 import { api } from '@/lib/api/products';
 import type { Metadata } from 'next';
+import { buildProductSlug, parseProductSlug } from '@/lib/utils/productSlug';
 
 interface ProductDetailProps {
   params: Promise<{ slug: string }>; // Next.js 15 async params
 }
 
+async function fetchProductBySlug(slug: string) {
+  const { id } = parseProductSlug(slug);
+
+  if (id) {
+    const byIdResponse = await api.products.getById(id);
+    if (byIdResponse.data) {
+      return byIdResponse;
+    }
+  }
+
+  return api.products.getBySlug(slug);
+}
+
 // Generate metadata for SEO
 export async function generateMetadata({ params }: ProductDetailProps): Promise<Metadata> {
   const { slug } = await params;
-  const response = await api.products.getBySlug(slug);
+  const response = await fetchProductBySlug(slug);
   
   if (!response.data) {
     return {
@@ -39,7 +53,7 @@ export default async function ProductDetailPage({ params }: ProductDetailProps) 
   const { slug } = await params;
   
   // Get product from database
-  const response = await api.products.getBySlug(slug);
+  const response = await fetchProductBySlug(slug);
   
   if (!response.data) {
     return notFound();
@@ -47,20 +61,17 @@ export default async function ProductDetailPage({ params }: ProductDetailProps) 
 
   const product = response.data;
 
-  // Generate slug from product name for consistency
-  const productSlug = product.name.toLowerCase().replace(/\s+/g, '-');
-
   return (
     <div className="min-h-screen bg-background">
       <ProductContent product={product} />
       <Suspense>
-        <RelatedProducts currentSlug={productSlug} />
+        <RelatedProducts currentProductId={product.id} />
       </Suspense>
     </div>
   );
 }
 
-async function RelatedProducts({ currentSlug }: { currentSlug: string }) {
+async function RelatedProducts({ currentProductId }: { currentProductId: string }) {
   // Get related products from API
   const response = await api.products.getAll();
   const allProducts = response.data || [];
@@ -68,8 +79,7 @@ async function RelatedProducts({ currentSlug }: { currentSlug: string }) {
   // Filter out current product and get random 4 products
   const related = allProducts
     .filter(p => {
-      const slug = p.name.toLowerCase().replace(/\s+/g, '-');
-      return slug !== currentSlug && p.is_active;
+      return p.id !== currentProductId && p.is_active;
     })
     .slice(0, 4);
   
@@ -79,7 +89,7 @@ async function RelatedProducts({ currentSlug }: { currentSlug: string }) {
   <h2 className="font-headline text-2xl md:text-3xl font-semibold tracking-tight mb-8 mt-12">También te puede gustar</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {related.map(r => {
-          const slug = r.name.toLowerCase().replace(/\s+/g, '-');
+          const slug = buildProductSlug({ id: r.id, name: r.name });
           const image = r.cover_image || r.hover_image || '/placeholder-product.jpg';
           return (
             <a key={r.id} href={`/public/products/${slug}`} className="group block">

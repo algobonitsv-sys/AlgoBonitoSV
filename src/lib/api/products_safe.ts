@@ -172,24 +172,37 @@ export const subcategoriesApi = {
 // =====================================================
 
 export const productsApi = {
-  async getAll(): Promise<ApiResponse<Product[]>> {
+  async getAll(options?: { includeInactive?: boolean }): Promise<ApiResponse<Product[]>> {
     try {
       if (!isSupabaseAvailable()) {
         console.log('Using demo products data');
-        return createResponse(demoProducts, null);
+        if (options?.includeInactive) {
+          return createResponse(demoProducts, null);
+        }
+        const activeDemo = demoProducts.filter((product) => product.is_active);
+        return createResponse(activeDemo, null);
       }
 
-      const { data, error } = await supabase!
+      let query = supabase!
         .from('products')
         .select('*')
-        .eq('is_active', true)
         .order('created_at', { ascending: false });
+
+      if (!options?.includeInactive) {
+        query = query.eq('is_active', true);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return createResponse(data || [], null);
     } catch (error) {
       console.log('Supabase error, falling back to demo data');
-      return createResponse(demoProducts, null);
+      if (options?.includeInactive) {
+        return createResponse(demoProducts, null);
+      }
+      const activeDemo = demoProducts.filter((product) => product.is_active);
+      return createResponse(activeDemo, null);
     }
   },
 };

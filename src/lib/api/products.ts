@@ -2,6 +2,7 @@
 import { supabase } from '@/lib/supabaseClient';
 import { R2Utils } from '@/lib/cloudflare-r2';
 import { checkServerEnvVars } from '@/lib/server-env-check';
+import { parseProductSlug, reconstructNameFromSlug } from '@/lib/utils/productSlug';
 import type {
   ApiResponse,
   Product,
@@ -730,44 +731,64 @@ export const productsApi = {
         return createResponse(null, null);
       }
 
-      // Convert slug back to name format (replace dashes with spaces and title case)
-      const searchTerms = slug.split('-').map(word => 
-        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-      );
+      const selection = `
+        *,
+        categories(name),
+        subcategories(name)
+      `;
 
-      // Try multiple search strategies
-      const data = null;
-      const error = null;
+      const { id, nameSegment } = parseProductSlug(slug);
 
-      // Strategy 1: Exact match with full reconstructed name
-      const fullName = searchTerms.join(' ');
-      const exactResponse = await supabase!
-        .from('products')
-        .select(`
-          *,
-          categories(name),
-          subcategories(name)
-        `)
-        .eq('name', fullName)
-        .eq('is_active', true)
-        .maybeSingle();
+      if (id) {
+        const byIdResponse = await supabase!
+            .from('products')
+          .select(selection)
+          .eq('id', id)
+            .maybeSingle();
 
-      if (exactResponse.data) {
-        return createResponse(exactResponse.data, null);
+        if (byIdResponse.error) {
+          throw byIdResponse.error;
+        }
+
+        if (byIdResponse.data) {
+          return createResponse(byIdResponse.data, null);
+        }
       }
+
+      const normalizedSlug = nameSegment || slug;
+      const fullName = reconstructNameFromSlug(normalizedSlug);
+
+      if (fullName) {
+        const exactResponse = await supabase!
+          .from('products')
+          .select(selection)
+          .eq('name', fullName)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (exactResponse.error) {
+          throw exactResponse.error;
+        }
+
+        if (exactResponse.data) {
+          return createResponse(exactResponse.data, null);
+        }
+      }
+
+      const searchTerms = normalizedSlug.split('-').filter(Boolean);
 
       // Strategy 2: Case-insensitive partial match
       const partialResponse = await supabase!
         .from('products')
-        .select(`
-          *,
-          categories(name),
-          subcategories(name)
-        `)
-        .ilike('name', `%${fullName}%`)
+        .select(selection)
+        .ilike('name', `%${(fullName || normalizedSlug).replace(/-/g, ' ')}%`)
         .eq('is_active', true)
         .limit(1)
         .maybeSingle();
+
+      if (partialResponse.error) {
+        throw partialResponse.error;
+      }
 
       if (partialResponse.data) {
         return createResponse(partialResponse.data, null);
@@ -775,18 +796,18 @@ export const productsApi = {
 
       // Strategy 3: Search by individual words
       for (const term of searchTerms) {
-        if (term.length > 2) { // Only search meaningful words
+        if (term.length > 2) {
           const wordResponse = await supabase!
             .from('products')
-            .select(`
-              *,
-              categories(name),
-              subcategories(name)
-            `)
+            .select(selection)
             .ilike('name', `%${term}%`)
             .eq('is_active', true)
             .limit(1)
             .maybeSingle();
+
+          if (wordResponse.error) {
+            throw wordResponse.error;
+          }
 
           if (wordResponse.data) {
             return createResponse(wordResponse.data, null);

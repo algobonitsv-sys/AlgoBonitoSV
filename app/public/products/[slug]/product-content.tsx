@@ -7,8 +7,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import AddToCartButton from "./add-to-cart-button";
 import { CreditCard, Truck, Shield, RefreshCw, Gem, Leaf, Sparkles, ShieldCheck } from 'lucide-react';
+import { buildProductSlugFromParts } from '@/lib/utils/productSlug';
 
 interface Product {
+  id?: string;
   name: string;
   // API may return null for description; accept string|null to match backend types
   description: string | null;
@@ -188,7 +190,8 @@ export default function ProductGallery({
   }, [allImages, currentMain]);
 
   // Prepare product object for AddToCartButton
-  const productSlug = product.name.toLowerCase().replace(/\s+/g, '-');
+  const productId = (product as any).id as string | undefined;
+  const productSlug = buildProductSlugFromParts(product.name, productId ?? '');
   
   // Debug: Log product data to see what's available
   console.log('Product data:', product);
@@ -198,7 +201,7 @@ export default function ProductGallery({
   console.log('Subcategory (flat):', product.subcategory);
   
   const productForCart = {
-    id: (product as any).id ?? productSlug,
+  id: (product as any).id ?? productSlug,
     slug: productSlug,
     name: product.name,
     price: product.price,

@@ -14,6 +14,7 @@ import {
 import Autoplay from "embla-carousel-autoplay";
 import { api } from "@/lib/api/products";
 import type { Product } from "@/types/database";
+import { buildProductSlug } from "@/lib/utils/productSlug";
 
 export default function FeaturedProducts() {
 const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -38,12 +39,6 @@ setLoading(false);
 }
 };
 
-const generateSlug = (name: string) => {
-return name
-.toLowerCase()
-.replace(/[^a-z0-9]+/g, "-")
-.replace(/(^-|-$)/g, "");
-};
 
 const formatPrice = (price: number) => {
 return new Intl.NumberFormat('es-SV', {
@@ -105,7 +100,7 @@ className="w-full"
 >
 <CarouselContent className="-ml-1 md:-ml-4">
 {featuredProducts.map((product) => {
-const slug = generateSlug(product.name);
+              const slug = buildProductSlug({ id: product.id, name: product.name });
 const isSoldOut = typeof product.stock === "number" ? product.stock <= 0 : false;
 
 return (

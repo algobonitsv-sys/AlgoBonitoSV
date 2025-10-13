@@ -11,6 +11,8 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@
 import { Loader2 } from "lucide-react";
 import { productApi } from '@/lib/api/products_safe';
 import { toast } from 'sonner';
+import type { Product } from '@/types/database';
+import { buildProductSlug } from '@/lib/utils/productSlug';
 
 const PRODUCTS_PER_PAGE = 12;
 
@@ -84,11 +86,11 @@ function ProductsContent() {
   const searchParams = useSearchParams();
   
   // State management
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [subcategories, setSubcategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Get URL parameters
@@ -119,7 +121,7 @@ function ProductsContent() {
     setLoading(true);
     try {
       const [productsRes, categoriesRes, subcategoriesRes] = await Promise.all([
-        productApi.products.getAll(),
+        productApi.products.getAll({ includeInactive: true }),
         productApi.categories.getAll(),
         productApi.subcategories.getAll()
       ]);
@@ -218,16 +220,6 @@ function ProductsContent() {
     }
 
     setFilteredProducts(filtered);
-  };
-
-  const getCategoryName = (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId);
-    return category?.name || '';
-  };
-
-  const getSubcategoryName = (subcategoryId: string) => {
-    const subcategory = subcategories.find(s => s.id === subcategoryId);
-    return subcategory?.name || '';
   };
 
   // Calculate pagination
@@ -338,9 +330,8 @@ function ProductsContent() {
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 md:gap-6 bg-background mb-8 max-w-full overflow-hidden">
               {paginatedProducts.map((product, index) => {
-                const slug = (product.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-                const categoryName = getCategoryName(product.category_id);
-                const subcategoryName = getSubcategoryName(product.subcategory_id);
+                const slug = buildProductSlug({ id: product.id, name: product.name });
+                const isSoldOut = typeof product.stock === 'number' ? product.stock <= 0 : false;
                 return (
                   <div key={product.id} className="md:p-0">
                     <Link href={`/public/products/${slug}`} className="block">
@@ -382,6 +373,17 @@ function ProductsContent() {
                                   </>
                                 );
                               })()}
+                              {isSoldOut && (
+                                <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                                  <Image
+                                    src="/SOLDOUT.png"
+                                    alt="Agotado"
+                                    width={320}
+                                    height={320}
+                                    className="object-contain"
+                                  />
+                                </div>
+                              )}
                             </>
                           ) : (
                             <div className="w-full h-full bg-gray-200 flex items-center justify-center">
@@ -410,7 +412,7 @@ function ProductsContent() {
             </div>
             {/* Pagination */}
             {totalPages > 1 && (
-              <Pagination className="justify-center px-4 md:px-0">
+              <Pagination className="justify-center px-4 md:px-0 mb-6">
                 <PaginationContent>
                   {/* Generate pagination items with arrows, compact range, and ellipsis */}
                   {(() => {

@@ -14,20 +14,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Edit2, Trash2, Eye, EyeOff, Image, Upload, X, Gem, Settings } from 'lucide-react';
 import { api } from '@/lib/api/products';
 import { toast } from 'sonner';
-import type { WebsiteMaterial, WebsiteMaterialInsert, WebsiteMaterialUpdate, MaterialsContent, MaterialsContentInsert, MaterialsContentUpdate } from '@/types/database';
+import type { Material, MaterialInsert, MaterialUpdate, MaterialsContent, MaterialsContentInsert, MaterialsContentUpdate } from '@/types/database';
 
 export default function MaterialsAdminPage() {
-  const [materials, setMaterials] = useState<WebsiteMaterial[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [contents, setContents] = useState<MaterialsContent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingMaterial, setEditingMaterial] = useState<WebsiteMaterial | null>(null);
+  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [editingContent, setEditingContent] = useState<MaterialsContent | null>(null);
   const [isMaterialDialogOpen, setIsMaterialDialogOpen] = useState(false);
   const [isContentDialogOpen, setIsContentDialogOpen] = useState(false);
-  const [materialFormData, setMaterialFormData] = useState<WebsiteMaterialInsert>({
+  const [materialFormData, setMaterialFormData] = useState<MaterialInsert>({
+    name: '',
     title: '',
     description: '',
     image_url: '',
+    cost_per_unit: 0,
+    unit_type: 'piece',
+    current_stock: 0,
+    min_stock: 0,
     is_active: true,
     display_order: 0,
   });
@@ -45,7 +50,7 @@ export default function MaterialsAdminPage() {
   const loadMaterials = async () => {
     try {
       setLoading(true);
-      const response = await api.websiteMaterials.getAll({ includeInactive: true });
+      const response = await api.materials.getAll();
       
       if (response.error) {
         toast.error('Error al cargar materiales: ' + response.error);
@@ -146,7 +151,7 @@ export default function MaterialsAdminPage() {
       return;
     }
     
-    if (!materialFormData.title.trim() || !materialFormData.description.trim()) {
+    if (!materialFormData.name.trim() || !materialFormData.title.trim() || !materialFormData.description.trim()) {
       toast.error('Por favor completa todos los campos obligatorios');
       return;
     }
@@ -169,7 +174,7 @@ export default function MaterialsAdminPage() {
       
       if (editingMaterial) {
         // Update existing material
-        response = await api.websiteMaterials.update(editingMaterial.id, materialData);
+        response = await api.materials.update(editingMaterial.id, materialData);
         if (response.error) {
           toast.error('Error al actualizar material: ' + response.error);
           return;
@@ -177,7 +182,7 @@ export default function MaterialsAdminPage() {
         toast.success('Material actualizado exitosamente');
       } else {
         // Create new material
-        response = await api.websiteMaterials.create(materialData);
+        response = await api.materials.create(materialData);
         if (response.error) {
           toast.error('Error al crear material: ' + response.error);
           return;
@@ -236,16 +241,21 @@ export default function MaterialsAdminPage() {
     }
   };
 
-  const handleEditMaterial = (material: WebsiteMaterial) => {
+  const handleEditMaterial = (material: Material) => {
     setEditingMaterial(material);
     setMaterialFormData({
-      title: material.title,
-      description: material.description,
-      image_url: material.image_url,
-      is_active: material.is_active,
-      display_order: material.display_order,
+      name: material.name,
+      title: material.title || '',
+      description: material.description || '',
+      image_url: material.image_url || '',
+      cost_per_unit: material.cost_per_unit,
+      unit_type: material.unit_type,
+      current_stock: material.current_stock,
+      min_stock: material.min_stock,
+      is_active: material.is_active ?? true,
+      display_order: material.display_order ?? 0,
     });
-    setImagePreview(material.image_url);
+    setImagePreview(material.image_url || null);
     setImageFile(null);
     setIsMaterialDialogOpen(true);
   };
@@ -265,7 +275,7 @@ export default function MaterialsAdminPage() {
 
   const handleDeleteMaterial = async (id: string) => {
     try {
-      const response = await api.websiteMaterials.delete(id);
+      const response = await api.materials.delete(id);
       
       if (response.error) {
         toast.error('Error al eliminar material: ' + response.error);
@@ -297,11 +307,11 @@ export default function MaterialsAdminPage() {
     }
   };
 
-  const handleToggleActiveMaterial = async (material: WebsiteMaterial) => {
+  const handleToggleActiveMaterial = async (material: Material) => {
     try {
       const response = material.is_active 
-        ? await api.websiteMaterials.deactivate(material.id)
-        : await api.websiteMaterials.activate(material.id);
+        ? await api.materials.deactivate(material.id)
+        : await api.materials.activate(material.id);
       
       if (response.error) {
         toast.error('Error al cambiar estado: ' + response.error);
@@ -322,9 +332,14 @@ export default function MaterialsAdminPage() {
     setImagePreview(null);
     setImageFile(null);
     setMaterialFormData({
+      name: '',
       title: '',
       description: '',
       image_url: '',
+      cost_per_unit: 0,
+      unit_type: 'piece',
+      current_stock: 0,
+      min_stock: 0,
       is_active: true,
       display_order: 0,
     });
@@ -390,6 +405,20 @@ export default function MaterialsAdminPage() {
                 <form onSubmit={handleMaterialSubmit} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
+                      <Label htmlFor="material_name">
+                        <Gem className="h-4 w-4 inline mr-2" />
+                        Nombre del Material *
+                      </Label>
+                      <Input
+                        id="material_name"
+                        placeholder="Ej: Plata 925"
+                        value={materialFormData.name}
+                        onChange={(e) => setMaterialFormData({ ...materialFormData, name: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
                       <Label htmlFor="material_title">
                         <Gem className="h-4 w-4 inline mr-2" />
                         Título del Material *
@@ -400,6 +429,59 @@ export default function MaterialsAdminPage() {
                         value={materialFormData.title}
                         onChange={(e) => setMaterialFormData({ ...materialFormData, title: e.target.value })}
                         required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="cost_per_unit">Costo por Unidad *</Label>
+                      <Input
+                        id="cost_per_unit"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={materialFormData.cost_per_unit}
+                        onChange={(e) => setMaterialFormData({ ...materialFormData, cost_per_unit: parseFloat(e.target.value) || 0 })}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="unit_type">Tipo de Unidad</Label>
+                      <Select value={materialFormData.unit_type} onValueChange={(value) => setMaterialFormData({ ...materialFormData, unit_type: value as 'piece' | 'gram' })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar unidad" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="piece">Pieza</SelectItem>
+                          <SelectItem value="gram">Gramo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="current_stock">Stock Actual</Label>
+                      <Input
+                        id="current_stock"
+                        type="number"
+                        step="0.001"
+                        min="0"
+                        placeholder="0.000"
+                        value={materialFormData.current_stock}
+                        onChange={(e) => setMaterialFormData({ ...materialFormData, current_stock: parseFloat(e.target.value) || 0 })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="min_stock">Stock Mínimo</Label>
+                      <Input
+                        id="min_stock"
+                        type="number"
+                        step="0.001"
+                        min="0"
+                        placeholder="0.000"
+                        value={materialFormData.min_stock}
+                        onChange={(e) => setMaterialFormData({ ...materialFormData, min_stock: parseFloat(e.target.value) || 0 })}
                       />
                     </div>
 
@@ -690,11 +772,11 @@ function MaterialsGrid({
   onDelete,
   onToggleActive,
 }: {
-  materials: WebsiteMaterial[];
+  materials: Material[];
   loading: boolean;
-  onEdit: (material: WebsiteMaterial) => void;
+  onEdit: (material: Material) => void;
   onDelete: (id: string) => void;
-  onToggleActive: (material: WebsiteMaterial) => void;
+  onToggleActive: (material: Material) => void;
 }) {
   if (loading) {
     return (
@@ -747,8 +829,8 @@ function MaterialsGrid({
             </p>
             
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Orden: {material.display_order}</span>
-              <span>{new Date(material.created_at).toLocaleDateString()}</span>
+              <span>Orden: {material.display_order ?? 0}</span>
+              <span>Creado: {new Date(material.created_at).toLocaleDateString()}</span>
             </div>
           </CardContent>
 
