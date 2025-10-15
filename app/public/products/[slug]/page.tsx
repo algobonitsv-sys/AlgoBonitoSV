@@ -87,16 +87,16 @@ async function RelatedProducts({ currentProductId }: { currentProductId: string 
     <div className="container pb-20">
   <Separator className="mb-10" />
   <h2 className="font-headline text-2xl md:text-3xl font-semibold tracking-tight mb-8 mt-12">También te puede gustar</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
         {related.map(r => {
           const slug = buildProductSlug({ id: r.id, name: r.name });
           const image = r.cover_image || r.hover_image || '/placeholder-product.jpg';
           return (
             <a key={r.id} href={`/public/products/${slug}`} className="group block">
-              <div className="relative aspect-square overflow-hidden rounded-xl bg-muted ring-1 ring-border/40">
+              <div className="relative aspect-[9/16] overflow-hidden bg-muted ring-1 ring-border/40 max-w-[200px] mx-auto">
                 <Image src={image} alt={r.name} fill className="object-cover transition-all duration-500 group-hover:scale-105" />
               </div>
-              <div className="pt-3">
+              <div className="pt-3 text-center">
                 <p className="text-sm font-medium leading-tight line-clamp-1">{r.name}</p>
                 <p className="text-sm text-muted-foreground">${r.price.toFixed(2)}</p>
               </div>
