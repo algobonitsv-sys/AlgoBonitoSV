@@ -8,9 +8,6 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-// Debug para verificar configuración
-import './debug-r2';
-
 // Función para obtener variables de entorno de forma robusta
 function getEnvVar(name: string): string | undefined {
   // Solo intentar acceder a process.env directamente
@@ -482,6 +479,49 @@ export const R2Utils = {
     console.log('🚀 R2Utils.uploadProductImage: Calling uploadFileToR2...');
     const result = await uploadFileToR2(file, fileName, file.type);
     console.log('📊 R2Utils.uploadProductImage: Upload result:', result);
+    return result;
+  },
+
+  // Subir imagen general (no producto)
+  uploadGeneralImage: async (file: File | Buffer, folder?: string): Promise<{ success: boolean; url?: string; error?: string }> => {
+    console.log('\n📤 R2Utils.uploadGeneralImage: Starting upload process...');
+    
+    // Si es Buffer, crear un File-like object
+    let fileToUse: File;
+    if (file instanceof Buffer) {
+      const fileName = `image-${Date.now()}.png`; // Default name for buffers
+      fileToUse = new File([file], fileName, { type: 'image/png' });
+    } else {
+      fileToUse = file;
+    }
+    
+    console.log('📋 R2Utils.uploadGeneralImage: File details:', {
+      name: fileToUse.name,
+      type: fileToUse.type,
+      size: fileToUse.size,
+      folder: folder || 'general'
+    });
+
+    console.log('🔍 R2Utils.uploadGeneralImage: Validating file type...');
+    if (!R2Utils.isValidImageType(fileToUse.type)) {
+      console.log('❌ R2Utils.uploadGeneralImage: Invalid file type:', fileToUse.type);
+      return { success: false, error: 'Tipo de archivo no válido. Solo se permiten imágenes.' };
+    }
+    console.log('✅ R2Utils.uploadGeneralImage: File type validation passed');
+
+    console.log('🔍 R2Utils.uploadGeneralImage: Validating file size...');
+    if (!R2Utils.isValidFileSize(fileToUse.size)) {
+      console.log('❌ R2Utils.uploadGeneralImage: File too large:', fileToUse.size, 'bytes');
+      return { success: false, error: 'El archivo es demasiado grande. Máximo 5MB.' };
+    }
+    console.log('✅ R2Utils.uploadGeneralImage: File size validation passed');
+
+    const fileName = generateUniqueFileName(fileToUse.name, folder || 'general');
+    console.log('🏷️ R2Utils.uploadGeneralImage: Generated filename:', fileName);
+
+    console.log('🚀 R2Utils.uploadGeneralImage: Calling uploadFileToR2...');
+    const result = await uploadFileToR2(fileToUse, fileName, fileToUse.type);
+    console.log('📊 R2Utils.uploadGeneralImage: Upload result:', result);
     return result;
   },
 

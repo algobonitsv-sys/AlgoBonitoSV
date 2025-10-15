@@ -27,7 +27,7 @@ const MIME_TYPE_EXTENSION_MAP: Record<string, string> = {
 
 const DEFAULT_PAYMENT_TITLE = 'Métodos de Pago';
 const DEFAULT_PAYMENT_SUBTITLE = 'Paga de forma rápida y segura.';
-const DEFAULT_PAYMENT_BACKGROUND_IMAGE = 'https://picsum.photos/1200/400?v=63';
+const DEFAULT_PAYMENT_BACKGROUND_IMAGE = ''; // Cambiado de URL por defecto a vacío
 const DEFAULT_PAYMENT_METHODS = [
   'Tarjetas de crédito/débito (pago en línea seguro)',
   'Transferencia bancaria (Banco Agrícola, BAC)',
@@ -103,14 +103,14 @@ export default function VistaPrincipalAdminPage() {
     return trimmed;
   }, [imagen]);
 
-  const uploadVistaPrincipalImageIfNeeded = async (): Promise<string | null> => {
-    const trimmed = imagen?.trim();
-
-    if (!trimmed) {
+  const uploadPaymentBackgroundImageIfNeeded = async (imageUrl: string | null): Promise<string | null> => {
+    if (!imageUrl || imageUrl.trim() === '') {
       return null;
     }
 
-    if (trimmed.startsWith('http')) {
+    const trimmed = imageUrl.trim();
+
+    if (trimmed.startsWith('http') && !trimmed.startsWith('blob:')) {
       return trimmed;
     }
 
@@ -133,10 +133,10 @@ export default function VistaPrincipalAdminPage() {
         }
         const blob = await response.blob();
         const extension = MIME_TYPE_EXTENSION_MAP[blob.type] || (blob.type?.split('/')[1] ?? 'png');
-        const fileName = `vista-principal-${Date.now()}.${extension}`;
+        const fileName = `payment-background-${Date.now()}.${extension}`;
         fileToUpload = new File([blob], fileName, { type: blob.type || 'image/png' });
       } catch (error) {
-        console.error('Error obteniendo blob de la imagen de vista principal:', error);
+        console.error('Error obteniendo blob de la imagen de métodos de pago:', error);
         throw new Error('No se pudo procesar la imagen seleccionada. Intenta subirla nuevamente.');
       }
     }
@@ -147,7 +147,7 @@ export default function VistaPrincipalAdminPage() {
 
     const formData = new FormData();
     formData.append('file', fileToUpload);
-    formData.append('folder', 'vista-principal');
+    formData.append('folder', 'payment-background');
 
     const uploadResponse = await fetch('/api/upload', {
       method: 'POST',
@@ -422,10 +422,13 @@ export default function VistaPrincipalAdminPage() {
     try {
       setIsSavingPayment(true);
 
+      // Upload background image if needed
+      const backgroundImageUrlToSave = await uploadPaymentBackgroundImageIfNeeded(paymentBackgroundImage);
+
       const payload = {
         title: sanitizedTitle,
         subtitle: sanitizedSubtitle,
-        background_image_url: sanitizedBackground || undefined,
+        background_image_url: backgroundImageUrlToSave || undefined,
         extra_data: { methods: sanitizedMethods },
         is_active: true,
         section_type: 'payment' as const,
@@ -437,7 +440,7 @@ export default function VistaPrincipalAdminPage() {
       } else {
         response = await productApi.aboutContent.create({
           ...payload,
-          image_url: sanitizedBackground || undefined,
+          image_url: backgroundImageUrlToSave || undefined,
           display_order: 0,
         });
       }
@@ -452,7 +455,7 @@ export default function VistaPrincipalAdminPage() {
 
       setPaymentTitle(sanitizedTitle);
       setPaymentSubtitle(sanitizedSubtitle);
-      setPaymentBackgroundImage(sanitizedBackground || DEFAULT_PAYMENT_BACKGROUND_IMAGE);
+      setPaymentBackgroundImage(backgroundImageUrlToSave || DEFAULT_PAYMENT_BACKGROUND_IMAGE);
       setPaymentMethods(sanitizedMethods);
 
       toast({
@@ -596,6 +599,15 @@ export default function VistaPrincipalAdminPage() {
     }
 
     setImagen(newImageUrl.trim());
+  };
+
+  const handlePaymentImageChange = (newImageUrl: string | null) => {
+    if (!newImageUrl || newImageUrl.trim() === '') {
+      setPaymentBackgroundImage('');
+      return;
+    }
+
+    setPaymentBackgroundImage(newImageUrl.trim());
   };
 
   if (isLoading) {
@@ -909,15 +921,16 @@ ALTER TABLE novedad RENAME TO vista_principal;
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="paymentBackground">Imagen de fondo (URL)</Label>
-                  <Input
-                    id="paymentBackground"
-                    value={paymentBackgroundImage}
-                    onChange={(e) => setPaymentBackgroundImage(e.target.value)}
-                    placeholder="https://tus-imagenes.com/metodos.jpg"
+                  <ImageUpload
+                    currentImageUrl={paymentBackgroundImage || undefined}
+                    onImageUploaded={handlePaymentImageChange}
+                    onImageRemoved={() => handlePaymentImageChange('')}
+                    label="Imagen de fondo"
+                    folder="payment-background"
+                    className="w-full max-w-md"
                   />
                   <p className="text-sm text-muted-foreground">
-                    Se usa como fondo difuminado detrás del bloque de métodos de pago.
+                    Se usa como fondo difuminado detrás del bloque de métodos de pago. Puedes subir un archivo o usar una URL.
                   </p>
                 </div>
 

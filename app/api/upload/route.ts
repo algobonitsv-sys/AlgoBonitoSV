@@ -28,9 +28,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Convertir File a Buffer inmediatamente para evitar problemas de consumo único
+    console.log('� /api/upload: Converting File to Buffer...');
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
     console.log('🔍 /api/upload: Starting file validations...');
     
-    // Validaciones
+    // Validaciones usando el buffer
     if (!R2Utils.isValidImageType(file.type)) {
       console.log('❌ /api/upload: Invalid image type:', file.type);
       return NextResponse.json(
@@ -40,8 +43,8 @@ export async function POST(request: NextRequest) {
     }
     console.log('✅ /api/upload: Image type validation passed');
 
-    if (!R2Utils.isValidFileSize(file.size, 5)) {
-      console.log('❌ /api/upload: File too large:', file.size, 'bytes');
+    if (!R2Utils.isValidFileSize(fileBuffer.length, 5)) {
+      console.log('❌ /api/upload: File too large:', fileBuffer.length, 'bytes');
       return NextResponse.json(
         { success: false, error: 'El archivo es demasiado grande. Máximo 5MB.' },
         { status: 400 }
@@ -54,13 +57,12 @@ export async function POST(request: NextRequest) {
     let result;
     if (folder === 'products') {
       console.log('📂 /api/upload: Using product upload method');
-      result = await R2Utils.uploadProductImage(file, productId);
+      // Para productos, necesitamos convertir de vuelta a File-like object
+      const fileLike = new File([new Uint8Array(fileBuffer)], file.name, { type: file.type });
+      result = await R2Utils.uploadProductImage(fileLike, productId);
     } else {
       console.log('📂 /api/upload: Using general upload method for folder:', folder);
-      const { generateUniqueFileName, uploadFileToR2 } = await import('@/lib/cloudflare-r2');
-      const fileName = generateUniqueFileName(file.name, folder || 'general');
-      console.log('🏷️ /api/upload: Generated filename:', fileName);
-      result = await uploadFileToR2(file, fileName, file.type);
+      result = await R2Utils.uploadGeneralImage(fileBuffer, folder || 'general');
     }
 
     console.log('📊 /api/upload: R2 upload result:', result);
@@ -86,7 +88,8 @@ export async function POST(request: NextRequest) {
     console.error('❌ /api/upload: Unexpected error:', error);
     console.error('🔍 /api/upload: Error details:', {
       error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack : undefined,
+      type: typeof error
     });
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },

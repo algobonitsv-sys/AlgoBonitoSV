@@ -359,56 +359,103 @@ export function ImageUpload({
       </Label>
 
       {preview && isValidPreviewUrl(preview) ? (
-        <div className="relative group">
-          <div 
-            className="relative w-full border border-gray-200 rounded-lg overflow-hidden bg-gray-50"
-            style={{ aspectRatio: '9/16' }}
-          >
-            <Image
-              src={preview}
-              alt="Preview"
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            />
-            {uploading && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <div className="bg-white rounded-lg p-4 flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">Subiendo...</span>
+        <div className="space-y-4">
+          <div className="relative group">
+            <div 
+              className="relative w-full border border-gray-200 rounded-lg overflow-hidden bg-gray-50"
+              style={{ aspectRatio: '9/16' }}
+            >
+              <Image
+                src={preview}
+                alt="Preview"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              />
+              {uploading && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="bg-white rounded-lg p-4 flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Subiendo...</span>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-          {/* Botones de acción */}
-          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-            {canCropImage() && (
+              )}
+            </div>
+            {/* Botones de acción */}
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+              {canCropImage() && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    if (canCropImage()) {
+                      setShowCropper(true);
+                    } else {
+                      toast.error('No se puede recortar imágenes de URLs externas por restricciones de seguridad');
+                    }
+                  }}
+                  disabled={uploading}
+                  className="bg-white/90 hover:bg-white text-gray-700"
+                >
+                  <Crop className="h-4 w-4" />
+                </Button>
+              )}
               <Button
                 type="button"
-                variant="secondary"
+                variant="destructive"
                 size="sm"
-                onClick={() => {
-                  if (canCropImage()) {
-                    setShowCropper(true);
-                  } else {
-                    toast.error('No se puede recortar imágenes de URLs externas por restricciones de seguridad');
-                  }
-                }}
+                onClick={handleRemove}
                 disabled={uploading}
-                className="bg-white/90 hover:bg-white text-gray-700"
               >
-                <Crop className="h-4 w-4" />
+                <X className="h-4 w-4" />
               </Button>
-            )}
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={handleRemove}
-              disabled={uploading}
+            </div>
+          </div>
+          
+          {/* Área para subir nueva imagen */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Cambiar imagen</Label>
+            <div
+              className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+                dragActive
+                  ? 'border-primary bg-primary/5'
+                  : 'border-gray-300 hover:border-primary hover:bg-gray-50'
+              }`}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
             >
-              <X className="h-4 w-4" />
-            </Button>
+              <Upload className={`mx-auto h-8 w-8 mb-2 ${dragActive ? 'text-primary' : 'text-gray-400'}`} />
+              <div className="space-y-1">
+                <p className="text-xs font-medium">
+                  {dragActive ? 'Suelta la imagen aquí' : 'Arrastra una nueva imagen aquí o haz clic para seleccionar'}
+                </p>
+                <p className="text-xs text-gray-500">
+                  PNG, JPG, WebP o GIF hasta 5MB
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="mt-2"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Subiendo...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-3 w-3 mr-1" />
+                      Seleccionar archivo
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       ) : (
