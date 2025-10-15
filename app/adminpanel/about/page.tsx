@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trash2, Edit, Plus, Eye, EyeOff, Info, ArrowUp, ArrowDown, Image } from 'lucide-react';
+import { useFileUpload } from '@/hooks/use-file-upload';
 import { toast } from '@/hooks/use-toast';
 
 export default function AboutAdminPage() {
@@ -25,6 +26,7 @@ export default function AboutAdminPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [backgroundImagePreview, setBackgroundImagePreview] = useState<string | null>(null);
   const [currentTab, setCurrentTab] = useState<'all' | 'active' | 'inactive'>('all');
+  const { uploading: imageUploading, uploadFile } = useFileUpload();
   const [formData, setFormData] = useState<AboutContentInsert>({
     section_type: 'mission',
     title: '',
@@ -96,20 +98,43 @@ export default function AboutAdminPage() {
     loadAboutSections();
   }, []);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'background') => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'background') => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (type === 'image') {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-      // Clear URL when file is selected
-      setFormData({ ...formData, image_url: '' });
-    } else {
-      setBackgroundImageFile(file);
-      setBackgroundImagePreview(URL.createObjectURL(file));
-      // Clear URL when file is selected
-      setFormData({ ...formData, background_image_url: '' });
+    try {
+      // Subir la imagen automáticamente a R2
+      const uploadResult = await uploadFile(file, { folder: 'products/covers' });
+      
+      if (uploadResult.success && uploadResult.url) {
+        if (type === 'image') {
+          setImageFile(file);
+          setImagePreview(uploadResult.url);
+          setFormData({ ...formData, image_url: uploadResult.url });
+        } else {
+          setBackgroundImageFile(file);
+          setBackgroundImagePreview(uploadResult.url);
+          setFormData({ ...formData, background_image_url: uploadResult.url });
+        }
+        
+        toast({
+          title: "Éxito",
+          description: "Imagen subida correctamente",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: uploadResult.error || "Error al subir la imagen",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Error",
+        description: "Error al subir la imagen",
+        variant: "destructive",
+      });
     }
   };
 
@@ -124,14 +149,12 @@ export default function AboutAdminPage() {
         extra_data = { methods: paymentMethods };
         break;
       case 'returns':
-        extra_data = { policy: returnsPolicyData };
+        extra_data = returnsPolicyData;
         break;
     }
 
     return {
       ...formData,
-      image_url: imagePreview || formData.image_url,
-      background_image_url: backgroundImagePreview || formData.background_image_url,
       extra_data,
     };
   };
@@ -279,7 +302,7 @@ export default function AboutAdminPage() {
     setImageFile(null);
     setBackgroundImageFile(null);
     setFormData({
-      section_type: 'hero',
+      section_type: 'mission',
       title: '',
       subtitle: '',
       content: '',
