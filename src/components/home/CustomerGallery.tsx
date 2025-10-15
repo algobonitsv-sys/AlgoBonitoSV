@@ -134,14 +134,14 @@ export default function CustomerGallery() {
                         width={400}
                         height={800}
                         data-ai-hint={image.dataAiHint}
-                        className="w-full h-auto object-cover aspect-[9/16]"
+                        className="w-full h-auto object-cover"
                         onError={(e) => {
                           // Fallback to placeholder on error
                           e.currentTarget.src = 'https://picsum.photos/400/800?v=' + (index + 50);
                         }}
                       />
                     ) : (
-                      <div className="w-full aspect-[9/16] bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                      <div className="w-full bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center min-h-[300px]">
                         <div className="text-center text-gray-500">
                           <svg className="w-16 h-16 mx-auto mb-2 opacity-50" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
