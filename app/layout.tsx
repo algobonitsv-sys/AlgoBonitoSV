@@ -11,7 +11,7 @@ import { AdminSidebarProvider } from "@/contexts/AdminSidebarContext";
 
 const metadata: Metadata = {
   title: "Algo Bonito SV - Joyería Exclusiva",
-  description: "Descubre joyería elegante y minimalista. Hecho a mano en El Salvador.",
+  description: "¡Decile hola a tu nuevo accesorio favorito!",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
