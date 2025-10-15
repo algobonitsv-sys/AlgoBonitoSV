@@ -319,10 +319,6 @@ export interface AnnouncementUpdate {
 export interface Material {
   id: string;
   name: string;
-  cost_per_unit: number;
-  unit_type: UnitType;
-  current_stock: number;
-  min_stock: number;
   title?: string;
   description?: string;
   image_url?: string;
@@ -334,10 +330,6 @@ export interface Material {
 
 export interface MaterialInsert {
   name: string;
-  cost_per_unit?: number;
-  unit_type?: UnitType;
-  current_stock?: number;
-  min_stock?: number;
   title?: string;
   description?: string;
   image_url?: string;
@@ -347,10 +339,6 @@ export interface MaterialInsert {
 
 export interface MaterialUpdate {
   name?: string;
-  cost_per_unit?: number;
-  unit_type?: UnitType;
-  current_stock?: number;
-  min_stock?: number;
   title?: string;
   description?: string;
   image_url?: string;

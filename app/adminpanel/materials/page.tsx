@@ -26,10 +26,6 @@ export default function MaterialsAdminPage() {
   const [isContentDialogOpen, setIsContentDialogOpen] = useState(false);
   const [materialFormData, setMaterialFormData] = useState<MaterialInsert>({
     name: '',
-    cost_per_unit: 0,
-    unit_type: 'piece',
-    current_stock: 0,
-    min_stock: 0,
     title: '',
     description: '',
     image_url: '',
@@ -133,14 +129,31 @@ export default function MaterialsAdminPage() {
   };
 
   const uploadImageFile = async (file: File): Promise<string> => {
-    // Por ahora, simularemos la subida de archivo devolviendo una URL placeholder
-    // En una implementación real, aquí subirías el archivo a tu servicio de almacenamiento
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockUrl = `https://picsum.photos/500/300?random=${Date.now()}`;
-        resolve(mockUrl);
-      }, 1000);
-    });
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'materials');
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al subir la imagen');
+      }
+
+      const result = await response.json();
+
+      if (!result.success || !result.url) {
+        throw new Error(result.error || 'Error desconocido al subir la imagen');
+      }
+
+      return result.url;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      throw new Error('No se pudo subir la imagen. Inténtalo de nuevo.');
+    }
   };
 
   const handleMaterialSubmit = async (e: React.FormEvent) => {
@@ -246,10 +259,6 @@ export default function MaterialsAdminPage() {
     setEditingMaterial(material);
     setMaterialFormData({
       name: material.name,
-      cost_per_unit: material.cost_per_unit,
-      unit_type: material.unit_type,
-      current_stock: material.current_stock,
-      min_stock: material.min_stock,
       title: material.title || '',
       description: material.description || '',
       image_url: material.image_url || '',
@@ -335,10 +344,6 @@ export default function MaterialsAdminPage() {
     setMaterialImageUrl('');
     setMaterialFormData({
       name: '',
-      cost_per_unit: 0,
-      unit_type: 'piece',
-      current_stock: 0,
-      min_stock: 0,
       title: '',
       description: '',
       image_url: '',
@@ -431,59 +436,6 @@ export default function MaterialsAdminPage() {
                         value={materialFormData.title || ''}
                         onChange={(e) => setMaterialFormData({ ...materialFormData, title: e.target.value })}
                         required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="cost_per_unit">Costo por Unidad *</Label>
-                      <Input
-                        id="cost_per_unit"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        value={materialFormData.cost_per_unit}
-                        onChange={(e) => setMaterialFormData({ ...materialFormData, cost_per_unit: parseFloat(e.target.value) || 0 })}
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="unit_type">Tipo de Unidad</Label>
-                      <Select value={materialFormData.unit_type} onValueChange={(value) => setMaterialFormData({ ...materialFormData, unit_type: value as 'piece' | 'gram' })}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar unidad" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="piece">Pieza</SelectItem>
-                          <SelectItem value="gram">Gramo</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="current_stock">Stock Actual</Label>
-                      <Input
-                        id="current_stock"
-                        type="number"
-                        step="0.001"
-                        min="0"
-                        placeholder="0.000"
-                        value={materialFormData.current_stock}
-                        onChange={(e) => setMaterialFormData({ ...materialFormData, current_stock: parseFloat(e.target.value) || 0 })}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="min_stock">Stock Mínimo</Label>
-                      <Input
-                        id="min_stock"
-                        type="number"
-                        step="0.001"
-                        min="0"
-                        placeholder="0.000"
-                        value={materialFormData.min_stock}
-                        onChange={(e) => setMaterialFormData({ ...materialFormData, min_stock: parseFloat(e.target.value) || 0 })}
                       />
                     </div>
                   </div>

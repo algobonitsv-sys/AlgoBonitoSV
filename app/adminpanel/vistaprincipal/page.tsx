@@ -175,6 +175,78 @@ export default function VistaPrincipalAdminPage() {
     return uploadResult.url;
   };
 
+  const uploadVistaPrincipalImageIfNeeded = async (): Promise<string | null> => {
+    if (!imagen || imagen.trim() === '') {
+      return null;
+    }
+
+    const trimmed = imagen.trim();
+
+    if (trimmed.startsWith('http') && !trimmed.startsWith('blob:')) {
+      return trimmed;
+    }
+
+    let fileToUpload: File | null = null;
+
+    const isBlobUrl = trimmed.startsWith('blob:') || trimmed.startsWith('data:');
+
+    if (!isBlobUrl && TempImageStore.isTempUrl(trimmed)) {
+      const tempData = tempImageStore.getImage(trimmed);
+      if (tempData?.file) {
+        fileToUpload = tempData.file;
+      }
+    }
+
+    if (!fileToUpload) {
+      try {
+        const response = await fetch(trimmed);
+        if (!response.ok) {
+          throw new Error('No se pudo acceder a la imagen temporal');
+        }
+        const blob = await response.blob();
+        const extension = MIME_TYPE_EXTENSION_MAP[blob.type] || (blob.type?.split('/')[1] ?? 'png');
+        const fileName = `vista-principal-${Date.now()}.${extension}`;
+        fileToUpload = new File([blob], fileName, { type: blob.type || 'image/png' });
+      } catch (error) {
+        console.error('Error obteniendo blob de la imagen de vista principal:', error);
+        throw new Error('No se pudo procesar la imagen seleccionada. Intenta subirla nuevamente.');
+      }
+    }
+
+    if (!fileToUpload) {
+      throw new Error('No se encontró la imagen para subir.');
+    }
+
+    const formData = new FormData();
+    formData.append('file', fileToUpload);
+    formData.append('folder', 'vista-principal');
+
+    const uploadResponse = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    let uploadResult: { success?: boolean; url?: string; error?: string } = {};
+
+    try {
+      uploadResult = await uploadResponse.json();
+    } catch (error) {
+      console.error('Error leyendo la respuesta de subida de imagen:', error);
+      throw new Error('No se pudo subir la imagen seleccionada.');
+    }
+
+    if (!uploadResponse.ok || !uploadResult?.success || !uploadResult?.url) {
+      const errorMessage = uploadResult?.error || 'Error al subir la imagen a Cloudflare';
+      throw new Error(errorMessage);
+    }
+
+    if (!isBlobUrl && TempImageStore.isTempUrl(trimmed)) {
+      tempImageStore.removeImage(trimmed);
+    }
+
+    return uploadResult.url;
+  };
+
   // Load current vista principal
   useEffect(() => {
     loadVistaPrincipal();
