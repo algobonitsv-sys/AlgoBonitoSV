@@ -414,7 +414,7 @@ export default function ProductGallery({
                 </div>
                 <div>
                   <p className="font-medium text-foreground text-sm">Garantía de Cambio</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">7 días sin uso</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">2 días sin uso</p>
                 </div>
               </div>
             </div>
