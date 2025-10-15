@@ -322,14 +322,20 @@ export default function ProductGallery({
           <div className="md:hidden">
             <div className="flex items-center gap-2">
               <div className="flex-1">
-                <AddToCartButton product={productForCart as any} />
+                <AddToCartButton product={productForCart as any} disabled={!product.stock || product.stock <= 0} />
               </div>
               {/* Stock en móvil */}
               <div className="flex-shrink-0">
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
-                  <span className="w-1.5 h-1.5 bg-current rounded-full mr-1"></span>
-                  1 stock
-                </span>
+                {product.stock && product.stock > 0 ? (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
+                    <span className="w-1.5 h-1.5 bg-current rounded-full mr-1"></span>
+                    {product.stock} stock
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                    Sin Stock
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -337,14 +343,20 @@ export default function ProductGallery({
           {/* Layout desktop: botón y stock separados */}
           <div className="hidden md:flex items-center justify-between gap-4">
             <div className="flex-1">
-              <AddToCartButton product={productForCart as any} />
+              <AddToCartButton product={productForCart as any} disabled={!product.stock || product.stock <= 0} />
             </div>
             {/* Stock aligned to the right of the button and centered vertically */}
             <div className="flex-shrink-0 flex items-center justify-center">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
-                <span className="w-1.5 h-1.5 bg-current rounded-full mr-1.5"></span>
-                1 en stock
-              </span>
+              {product.stock && product.stock > 0 ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
+                  <span className="w-1.5 h-1.5 bg-current rounded-full mr-1.5"></span>
+                  {product.stock} en stock
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                  Sin Stock
+                </span>
+              )}
             </div>
           </div>
 

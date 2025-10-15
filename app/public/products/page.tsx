@@ -424,10 +424,15 @@ function ProductsContent() {
                             {product.name}
                           </CardTitle>
                         </CardHeader>
-                        <CardFooter className="p-0 pt-1.5 sm:pt-2 justify-start">
+                        <CardFooter className="p-0 pt-1.5 sm:pt-2 justify-between">
                           <p className="text-sm sm:text-lg font-semibold">
                             ${(product.price || 0).toFixed(2)}
                           </p>
+                          {isSoldOut && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                              Sin Stock
+                            </span>
+                          )}
                         </CardFooter>
                       </div>
                     </Card>
