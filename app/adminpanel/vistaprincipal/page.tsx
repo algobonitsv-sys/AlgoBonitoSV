@@ -181,42 +181,63 @@ export default function VistaPrincipalAdminPage() {
     }
 
     const trimmed = imagen.trim();
+    console.log('🚀 uploadVistaPrincipalImageIfNeeded: starting with trimmed:', trimmed);
 
-    if (trimmed.startsWith('http') && !trimmed.startsWith('blob:')) {
+    if (trimmed.startsWith('http') && !trimmed.startsWith('blob:') && !trimmed.startsWith('data:')) {
+      console.log('✅ uploadVistaPrincipalImageIfNeeded: returning existing HTTP URL');
       return trimmed;
+    }
+
+    // Si es una URL blob o data, siempre intentar subirla
+    if (trimmed.startsWith('blob:') || trimmed.startsWith('data:')) {
+      console.log('🔄 uploadVistaPrincipalImageIfNeeded: blob/data URL detected, will upload');
     }
 
     let fileToUpload: File | null = null;
 
     const isBlobUrl = trimmed.startsWith('blob:') || trimmed.startsWith('data:');
+    console.log('🔍 uploadVistaPrincipalImageIfNeeded: isBlobUrl:', isBlobUrl);
 
     if (!isBlobUrl && TempImageStore.isTempUrl(trimmed)) {
+      console.log('📁 uploadVistaPrincipalImageIfNeeded: is temp URL, getting from store');
       const tempData = tempImageStore.getImage(trimmed);
       if (tempData?.file) {
         fileToUpload = tempData.file;
+        console.log('✅ uploadVistaPrincipalImageIfNeeded: found file in temp store');
+      } else {
+        console.log('❌ uploadVistaPrincipalImageIfNeeded: temp URL but no file in store');
       }
     }
 
     if (!fileToUpload) {
-      try {
-        const response = await fetch(trimmed);
-        if (!response.ok) {
-          throw new Error('No se pudo acceder a la imagen temporal');
+      if (isBlobUrl) {
+        console.log('🔄 uploadVistaPrincipalImageIfNeeded: trying to fetch blob URL');
+        try {
+          const response = await fetch(trimmed);
+          if (!response.ok) {
+            throw new Error('No se pudo acceder a la imagen temporal');
+          }
+          const blob = await response.blob();
+          const extension = MIME_TYPE_EXTENSION_MAP[blob.type] || (blob.type?.split('/')[1] ?? 'png');
+          const fileName = `vista-principal-${Date.now()}.${extension}`;
+          fileToUpload = new File([blob], fileName, { type: blob.type || 'image/png' });
+          console.log('✅ uploadVistaPrincipalImageIfNeeded: created file from blob');
+        } catch (error) {
+          console.error('❌ uploadVistaPrincipalImageIfNeeded: error fetching blob:', error);
+          throw new Error('La imagen temporal no se puede procesar. Por favor, selecciona la imagen nuevamente.');
         }
-        const blob = await response.blob();
-        const extension = MIME_TYPE_EXTENSION_MAP[blob.type] || (blob.type?.split('/')[1] ?? 'png');
-        const fileName = `vista-principal-${Date.now()}.${extension}`;
-        fileToUpload = new File([blob], fileName, { type: blob.type || 'image/png' });
-      } catch (error) {
-        console.error('Error obteniendo blob de la imagen de vista principal:', error);
-        throw new Error('No se pudo procesar la imagen seleccionada. Intenta subirla nuevamente.');
+      } else {
+        console.log('❌ uploadVistaPrincipalImageIfNeeded: no file to upload and not a blob URL');
+        throw new Error('No se encontró la imagen para subir. Por favor, selecciona una imagen.');
       }
     }
 
     if (!fileToUpload) {
+      console.log('❌ uploadVistaPrincipalImageIfNeeded: still no file to upload');
       throw new Error('No se encontró la imagen para subir.');
     }
 
+    console.log('📤 uploadVistaPrincipalImageIfNeeded: uploading file to R2');
     const formData = new FormData();
     formData.append('file', fileToUpload);
     formData.append('folder', 'vista-principal');
@@ -231,17 +252,21 @@ export default function VistaPrincipalAdminPage() {
     try {
       uploadResult = await uploadResponse.json();
     } catch (error) {
-      console.error('Error leyendo la respuesta de subida de imagen:', error);
+      console.error('❌ uploadVistaPrincipalImageIfNeeded: error parsing upload response:', error);
       throw new Error('No se pudo subir la imagen seleccionada.');
     }
 
     if (!uploadResponse.ok || !uploadResult?.success || !uploadResult?.url) {
       const errorMessage = uploadResult?.error || 'Error al subir la imagen a Cloudflare';
+      console.log('❌ uploadVistaPrincipalImageIfNeeded: upload failed:', errorMessage);
       throw new Error(errorMessage);
     }
 
+    console.log('✅ uploadVistaPrincipalImageIfNeeded: upload successful, URL:', uploadResult.url);
+
     if (!isBlobUrl && TempImageStore.isTempUrl(trimmed)) {
       tempImageStore.removeImage(trimmed);
+      console.log('🗑️ uploadVistaPrincipalImageIfNeeded: removed temp image from store');
     }
 
     return uploadResult.url;
