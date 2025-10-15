@@ -354,14 +354,14 @@ export default function Header() {
                   {/* Social media footer */}
                   <div className="border-t p-4">
                     <div className="flex items-center justify-center gap-4 text-foreground/70">
-                      <a href="https://www.instagram.com" aria-label="Instagram" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
+                      <a href="https://www.instagram.com/algobonit_sv/" aria-label="Instagram" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
                           <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
                           <line x1="17.5" y1="6.5" x2="17.5" y2="6.5"/>
                         </svg>
                       </a>
-                      <a href="https://www.facebook.com" aria-label="Facebook" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
+                      <a href="https://www.facebook.com/share/17WeT39gTf/?mibextid=wwXIfr" aria-label="Facebook" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M22 12a10 10 0 1 0-11.5 9.87v-6.99H8.9V12h1.6V9.8c0-1.58.94-2.46 2.38-2.46.69 0 1.41.12 1.41.12v1.55h-.8c-.79 0-1.04.49-1.04 1V12h1.77l-.28 2.88h-1.5v6.99A10 10 0 0 0 22 12"/>
                         </svg>
@@ -570,10 +570,10 @@ export default function Header() {
             ))}
           </div>
           <div className="absolute bottom-3 right-4 flex items-center gap-4 text-foreground/70">
-            <a href="https://www.instagram.com" aria-label="Instagram" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
+            <a href="https://www.instagram.com/algobonit_sv/" aria-label="Instagram" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.5" y2="6.5"/></svg>
             </a>
-            <a href="https://www.facebook.com" aria-label="Facebook" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
+            <a href="https://www.facebook.com/share/17WeT39gTf/?mibextid=wwXIfr" aria-label="Facebook" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.5 9.87v-6.99H8.9V12h1.6V9.8c0-1.58.94-2.46 2.38-2.46.69 0 1.41.12 1.41.12v1.55h-.8c-.79 0-1.04.49-1.04 1V12h1.77l-.28 2.88h-1.5v6.99A10 10 0 0 0 22 12"/></svg>
             </a>
             <a href="https://www.tiktok.com" aria-label="TikTok" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors">

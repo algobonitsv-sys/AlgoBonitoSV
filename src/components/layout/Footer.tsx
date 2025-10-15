@@ -10,10 +10,10 @@ export default function Footer() {
         <div className="border-t border-border/50 flex flex-col md:flex-row justify-between items-center text-sm text-muted-foreground">
           <p>&copy; {new Date().getFullYear()} Algo Bonito SV. Todos los derechos reservados.</p>
           <div className="flex items-center space-x-6 mt-4 md:mt-0">
-            <Link href="#" aria-label="Instagram">
+            <Link href="https://www.instagram.com/algobonit_sv/" aria-label="Instagram">
               <Instagram className="h-6 w-6 text-foreground/80 hover:text-foreground transition-colors" />
             </Link>
-            <Link href="#" aria-label="WhatsApp">
+            <Link href="https://wa.me/+5493564358803" aria-label="WhatsApp">
               <WhatsAppIcon className="h-6 w-6 text-foreground/80 hover:text-foreground transition-colors" />
             </Link>
             <Link href="#" aria-label="TikTok">
