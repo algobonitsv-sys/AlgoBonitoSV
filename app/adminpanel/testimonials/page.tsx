@@ -94,16 +94,31 @@ export default function TestimonialsAdminPage() {
   };
 
   const uploadImageFile = async (file: File): Promise<string> => {
-    // Por ahora, simularemos la subida de archivo devolviendo una URL placeholder
-    // En una implementación real, aquí subirías el archivo a tu servicio de almacenamiento
-    // (Supabase Storage, Cloudinary, AWS S3, etc.)
-    
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockUrl = `https://picsum.photos/800/600?random=${Date.now()}`;
-        resolve(mockUrl);
-      }, 1000);
-    });
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'testimonials');
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al subir la imagen');
+      }
+
+      const result = await response.json();
+      
+      if (!result.success || !result.url) {
+        throw new Error(result.error || 'Error desconocido al subir la imagen');
+      }
+
+      return result.url;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      throw new Error('No se pudo subir la imagen. Inténtalo de nuevo.');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -532,14 +547,27 @@ function TestimonialsGrid({
           <CardContent className="pb-3">
             <div className="space-y-3">
               <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
-                <img
-                  src={testimonial.image_url}
-                  alt={`Testimonio de ${testimonial.customer_name}`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = '/placeholder-image.jpg';
-                  }}
-                />
+                {testimonial.image_url && !testimonial.image_url.includes('picsum.photos') ? (
+                  <img
+                    src={testimonial.image_url}
+                    alt={`Testimonio de ${testimonial.customer_name}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling!.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <div 
+                  className={`w-full h-full flex items-center justify-center text-muted-foreground ${
+                    testimonial.image_url && !testimonial.image_url.includes('picsum.photos') ? 'hidden' : 'flex'
+                  }`}
+                >
+                  <div className="text-center">
+                    <Image className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-xs">Sin imagen</p>
+                  </div>
+                </div>
               </div>
               
               <div className="flex items-center justify-between text-xs text-muted-foreground">

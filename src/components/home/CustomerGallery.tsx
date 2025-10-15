@@ -14,6 +14,7 @@ const fallbackGalleryImages = [
     dataAiHint: 'whatsapp chat',
     name: 'Maria Garcia',
     location: 'San Salvador',
+    hasRealImage: true,
   },
   {
     src: 'https://picsum.photos/400/800?v=51',
@@ -21,6 +22,7 @@ const fallbackGalleryImages = [
     dataAiHint: 'instagram chat',
     name: 'Ana Martinez',
     location: 'Santa Ana',
+    hasRealImage: true,
   },
   {
     src: 'https://picsum.photos/400/800?v=52',
@@ -28,6 +30,7 @@ const fallbackGalleryImages = [
     dataAiHint: 'whatsapp chat',
     name: 'Lucia Fernandez',
     location: 'San Miguel',
+    hasRealImage: true,
   },
   {
     src: 'https://picsum.photos/400/800?v=53',
@@ -35,6 +38,7 @@ const fallbackGalleryImages = [
     dataAiHint: 'instagram chat',
     name: 'Sofia Lopez',
     location: 'La Libertad',
+    hasRealImage: true,
   },
   {
     src: 'https://picsum.photos/400/800?v=54',
@@ -42,6 +46,7 @@ const fallbackGalleryImages = [
     dataAiHint: 'whatsapp chat',
     name: 'Carmen Rodriguez',
     location: 'Ahuachapán',
+    hasRealImage: true,
   },
   {
     src: 'https://picsum.photos/400/800?v=55',
@@ -49,6 +54,7 @@ const fallbackGalleryImages = [
     dataAiHint: 'instagram chat',
     name: 'Elena Perez',
     location: 'Sonsonate',
+    hasRealImage: true,
   },
 ];
 
@@ -84,13 +90,19 @@ export default function CustomerGallery() {
 
   // Convert testimonials to gallery format or use fallback
   const galleryImages = testimonials.length > 0 
-    ? testimonials.map((testimonial) => ({
-        src: testimonial.image_url,
-        alt: `Testimonio de ${testimonial.customer_name}`,
-        dataAiHint: 'customer testimonial',
-        name: testimonial.customer_name,
-        location: testimonial.customer_location,
-      }))
+    ? testimonials
+        .filter(testimonial => testimonial.is_active) // Only show active testimonials
+        .map((testimonial) => ({
+          src: testimonial.image_url && !testimonial.image_url.includes('picsum.photos') 
+            ? testimonial.image_url 
+            : null, // Will show placeholder
+          alt: `Testimonio de ${testimonial.customer_name}`,
+          dataAiHint: 'customer testimonial',
+          name: testimonial.customer_name,
+          location: testimonial.customer_location,
+          hasRealImage: testimonial.image_url && !testimonial.image_url.includes('picsum.photos')
+        }))
+        .filter(item => item.hasRealImage || testimonials.length === 0) // Only show items with real images, or fallback if no testimonials
     : fallbackGalleryImages;
 
   return (
@@ -115,18 +127,29 @@ export default function CustomerGallery() {
               <div key={index}>
                 <Card className="overflow-hidden border-none shadow-lg rounded-lg">
                   <CardContent className="p-0">
-                    <Image
-                      src={image.src}
-                      alt={image.alt}
-                      width={400}
-                      height={800}
-                      data-ai-hint={image.dataAiHint}
-                      className="w-full h-auto object-cover aspect-[9/16]"
-                      onError={(e) => {
-                        // Fallback to placeholder on error
-                        e.currentTarget.src = 'https://picsum.photos/400/800?v=' + (index + 50);
-                      }}
-                    />
+                    {image.hasRealImage && image.src ? (
+                      <Image
+                        src={image.src}
+                        alt={image.alt}
+                        width={400}
+                        height={800}
+                        data-ai-hint={image.dataAiHint}
+                        className="w-full h-auto object-cover aspect-[9/16]"
+                        onError={(e) => {
+                          // Fallback to placeholder on error
+                          e.currentTarget.src = 'https://picsum.photos/400/800?v=' + (index + 50);
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full aspect-[9/16] bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                        <div className="text-center text-gray-500">
+                          <svg className="w-16 h-16 mx-auto mb-2 opacity-50" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                          </svg>
+                          <p className="text-sm font-medium">Imagen próximamente</p>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
                 <div className="mt-4 text-center">
