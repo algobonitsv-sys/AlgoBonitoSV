@@ -77,20 +77,30 @@ export async function POST(request: NextRequest) {
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? (process.env.NODE_ENV === 'development' ? 'http://localhost:9002' : 'https://tu-dominio.com');
 
+    // Variables de validación
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isMercadoPagoProduction = process.env.NEXT_PUBLIC_MERCADOPAGO_ENVIRONMENT === 'production';
+
     // Configurar URLs de retorno según las mejores prácticas de Mercado Pago
     const resolvedBackUrls = back_urls || {
-      success: process.env.MERCADOPAGO_SUCCESS_URL ?? `${baseUrl}/payment/success`,
-      failure: process.env.MERCADOPAGO_FAILURE_URL ?? `${baseUrl}/payment/failure`,
-      pending: process.env.MERCADOPAGO_PENDING_URL ?? `${baseUrl}/payment/pending`,
+      success: (isMercadoPagoProduction ? process.env.MERCADOPAGO_SUCCESS_URL : null) ?? `${baseUrl}/payment/success`,
+      failure: (isMercadoPagoProduction ? process.env.MERCADOPAGO_FAILURE_URL : null) ?? `${baseUrl}/payment/failure`,
+      pending: (isMercadoPagoProduction ? process.env.MERCADOPAGO_PENDING_URL : null) ?? `${baseUrl}/payment/pending`,
     };
 
+    // En desarrollo con sandbox, permitir localhost para callbacks
+    if (!isMercadoPagoProduction) {
+      resolvedBackUrls.success = process.env.MERCADOPAGO_SUCCESS_URL || `${baseUrl}/payment/success`;
+      resolvedBackUrls.failure = process.env.MERCADOPAGO_FAILURE_URL || `${baseUrl}/payment/failure`;
+      resolvedBackUrls.pending = process.env.MERCADOPAGO_PENDING_URL || `${baseUrl}/payment/pending`;
+    }
+
     // Validar URLs en producción - Mercado Pago requiere URLs válidas
-    const isProduction = process.env.NODE_ENV === 'production';
     const hasInvalidUrls = Object.values(resolvedBackUrls).some(url =>
-      !url || url.includes('localhost') || url.includes('127.0.0.1')
+      !url || (isMercadoPagoProduction && (url.includes('localhost') || url.includes('127.0.0.1')))
     );
 
-    if (isProduction && hasInvalidUrls) {
+    if (isMercadoPagoProduction && hasInvalidUrls) {
       console.warn('Warning: Invalid back_urls detected in production. Mercado Pago may reject the preference.');
       console.warn('Back URLs:', resolvedBackUrls);
     }
@@ -122,11 +132,11 @@ export async function POST(request: NextRequest) {
     const defaultCurrencyId = process.env.MERCADOPAGO_CURRENCY_ID ?? 'ARS';
 
     const preferenceData: PreferenceRequest = {
-      items: items.map((item: PreferenceItem) => ({
-        id: item.id,
-        title: item.title,
-        description: item.description || item.title,
-        unit_price: Number(item.unit_price),
+      items: items.map((item: any) => ({
+        id: item.product_id || item.id,
+        title: item.name || item.title,
+        description: item.name || item.title,
+        unit_price: Number(item.price || item.unit_price),
         quantity: Number(item.quantity),
         currency_id: item.currency_id || defaultCurrencyId,
         picture_url: item.picture_url,
