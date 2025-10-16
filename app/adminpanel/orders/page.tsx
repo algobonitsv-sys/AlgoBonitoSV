@@ -693,6 +693,14 @@ export default function OrdersPage() {
               <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
                 <h4 className="text-sm font-semibold text-blue-900 mb-2">📋 Detalles del Pedido</h4>
                 <div className="space-y-2">
+                  {order.customer_phone && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-600">📱</span>
+                      <span className="text-sm text-green-800">
+                        <strong>Teléfono:</strong> <span className="bg-green-100 px-2 py-1 rounded-full text-xs">{order.customer_phone}</span>
+                      </span>
+                    </div>
+                  )}
                   {order.payment_method && (
                     <div className="flex items-center gap-2">
                       <span className="text-blue-600">💳</span>
@@ -716,6 +724,14 @@ export default function OrdersPage() {
                            order.shipping_method === 'coordinamos' ? 'Coordinamos' :
                            order.shipping_method}
                         </span>
+                      </span>
+                    </div>
+                  )}
+                  {order.shipping_method === 'entrega' && order.shipping_address && (
+                    <div className="flex items-start gap-2">
+                      <span className="text-purple-600">🏠</span>
+                      <span className="text-sm text-purple-800">
+                        <strong>Dirección:</strong> <span className="bg-purple-100 px-2 py-1 rounded text-xs block mt-1">{order.shipping_address}</span>
                       </span>
                     </div>
                   )}

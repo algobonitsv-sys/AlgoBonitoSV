@@ -851,18 +851,10 @@ const productViewsApi = {
 
   async getProductStats(): Promise<ApiResponse<ProductProfitability[]>> {
     try {
-      if (!supabase) {
-        return createResponse(null, 'Database connection not available');
-      }
-
-      const { data, error } = await supabase
-        .from('product_profitability')
-        .select('*')
-        .order('profit_margin_percentage', { ascending: false });
-
-      if (error) throw error;
-
-      return createResponse(data || [], null);
+      // Note: product_profitability table/view doesn't exist yet
+      // Return empty array to avoid errors
+      console.warn('⚠️ getProductStats() - product_profitability table not implemented yet');
+      return createResponse([], null);
     } catch (error) {
       return createResponse(null, handleError(error));
     }
