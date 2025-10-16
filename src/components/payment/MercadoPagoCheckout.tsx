@@ -135,11 +135,11 @@ export default function MercadoPagoCheckout({
 
       const orderId = orderResult.data?.id;
 
-      // Crear la lista de items para Mercado Pago, incluyendo envío y recargo
+      // Crear la lista de items para Mercado Pago - siempre separados para mejor detalle
       const preferenceItems = [
         ...items.map(item => ({
           id: item.product_id,
-          title: item.name,
+          title: `Producto: ${item.name}`,
           unit_price: item.price,
           quantity: item.quantity,
           currency_id: currencyId,
@@ -147,7 +147,7 @@ export default function MercadoPagoCheckout({
         ...(shippingCost > 0
           ? [{
               id: 'shipping',
-              title: `Envío - ${computedShippingLabel}`,
+              title: `Envío: ${computedShippingLabel}`,
               unit_price: Number(shippingCost.toFixed(2)),
               quantity: 1,
               currency_id: currencyId,
@@ -156,7 +156,7 @@ export default function MercadoPagoCheckout({
         ...(normalizedSurcharge > 0
           ? [{
               id: 'mercadopago_surcharge',
-              title: 'Recargo Mercado Pago (10%)',
+              title: 'Recargo: Mercado Pago (10%)',
               unit_price: normalizedSurcharge,
               quantity: 1,
               currency_id: currencyId,
@@ -165,27 +165,31 @@ export default function MercadoPagoCheckout({
       ];
 
       // Crear la preferencia de pago con el ID de la orden como referencia externa
+      const requestBody = {
+        items: preferenceItems,
+        payer: {
+          name: customerName,
+        },
+        metadata: {
+          customer_name: customerName,
+          order_total: total,
+          subtotal,
+          shipping_cost: shippingCost,
+          shipping_label: computedShippingLabel,
+          payment_surcharge: normalizedSurcharge,
+          order_id: orderId,
+        },
+        external_reference: orderId, // Usar el ID de la orden como referencia externa
+      };
+
+      console.log('Sending to MercadoPago API:', JSON.stringify(requestBody, null, 2));
+
       const response = await fetch('/api/mercadopago/create-preference', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          items: preferenceItems,
-          payer: {
-            name: customerName,
-          },
-          metadata: {
-            customer_name: customerName,
-            order_total: total,
-            subtotal,
-            shipping_cost: shippingCost,
-            shipping_label: computedShippingLabel,
-            payment_surcharge: normalizedSurcharge,
-            order_id: orderId,
-          },
-          external_reference: orderId, // Usar el ID de la orden como referencia externa
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
