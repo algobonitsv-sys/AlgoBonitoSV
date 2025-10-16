@@ -7,8 +7,10 @@ import MercadoPagoCheckout from '@/components/payment/MercadoPagoCheckout';
 
 interface CheckoutData {
   customer_name: string;
+  customer_phone: string;
   payment_method: string;
   delivery_method: string;
+  shipping_address: string;
 }
 
 const SHIPPING_OPTIONS: Record<string, { label: string; icon: string; cost: number }> = {
@@ -33,11 +35,38 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
   const [showCheckout, setShowCheckout] = useState(false);
   const [checkoutData, setCheckoutData] = useState<CheckoutData>({
     customer_name: '',
+    customer_phone: '',
     payment_method: 'mercadopago',
-    delivery_method: 'entrega'
+    delivery_method: 'entrega',
+    shipping_address: ''
   });
 
+  const [phoneError, setPhoneError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const validatePhone = (phone: string) => {
+    // Permitir solo números, espacios, + y -
+    const cleanPhone = phone.replace(/[^\d\s\+\-]/g, '');
+    
+    // Validar formato: +54 9 XXXX XXXXXX
+    const phoneRegex = /^\+54\s*9\s*\d{4}\s*\d{6}$/;
+    
+    if (cleanPhone && !phoneRegex.test(cleanPhone.replace(/\s+/g, ' '))) {
+      setPhoneError('Formato incorrecto. Use: +54 9 XXXX XXXXXX');
+    } else {
+      setPhoneError('');
+    }
+    
+    return cleanPhone;
+  };
+
+  const handlePhoneChange = (value: string) => {
+    // Solo permitir números, espacios, + y -
+    const cleanValue = value.replace(/[^\d\s\+\-]/g, '');
+    const validatedPhone = validatePhone(cleanValue);
+    
+    setCheckoutData(prev => ({ ...prev, customer_phone: validatedPhone }));
+  };
 
   const cartSubtotal = total;
   const selectedShipping = SHIPPING_OPTIONS[checkoutData.delivery_method] ?? SHIPPING_OPTIONS.entrega;
@@ -67,11 +96,12 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
       // Primero guardar la orden en la base de datos
       const orderData = {
         customer_name: checkoutData.customer_name,
-        customer_phone: '+503 0000-0000', // Placeholder ya que no pedimos teléfono
+        customer_phone: checkoutData.customer_phone,
         customer_email: '', // Opcional
         payment_method: checkoutData.payment_method,
         shipping_method: checkoutData.delivery_method,
         shipping_cost: shippingCost,
+        shipping_address: checkoutData.delivery_method === 'entrega' ? checkoutData.shipping_address : null,
         payment_surcharge: paymentSurcharge,
         total_amount: finalTotal,
         notes: `Método de pago: ${getPaymentMethodLabel(checkoutData.payment_method)}. Entrega: ${selectedShipping.label}.`,
@@ -92,6 +122,13 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
         body: JSON.stringify(orderData),
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        alert('Error al crear la orden. Por favor, intenta nuevamente.');
+        return;
+      }
+
       const result = await response.json();
 
       if (!result.success) {
@@ -104,7 +141,8 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
       message += "Quiero confirmar mi pedido:\n\n";
       
       // Agregar nombre del cliente
-      message += `${EMOJI.person} Mi nombre: ${checkoutData.customer_name}\n\n`;
+      message += `${EMOJI.person} Mi nombre: ${checkoutData.customer_name}\n`;
+      message += `📱 Mi teléfono: ${checkoutData.customer_phone}\n\n`;
       
       // Agregar productos
       message += `${EMOJI.package} Productos:\n`;
@@ -120,7 +158,11 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
       
       // Agregar método de pago y entrega
       message += `${EMOJI.creditCard} Método de pago: ${getPaymentMethodLabel(checkoutData.payment_method)}\n`;
-      message += `${EMOJI.deliveryTruck} Método de entrega: ${selectedShipping.label}\n\n`;
+      message += `${EMOJI.deliveryTruck} Método de entrega: ${selectedShipping.label}\n`;
+      if (checkoutData.delivery_method === 'entrega' && checkoutData.shipping_address) {
+        message += `🏠 Dirección: ${checkoutData.shipping_address}\n`;
+      }
+      message += '\n';
       
       // Agregar información bancaria si es transferencia
       if (checkoutData.payment_method === 'transfer') {
@@ -134,7 +176,7 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
       message += `¡Espero su confirmación! ${EMOJI.prayerHands}`;
       
   // Abrir WhatsApp
-  const whatsappUrl = `https://api.whatsapp.com/send?phone=5493564690844&text=${encodeURIComponent(message)}`;
+  const whatsappUrl = `https://api.whatsapp.com/send?phone=5493564358803&text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
       
       // Limpiar carrito y cerrar
@@ -195,6 +237,30 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                     placeholder="Tu nombre completo"
                   />
+                </div>
+
+                {/* Teléfono del Cliente */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Número de teléfono *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={checkoutData.customer_phone}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                      phoneError ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="+54 9 3564 358803"
+                  />
+                  {phoneError ? (
+                    <p className="text-xs text-red-500 mt-1">{phoneError}</p>
+                  ) : (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Incluye el código de área. Ejemplo: +54 9 3564 358803
+                    </p>
+                  )}
                 </div>
 
                 {/* Método de Pago */}
@@ -281,6 +347,26 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
                   </div>
                 </div>
 
+                {/* Dirección de entrega - solo si se selecciona entrega a domicilio */}
+                {checkoutData.delivery_method === 'entrega' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Dirección de entrega *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={checkoutData.shipping_address}
+                      onChange={(e) => setCheckoutData(prev => ({ ...prev, shipping_address: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="Calle, número, barrio, ciudad"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Especifica todos los detalles: calle, número, piso/departamento, barrio, ciudad
+                    </p>
+                  </div>
+                )}
+
                 {/* Resumen del pedido */}
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-2">Resumen del pedido:</h4>
@@ -341,7 +427,7 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
                   ) : (
                     <button
                       onClick={handleWhatsAppOrder}
-                      disabled={!checkoutData.customer_name.trim() || isSubmitting}
+                      disabled={!checkoutData.customer_name.trim() || !checkoutData.customer_phone.trim() || !!phoneError || (checkoutData.delivery_method === 'entrega' && !checkoutData.shipping_address.trim()) || isSubmitting}
                       className="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {isSubmitting ? (

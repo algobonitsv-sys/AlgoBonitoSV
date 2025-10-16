@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
       payment_method,
       shipping_method,
       shipping_cost,
+      shipping_address,
       total_amount,
       payment_surcharge,
     } = body;
@@ -56,6 +57,7 @@ export async function POST(request: NextRequest) {
       payment_method,
       shipping_method,
       shipping_cost: Number(normalizedShippingCost.toFixed(2)),
+      shipping_address: shipping_address || null,
       notes: notes || null,
     };
 
@@ -68,13 +70,7 @@ export async function POST(request: NextRequest) {
       subtotal: Number((Number(item.price ?? item.product_price ?? 0) * Number(item.quantity)).toFixed(2)), // Calcular subtotal
     }));
 
-    // Create order with items - convertir a OrderItemInsert agregando placeholders
-    const orderItemsWithPlaceholder = orderItems.map(item => ({
-      ...item,
-      order_id: 'placeholder' // Se reemplazará en api.orders.create
-    }));
-
-    const response = await api.orders.create(orderData, orderItemsWithPlaceholder as any);
+    const response = await api.orders.create(orderData, orderItems);
 
     if (response.error) {
       console.error('Error creating order:', response.error);

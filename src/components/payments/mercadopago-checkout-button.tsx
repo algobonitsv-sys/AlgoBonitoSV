@@ -38,6 +38,8 @@ interface CheckoutButtonProps {
   externalReference?: string;
   className?: string;
   label?: string;
+  disabled?: boolean;
+  onOrderCreated?: (orderData: any) => Promise<void>;
 }
 
 interface PreferenceResponse {
@@ -55,6 +57,8 @@ export function MercadoPagoCheckoutButton({
   externalReference,
   className,
   label = "Pagar con Mercado Pago",
+  disabled = false,
+  onOrderCreated,
 }: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -100,6 +104,21 @@ export function MercadoPagoCheckoutButton({
     setWalletReady(false);
 
     try {
+      // Llamar al callback para crear la orden primero
+      if (onOrderCreated) {
+        await onOrderCreated({
+          items: items.map((item) => ({
+            ...item,
+            currency_id: item.currency_id ?? currencyId,
+          })),
+          payer,
+          metadata,
+          backUrls,
+          notificationUrl,
+          externalReference,
+        });
+      }
+
       const response = await fetch("/api/mercadopago/create-preference", {
         method: "POST",
         headers: {
@@ -142,7 +161,7 @@ export function MercadoPagoCheckoutButton({
   return (
     <div className={cn("space-y-2", className)}>
       {!walletReady && (
-        <Button onClick={handleCheckout} disabled={isLoading} className="w-full">
+        <Button onClick={handleCheckout} disabled={isLoading || disabled} className="w-full">
           {isLoading ? "Generando preferencia…" : label}
         </Button>
       )}

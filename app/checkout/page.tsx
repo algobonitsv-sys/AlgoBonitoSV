@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { MercadoPagoCheckoutButton, MercadoPagoItem } from '@/components/payments/mercadopago-checkout-button';
 import { cartStore, CartItem } from '@/lib/cart-store';
 import { Trash2, Minus, Plus, ArrowLeft } from 'lucide-react';
@@ -15,6 +17,7 @@ const shippingOptions = [
   { id: 'retira', label: 'Retiro en el local', cost: 0 },
   { id: 'moto', label: 'Envío en moto (Zona Capital)', cost: 4 },
   { id: 'correo', label: 'Correo nacional', cost: 6 },
+  { id: 'domicilio', label: '🚚 Entrega a domicilio', cost: 0 },
 ];
 
 export default function CheckoutPage() {
@@ -22,6 +25,9 @@ export default function CheckoutPage() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [shipping, setShipping] = useState<string>('retira');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [customerName, setCustomerName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [address, setAddress] = useState('');
   const currencyId = process.env.NEXT_PUBLIC_MERCADOPAGO_CURRENCY_ID ?? 'ARS';
 
   useEffect(() => {
@@ -61,15 +67,51 @@ export default function CheckoutPage() {
     cartStore.remove(id);
   };
 
-  const handlePaymentSuccess = () => {
-    setIsProcessing(false);
-    // El redirect se maneja automáticamente por Mercado Pago
+  const handleOrderCreation = async (paymentData: any) => {
+    // Crear la orden antes del pago
+    const orderData = {
+      customer_name: customerName,
+      customer_phone: phoneNumber,
+      customer_email: null, // Opcional por ahora
+      items: mercadoPagoItems.filter(item => item.id !== 'shipping'), // Excluir el item de envío ya que se maneja por separado
+      payment_method: 'mercadopago',
+      shipping_method: shippingOptions.find(o => o.id === shipping)?.label,
+      shipping_cost: shippingCost,
+      shipping_address: shipping === 'domicilio' ? address : null,
+      total_amount: total,
+      payment_surcharge: 0, // Se calcula en el backend si es necesario
+      notes: `Método de envío: ${shippingOptions.find(o => o.id === shipping)?.label}`,
+    };
+
+    const response = await fetch('/api/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(orderData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al crear la orden');
+    }
+
+    const orderResult = await response.json();
+    console.log('Orden creada:', orderResult);
+
+    // Actualizar metadata con el ID de la orden
+    if (orderResult.order?.id) {
+      paymentData.metadata = {
+        ...paymentData.metadata,
+        order_id: orderResult.order.id,
+      };
+      paymentData.externalReference = `order_${orderResult.order.id}`;
+    }
   };
 
-  const handlePaymentError = () => {
-    setIsProcessing(false);
-  };
+  const isFormValid = customerName.trim() && phoneNumber.trim() && (shipping !== 'domicilio' || address.trim()) && /^(\+54\s*9\s*\d{4}\s*\d{6}|\+549\d{10})$/.test(phoneNumber.replace(/\s+/g, ''));
 
+  // Si el carrito está vacío, mostrar mensaje
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-4">
@@ -183,6 +225,59 @@ export default function CheckoutPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Datos de contacto y entrega */}
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Datos de contacto y entrega</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="customerName">Nombre completo *</Label>
+                    <Input
+                      id="customerName"
+                      type="text"
+                      placeholder="Tu nombre completo"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phoneNumber">Número de teléfono *</Label>
+                    <Input
+                      id="phoneNumber"
+                      type="tel"
+                      placeholder="+54 9 3564 358803"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Incluye el código de área. Ejemplo: +54 9 3564 358803
+                    </p>
+                  </div>
+                </div>
+
+                {shipping === 'domicilio' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Dirección de entrega *</Label>
+                    <Input
+                      id="address"
+                      type="text"
+                      placeholder="Calle, número, barrio, ciudad"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Especifica todos los detalles: calle, número, piso/departamento, barrio, ciudad
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Resumen y pago */}
@@ -211,6 +306,32 @@ export default function CheckoutPage() {
                 <div className="pt-4">
                   <MercadoPagoCheckoutButton
                     items={mercadoPagoItems}
+                    payer={{
+                      name: customerName,
+                      phone: phoneNumber ? (() => {
+                        // Parse phone number: +54 9 XXXX XXXXXX
+                        const cleanNumber = phoneNumber.replace(/\s+/g, '');
+                        if (cleanNumber.startsWith('+549')) {
+                          const numberWithoutPrefix = cleanNumber.substring(4); // Remove +549
+                          return {
+                            area_code: numberWithoutPrefix.substring(0, 4),
+                            number: numberWithoutPrefix.substring(4)
+                          };
+                        }
+                        return undefined;
+                      })() : undefined
+                    }}
+                    metadata={{
+                      customer_name: customerName,
+                      phone_number: phoneNumber,
+                      shipping_address: address,
+                      shipping_method: shippingOptions.find(o => o.id === shipping)?.label,
+                      order_total: total,
+                      subtotal: subtotal,
+                      shipping_cost: shippingCost
+                    }}
+                    disabled={!isFormValid}
+                    onOrderCreated={handleOrderCreation}
                   />
                 </div>
 

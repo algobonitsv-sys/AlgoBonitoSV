@@ -1204,6 +1204,7 @@ export interface Order {
   payment_method: string | null;
   shipping_method: string | null;
   shipping_cost: number | null;
+  shipping_address: string | null;
   notes: string | null;
   whatsapp_sent_at: string | null;
   created_at: string;
@@ -1219,6 +1220,7 @@ export interface OrderInsert {
   payment_method?: string;
   shipping_method?: string;
   shipping_cost?: number;
+  shipping_address?: string;
   notes?: string;
   whatsapp_sent_at?: string;
 }
@@ -1232,6 +1234,7 @@ export interface OrderUpdate {
   payment_method?: string;
   shipping_method?: string;
   shipping_cost?: number;
+  shipping_address?: string;
   notes?: string;
   whatsapp_sent_at?: string;
 }
