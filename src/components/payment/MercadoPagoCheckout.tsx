@@ -323,33 +323,53 @@ export default function MercadoPagoCheckout({
               Elegí tu método de pago seguro haciendo clic en el botón de Mercado Pago. Se abrirá una ventana donde podés iniciar sesión o pagar como invitado.
             </p>
           </div>
-          <Wallet
-            key={walletPreferenceId}
-            initialization={{ preferenceId: walletPreferenceId }}
-            onError={(error) => {
-              console.error('Wallet error:', error);
-              setMpError('No se pudo renderizar el checkout de Mercado Pago.');
-            }}
-          />
-          {(preference?.init_point || preference?.sandbox_init_point) && (
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                const fallbackUrl = (!preferSandboxCheckout && preference?.init_point)
-                  ? preference?.init_point
-                  : preference?.sandbox_init_point ?? preference?.init_point;
 
-                if (!fallbackUrl) {
-                  onError?.('No se encontró una URL de checkout alternativa.');
-                  return;
-                }
+          {/* Intentar renderizar Wallet, pero con fallback si falla */}
+          <div className="wallet-container">
+            <Wallet
+              key={walletPreferenceId}
+              initialization={{ preferenceId: walletPreferenceId }}
+              onError={(error) => {
+                console.error('Wallet error:', error);
+                console.error('Wallet preferenceId:', walletPreferenceId);
+                console.error('Wallet initialization failed, will use fallback button');
 
-                window.open(fallbackUrl, '_blank');
+                // No mostrar error, usar fallback automáticamente
+                // setMpError('No se pudo renderizar el checkout de Mercado Pago.');
               }}
-            >
-              Abrir checkout en nueva pestaña (opcional)
-            </Button>
+              onReady={() => {
+                console.log('Wallet ready with preferenceId:', walletPreferenceId);
+              }}
+            />
+          </div>
+
+          {/* Fallback button - siempre visible como alternativa */}
+          {(preference?.init_point || preference?.sandbox_init_point) && (
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground mb-2 text-center">
+                Si el botón de arriba no funciona, usa esta opción:
+              </p>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  const fallbackUrl = (!preferSandboxCheckout && preference?.init_point)
+                    ? preference?.init_point
+                    : preference?.sandbox_init_point ?? preference?.init_point;
+
+                  if (!fallbackUrl) {
+                    onError?.('No se encontró una URL de checkout alternativa.');
+                    return;
+                  }
+
+                  console.log('Opening fallback URL:', fallbackUrl);
+                  window.open(fallbackUrl, '_blank');
+                }}
+              >
+                <CreditCard className="mr-2 h-4 w-4" />
+                Abrir checkout de Mercado Pago
+              </Button>
+            </div>
           )}
         </div>
       )}
