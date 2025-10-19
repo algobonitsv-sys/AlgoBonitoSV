@@ -20,6 +20,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <title>{String(metadata.title)}</title>
         <meta name="description" content={metadata.description || ''} />
+        {/* Open Graph / Facebook / WhatsApp preview */}
+        <meta property="og:title" content={String(metadata.title)} />
+        <meta property="og:description" content={String(metadata.description)} />
+        <meta property="og:type" content="website" />
+        {/* If you have a canonical URL, set it here or provide dynamically */}
+        <meta property="og:url" content="https://algobonito-sv.vercel.app/" />
+        <meta property="og:image" content="https://algobonito-sv.vercel.app/logo.png" />
+
+        {/* Twitter card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={String(metadata.title)} />
+        <meta name="twitter:description" content={String(metadata.description)} />
+        <meta name="twitter:image" content="https://algobonito-sv.vercel.app/logo.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet" />
