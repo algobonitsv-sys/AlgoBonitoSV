@@ -87,13 +87,22 @@ export default function MercadoPagoCheckout({
     }
 
     setIsLoading(true);
-  setMpError(null);
+    setMpError(null);
 
     try {
+      console.log('=== STARTING PAYMENT PROCESS ===');
+      console.log('Customer name:', customerName);
+      console.log('Items count:', items.length);
+      console.log('Total:', total);
+
       const computedShippingLabel = shippingLabel ?? 'Envío';
       const normalizedSurcharge = Number(paymentSurcharge.toFixed(2));
 
+      console.log('Computed shipping label:', computedShippingLabel);
+      console.log('Normalized surcharge:', normalizedSurcharge);
+
       // Primero guardar la orden en la base de datos
+      console.log('=== CREATING ORDER IN DATABASE ===');
       const orderData = {
         customer_name: customerName,
         customer_phone: '+503 0000-0000', // Placeholder ya que no pedimos teléfono
@@ -118,7 +127,8 @@ export default function MercadoPagoCheckout({
         }))
       };
 
-      // Guardar orden en la base de datos
+      console.log('Order data:', JSON.stringify(orderData, null, 2));
+
       const orderResponse = await fetch('/api/orders', {
         method: 'POST',
         headers: {
@@ -127,15 +137,27 @@ export default function MercadoPagoCheckout({
         body: JSON.stringify(orderData),
       });
 
+      console.log('Order response status:', orderResponse.status);
+      console.log('Order response ok:', orderResponse.ok);
+
+      if (!orderResponse.ok) {
+        const errorText = await orderResponse.text();
+        console.error('Order response error text:', errorText);
+        throw new Error(`Error al crear la orden: ${orderResponse.status} ${errorText}`);
+      }
+
       const orderResult = await orderResponse.json();
+      console.log('Order result:', orderResult);
 
       if (!orderResult.success) {
         throw new Error('Error al crear la orden: ' + orderResult.error);
       }
 
       const orderId = orderResult.data?.id;
+      console.log('Order ID created:', orderId);
 
       // Crear la lista de items para Mercado Pago - siempre separados para mejor detalle
+      console.log('=== CREATING MERCADOPAGO ITEMS ===');
       const preferenceItems = [
         ...items.map(item => ({
           id: item.product_id,
@@ -164,6 +186,8 @@ export default function MercadoPagoCheckout({
           : []),
       ];
 
+      console.log('Preference items:', JSON.stringify(preferenceItems, null, 2));
+
       // Crear la preferencia de pago con el ID de la orden como referencia externa
       const requestBody = {
         items: preferenceItems,
@@ -184,6 +208,7 @@ export default function MercadoPagoCheckout({
 
       console.log('Sending to MercadoPago API:', JSON.stringify(requestBody, null, 2));
 
+      console.log('=== FETCHING MERCADOPAGO PREFERENCE ===');
       const response = await fetch('/api/mercadopago/create-preference', {
         method: 'POST',
         headers: {
@@ -192,20 +217,33 @@ export default function MercadoPagoCheckout({
         body: JSON.stringify(requestBody),
       });
 
+      console.log('MercadoPago response status:', response.status);
+      console.log('MercadoPago response ok:', response.ok);
+
       if (!response.ok) {
-        throw new Error('Error al crear la preferencia de pago');
+        const errorText = await response.text();
+        console.error('MercadoPago response error text:', errorText);
+        throw new Error(`Error al crear la preferencia de pago: ${response.status} ${errorText}`);
       }
 
       const preferenceResponse: PaymentPreference = await response.json();
+      console.log('Preference response:', preferenceResponse);
 
       if (!preferenceResponse.id) {
         throw new Error('La respuesta de Mercado Pago no incluyó un ID de preferencia');
       }
 
+      console.log('Preference ID:', preferenceResponse.id);
       setPreference(preferenceResponse);
+      console.log('=== PAYMENT PROCESS COMPLETED SUCCESSFULLY ===');
 
     } catch (error) {
-      console.error('Error processing payment:', error);
+      console.error('=== ERROR PROCESSING PAYMENT ===');
+      console.error('Error type:', typeof error);
+      console.error('Error instanceof Error:', error instanceof Error);
+      console.error('Error message:', error instanceof Error ? error.message : 'No message');
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
+      console.error('Full error object:', error);
       onError?.(error instanceof Error ? error.message : 'Error al procesar el pago');
     } finally {
       setIsLoading(false);
