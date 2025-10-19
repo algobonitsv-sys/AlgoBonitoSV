@@ -131,75 +131,21 @@ export async function POST(request: NextRequest) {
     // Crear la preferencia de pago con configuración completa
     const defaultCurrencyId = process.env.MERCADOPAGO_CURRENCY_ID ?? 'ARS';
 
-    // Filtrar items que no son productos reales (como recargos)
-    const productItems = items.filter((item: any) =>
-      !item.id?.includes('mercadopago_surcharge') &&
-      !item.title?.includes('Recargo:')
-    );
+    // Preparar items para MercadoPago - mantener todos los items separados para mejor detalle
+    const mercadoPagoItems = items.map((item: any) => ({
+      id: item.id,
+      title: item.title,
+      description: item.title,
+      unit_price: Number(item.unit_price || item.price),
+      quantity: Number(item.quantity),
+      currency_id: item.currency_id || defaultCurrencyId,
+      category_id: 'others',
+    }));
 
-    // Si hay múltiples items, consolidarlos en uno solo con título descriptivo
-    let consolidatedItems;
-    if (items.length === 1) {
-      // Si solo hay un item, usar el título original
-      consolidatedItems = items.map((item: any) => ({
-        id: item.product_id || item.id,
-        title: item.title || item.name || 'Producto',
-        description: item.title || item.name || 'Producto de AlgoBonitoSV',
-        unit_price: Number(item.price || item.unit_price),
-        quantity: Number(item.quantity),
-        currency_id: item.currency_id || defaultCurrencyId,
-        picture_url: item.picture_url,
-        category_id: 'others',
-      }));
-    } else {
-      // Si hay múltiples items, consolidar en uno solo
-      const totalAmount = items.reduce((sum: number, item: any) =>
-        sum + (Number(item.price || item.unit_price) * Number(item.quantity)), 0
-      );
-
-      const productDescriptions = productItems.map((item: any) =>
-        `${item.title || item.name || 'Producto'} (x${item.quantity})`
-      );
-
-      // Función para balancear líneas - dividir en líneas de aproximadamente 50 caracteres
-      const balanceLines = (descriptions: string[]): string => {
-        const maxLineLength = 50;
-        const lines: string[] = [];
-        let currentLine = '';
-
-        for (const desc of descriptions) {
-          if (currentLine.length + desc.length + 2 <= maxLineLength) { // +2 por ", "
-            currentLine += (currentLine ? ', ' : '') + desc;
-          } else {
-            if (currentLine) {
-              lines.push(currentLine);
-            }
-            currentLine = desc;
-          }
-        }
-
-        if (currentLine) {
-          lines.push(currentLine);
-        }
-
-        return lines.join(',\n');
-      };
-
-      const balancedDescriptions = balanceLines(productDescriptions);
-
-      consolidatedItems = [{
-        id: 'consolidated_purchase',
-        title: `Compra de: ${balancedDescriptions}`,
-        description: `Compra de productos: ${balancedDescriptions.replace(',\n', ', ')}`,
-        unit_price: totalAmount,
-        quantity: 1,
-        currency_id: defaultCurrencyId,
-        category_id: 'others',
-      }];
-    }
+    console.log('Items prepared for MercadoPago:', JSON.stringify(mercadoPagoItems, null, 2));
 
     const preferenceData: PreferenceRequest = {
-      items: consolidatedItems,
+      items: mercadoPagoItems,
       back_urls: resolvedBackUrls,
       notification_url: resolvedNotificationUrl,
       metadata: {
@@ -207,8 +153,7 @@ export async function POST(request: NextRequest) {
         integration_type: 'web',
         created_at: new Date().toISOString(),
         original_items: items, // Mantener los items originales para procesamiento interno
-        product_items: productItems, // Items que son productos reales (sin recargos)
-        consolidated: items.length > 1, // Indicar si se consolidaron los items
+        consolidated: false, // Ya no consolidamos items
       },
       statement_descriptor: 'Compra en AlgoBonitoSV',
       external_reference: external_reference ?? `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -244,7 +189,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Creating preference with data:', JSON.stringify(preferenceData, null, 2));
-    console.log('Items being sent to MercadoPago:', JSON.stringify(consolidatedItems, null, 2));
+    console.log('Items being sent to MercadoPago:', JSON.stringify(mercadoPagoItems, null, 2));
 
     const result = await preferenceClient.create({ body: preferenceData });
 
