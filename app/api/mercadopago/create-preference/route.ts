@@ -10,6 +10,10 @@ interface PreferenceItem {
   description?: string;
   currency_id?: string;
   picture_url?: string;
+  product_id?: string;
+  name?: string;
+  price?: number;
+  category_id?: string;
 }
 
 interface PreferenceBody {
@@ -67,18 +71,44 @@ export async function POST(request: NextRequest) {
       payment_methods,
     } = body;
 
+    const userAgent = request.headers.get('user-agent') ?? '';
+    const isMobileDevice = isMobileUserAgent(userAgent);
+    console.log('Incoming user agent indicates mobile device:', isMobileDevice);
+
     // Validar que tenemos items
-    if (!items || items.length === 0) {
+    if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
         { error: 'No hay items en el carrito' },
         { status: 400 }
       );
     }
 
+    const defaultCurrencyId = process.env.MERCADOPAGO_CURRENCY_ID ?? 'ARS';
+
+    const normalizedItems = items.map(item => normalizePreferenceItem(item, defaultCurrencyId));
+    const productItems = normalizedItems.filter(item => {
+      const idLower = item.id.toLowerCase();
+      const titleLower = item.title.toLowerCase();
+      return !idLower.includes('mercadopago_surcharge') && !titleLower.includes('recargo:');
+    });
+
+    const mobileSafeItems = isMobileDevice
+      ? normalizedItems.map(applyMobileSafeTransform)
+      : normalizedItems;
+
+    const shouldConsolidateItems = !isMobileDevice && normalizedItems.length > 1;
+    const preferenceItems = shouldConsolidateItems
+      ? buildConsolidatedItems(normalizedItems, productItems, defaultCurrencyId)
+      : mobileSafeItems;
+
+    const mobileFallbackItems =
+      isMobileDevice && normalizedItems.length > 1
+        ? buildConsolidatedItems(normalizedItems, productItems, defaultCurrencyId)
+        : null;
+
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? (process.env.NODE_ENV === 'development' ? 'http://localhost:9002' : 'https://tu-dominio.com');
 
     // Variables de validación
-    const isProduction = process.env.NODE_ENV === 'production';
     const isMercadoPagoProduction = process.env.NEXT_PUBLIC_MERCADOPAGO_ENVIRONMENT === 'production';
 
     // Configurar URLs de retorno según las mejores prácticas de Mercado Pago
@@ -128,33 +158,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Crear la preferencia de pago con configuración completa
-    const defaultCurrencyId = process.env.MERCADOPAGO_CURRENCY_ID ?? 'ARS';
+    const baseMetadata: Record<string, unknown> = {
+      ...metadata,
+      integration_type: 'web',
+      created_at: new Date().toISOString(),
+      original_items: normalizedItems,
+      product_items: productItems,
+      device: isMobileDevice ? 'mobile' : 'desktop',
+    };
 
-    // Preparar items para MercadoPago - mantener todos los items separados para mejor detalle
-    const mercadoPagoItems = items.map((item: any) => ({
-      id: item.id,
-      title: item.title,
-      description: item.title,
-      unit_price: Number(item.unit_price || item.price),
-      quantity: Number(item.quantity),
-      currency_id: item.currency_id || defaultCurrencyId,
-      category_id: 'others',
-    }));
-
-    console.log('Items prepared for MercadoPago:', JSON.stringify(mercadoPagoItems, null, 2));
+    const preferenceMetadata = {
+      ...baseMetadata,
+      consolidated: shouldConsolidateItems,
+    };
 
     const preferenceData: PreferenceRequest = {
-      items: mercadoPagoItems,
+      items: preferenceItems,
       back_urls: resolvedBackUrls,
       notification_url: resolvedNotificationUrl,
-      metadata: {
-        ...metadata,
-        integration_type: 'web',
-        created_at: new Date().toISOString(),
-        original_items: items, // Mantener los items originales para procesamiento interno
-        consolidated: false, // Ya no consolidamos items
-      },
+      metadata: preferenceMetadata,
       statement_descriptor: 'Compra en AlgoBonitoSV',
       external_reference: external_reference ?? `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       shipments,
@@ -163,6 +185,18 @@ export async function POST(request: NextRequest) {
       expiration_date_from: undefined,
       expiration_date_to: undefined,
     };
+
+    const fallbackPreferenceData = mobileFallbackItems
+      ? {
+          ...preferenceData,
+          items: mobileFallbackItems,
+          metadata: {
+            ...baseMetadata,
+            consolidated: true,
+            mobile_retry_strategy: 'consolidated_fallback',
+          },
+        }
+      : null;
 
     const shouldEnableAutoReturn = Boolean(
       resolvedBackUrls.success &&
@@ -189,9 +223,26 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Creating preference with data:', JSON.stringify(preferenceData, null, 2));
-    console.log('Items being sent to MercadoPago:', JSON.stringify(mercadoPagoItems, null, 2));
+    console.log('Items being sent to MercadoPago:', JSON.stringify(preferenceItems, null, 2));
 
-    const result = await preferenceClient.create({ body: preferenceData });
+    let result;
+
+    try {
+      result = await preferenceClient.create({ body: preferenceData });
+    } catch (creationError) {
+      if (isMobileDevice && fallbackPreferenceData) {
+        console.warn('Primary preference creation failed on mobile. Retrying with fallback payload.');
+        try {
+          result = await preferenceClient.create({ body: fallbackPreferenceData });
+          console.log('Fallback preference created successfully for mobile device.');
+        } catch (fallbackError) {
+          console.error('Fallback preference creation also failed for mobile device.');
+          throw fallbackError;
+        }
+      } else {
+        throw creationError;
+      }
+    }
 
     console.log('Preference created successfully:', result.id);
 
@@ -218,4 +269,121 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: message, ...extra }, { status: 500 });
   }
+}
+
+const MOBILE_USER_AGENT_REGEX = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Windows Phone|Silk/i;
+
+function isMobileUserAgent(userAgent?: string | null): boolean {
+  return Boolean(userAgent && MOBILE_USER_AGENT_REGEX.test(userAgent));
+}
+
+function roundCurrency(value: number): number {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return 0;
+  }
+  return Math.round(numericValue * 100) / 100;
+}
+
+function truncateText(value: string, maxLength: number): string {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  const sliceLength = Math.max(0, maxLength - 3);
+  return value.slice(0, sliceLength).trimEnd() + '...';
+}
+
+type NormalizedPreferenceItem = PreferenceRequest['items'][number];
+
+function normalizePreferenceItem(
+  item: PreferenceItem,
+  defaultCurrencyId: string
+): NormalizedPreferenceItem {
+  const fallbackTitle = item.title || item.name || 'Producto';
+  const unitPrice =
+    item.unit_price != null
+      ? roundCurrency(item.unit_price)
+      : roundCurrency(item.price ?? 0);
+
+  const normalizedQuantity = Number(item.quantity);
+  const quantity = Number.isFinite(normalizedQuantity) && normalizedQuantity > 0
+    ? Math.floor(normalizedQuantity)
+    : 1;
+
+  const normalized: NormalizedPreferenceItem = {
+    id: String(item.product_id ?? item.id),
+    title: fallbackTitle,
+    description: item.description ?? fallbackTitle,
+    unit_price: unitPrice,
+    quantity,
+    currency_id: item.currency_id ?? defaultCurrencyId,
+    category_id: item.category_id ?? 'others',
+  };
+
+  if (item.picture_url) {
+    normalized.picture_url = item.picture_url;
+  }
+
+  return normalized;
+}
+
+function balanceLines(descriptions: string[], maxLineLength = 50): string {
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (const desc of descriptions) {
+    if (currentLine.length + desc.length + (currentLine ? 2 : 0) <= maxLineLength) {
+      currentLine += (currentLine ? ', ' : '') + desc;
+    } else {
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      currentLine = desc;
+    }
+  }
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines.join(',\n');
+}
+
+function buildConsolidatedItems(
+  normalizedItems: NormalizedPreferenceItem[],
+  productItems: NormalizedPreferenceItem[],
+  defaultCurrencyId: string
+): NormalizedPreferenceItem[] {
+  const totalAmount = normalizedItems.reduce(
+    (sum, item) => sum + roundCurrency(item.unit_price) * item.quantity,
+    0
+  );
+
+  const itemsForDescriptions = productItems.length > 0 ? productItems : normalizedItems;
+  const productDescriptions = itemsForDescriptions.map(
+    item => `${item.title} (x${item.quantity})`
+  );
+
+  const balancedDescriptions = balanceLines(productDescriptions);
+  const normalizedDescription = balancedDescriptions.replace(/\n/g, ', ');
+
+  return [{
+    id: 'consolidated_purchase',
+    title: `Compra de: ${balancedDescriptions}`,
+    description: `Compra de productos: ${normalizedDescription}`,
+    unit_price: roundCurrency(totalAmount),
+    quantity: 1,
+    currency_id: defaultCurrencyId,
+    category_id: 'others',
+  }];
+}
+
+function applyMobileSafeTransform(item: NormalizedPreferenceItem): NormalizedPreferenceItem {
+  return {
+    ...item,
+    title: truncateText(item.title, 60),
+    description: truncateText(item.description ?? item.title, 256),
+    unit_price: roundCurrency(item.unit_price),
+  };
 }
