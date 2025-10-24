@@ -140,13 +140,6 @@ export async function POST(request: NextRequest) {
       pending: (isMercadoPagoProduction ? process.env.MERCADOPAGO_PENDING_URL : null) ?? `${baseUrl}/payment/pending`,
     };
 
-    // En desarrollo con sandbox, permitir localhost para callbacks
-    if (!isMercadoPagoProduction) {
-      resolvedBackUrls.success = process.env.MERCADOPAGO_SUCCESS_URL || `${baseUrl}/payment/success`;
-      resolvedBackUrls.failure = process.env.MERCADOPAGO_FAILURE_URL || `${baseUrl}/payment/failure`;
-      resolvedBackUrls.pending = process.env.MERCADOPAGO_PENDING_URL || `${baseUrl}/payment/pending`;
-    }
-
     // Validar URLs en producción - Mercado Pago requiere URLs válidas
     const hasInvalidUrls = Object.values(resolvedBackUrls).some(url =>
       !url || (isMercadoPagoProduction && (url.includes('localhost') || url.includes('127.0.0.1')))
