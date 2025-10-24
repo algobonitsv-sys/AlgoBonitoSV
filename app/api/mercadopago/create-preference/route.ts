@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
 
     const mobileFallbackItems =
       isMobileDevice && normalizedItems.length > 1
-        ? buildConsolidatedItems(normalizedItems, productItems, defaultCurrencyId)
+        ? buildConsolidatedItems(normalizedItems, productItems, defaultCurrencyId).map(applyMobileSafeTransform)
         : null;
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? (process.env.NODE_ENV === 'development' ? 'http://localhost:9002' : 'https://tu-dominio.com');
