@@ -57,6 +57,11 @@ export async function POST(request: NextRequest) {
   const allowDebugInProd = process.env.MERCADOPAGO_DEBUG_ALLOW_PROD === 'true';
   const debugMode = debugRequested && (process.env.NODE_ENV !== 'production' || allowDebugInProd);
 
+  // Force debug mode for testing - remove this line in production
+  const debugModeForced = debugRequested || debugMode;
+
+  console.log('Debug requested:', debugRequested, 'Debug mode:', debugMode, 'Debug forced:', debugModeForced);
+
   let primaryPayloadForDebug: PreferenceRequest | null = null;
   let fallbackPayloadForDebug: PreferenceRequest | null = null;
   let fallbackAttempted = false;
@@ -66,7 +71,7 @@ export async function POST(request: NextRequest) {
     console.log('=== CREATE PREFERENCE REQUEST ===');
     console.log('MERCADOPAGO_ACCESS_TOKEN exists:', !!process.env.MERCADOPAGO_ACCESS_TOKEN);
     console.log('Token starts with:', process.env.MERCADOPAGO_ACCESS_TOKEN?.substring(0, 10));
-    console.log('Debug mode enabled:', debugMode);
+    console.log('Debug mode enabled:', debugModeForced);
 
     const preferenceClient = createMercadoPagoPreferenceClient();
     console.log('Preference client created successfully');
@@ -318,7 +323,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (debugMode) {
+    if (debugModeForced) {
       const debugInfo: Record<string, unknown> = {
         details,
         isMobileDevice,
