@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "BF6Z2L8L4P.com.mercadopago.wallet",
+        "paths": ["*"]
+      }
+    ]
+  }
+}
