@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Trash2, Minus, Plus } from 'lucide-react';
 import { cartStore, CartItem } from '@/lib/cart-store';
+import { buildWhatsAppUrl } from '@/utils/whatsapp';
 
 const shippingOptions = [
   { id: 'retira', label: 'Retiro en el local', cost: 0 },
@@ -20,26 +21,6 @@ const paymentMethods = [
 ];
 
 const WHATSAPP_NUMBER = '+5493564358803';
-
-const encodeWhatsAppMessage = (text: string): string => {
-  let result = '';
-  const normalized = text.normalize('NFC');
-
-  for (const char of normalized) {
-    const code = char.codePointAt(0) ?? 0;
-    const isAlpha = (code >= 0x41 && code <= 0x5A) || (code >= 0x61 && code <= 0x7A);
-    const isDigit = code >= 0x30 && code <= 0x39;
-    const isUnreserved = char === '-' || char === '_' || char === '.' || char === '~';
-
-    if (isAlpha || isDigit || isUnreserved) {
-      result += char;
-    } else {
-      result += encodeURIComponent(char);
-    }
-  }
-
-  return result;
-};
 
 export default function OrderCart() {
   const [items, setItems] = useState<CartItem[]>(cartStore.getItems());
@@ -73,10 +54,10 @@ export default function OrderCart() {
     lines.push(`Total: $${total.toFixed(2)}`);
     lines.push('');
     lines.push(`Método de pago: ${paymentMethods.find(p => p.id === payment)?.label}`);
-    return encodeWhatsAppMessage(lines.join('\n'));
+    return lines.join('\n');
   }, [items, subtotal, shippingCost, total, payment, shipping]);
 
-  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER.replace(/[^\d]/g, '')}?text=${whatsappMessage}`;
+  const whatsappUrl = buildWhatsAppUrl(WHATSAPP_NUMBER, whatsappMessage);
 
   return (
     <div className="flex h-full flex-col">
