@@ -63,12 +63,13 @@ export default function MercadoPagoDebugPage() {
 
       console.log('Sending test data:', requestData);
 
-      const response = await fetch('/api/mercadopago/create-preference', {
+      const response = await fetch('/api/mercadopago/create-preference?debug=true', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestData),
+        cache: 'no-store',
       });
 
       const responseData = await response.json();
@@ -223,6 +224,15 @@ export default function MercadoPagoDebugPage() {
                         {JSON.stringify(result.data, null, 2)}
                       </pre>
                     </div>
+
+                    {result.data?.debug && (
+                      <div className="md:col-span-2">
+                        <span className="font-medium text-gray-700">Debug Info:</span>
+                        <pre className="mt-1 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs overflow-x-auto">
+                          {JSON.stringify(result.data.debug, null, 2)}
+                        </pre>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

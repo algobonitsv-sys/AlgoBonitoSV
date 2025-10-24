@@ -50,10 +50,21 @@ function createMercadoPagoPreferenceClient() {
 }
 
 export async function POST(request: NextRequest) {
+  const debugMode =
+    process.env.NODE_ENV !== 'production' &&
+    (request.nextUrl.searchParams.get('debug') === 'true' ||
+      request.headers.get('x-debug-mode') === 'true');
+
+  let primaryPayloadForDebug: PreferenceRequest | null = null;
+  let fallbackPayloadForDebug: PreferenceRequest | null = null;
+  let fallbackAttempted = false;
+  let isMobileDevice = false;
+
   try {
     console.log('=== CREATE PREFERENCE REQUEST ===');
     console.log('MERCADOPAGO_ACCESS_TOKEN exists:', !!process.env.MERCADOPAGO_ACCESS_TOKEN);
     console.log('Token starts with:', process.env.MERCADOPAGO_ACCESS_TOKEN?.substring(0, 10));
+    console.log('Debug mode enabled:', debugMode);
 
     const preferenceClient = createMercadoPagoPreferenceClient();
     console.log('Preference client created successfully');
@@ -72,7 +83,7 @@ export async function POST(request: NextRequest) {
     } = body;
 
     const userAgent = request.headers.get('user-agent') ?? '';
-    const isMobileDevice = isMobileUserAgent(userAgent);
+    isMobileDevice = isMobileUserAgent(userAgent);
     console.log('Incoming user agent indicates mobile device:', isMobileDevice);
 
     // Validar que tenemos items
@@ -205,6 +216,8 @@ export async function POST(request: NextRequest) {
       expiration_date_to: undefined,
     };
 
+    primaryPayloadForDebug = preferenceData;
+
     const fallbackPreferenceData = (isMobileDevice && hasMultipleItems)
       ? {
           ...preferenceData,
@@ -261,9 +274,11 @@ export async function POST(request: NextRequest) {
       logMercadoPagoError('Primary preference creation failed:', creationError);
       console.error('Primary payload that caused failure:', JSON.stringify(preferenceData, null, 2));
       if (isMobileDevice && fallbackPreferenceData) {
+        fallbackAttempted = true;
         console.warn('Primary preference creation failed on mobile. Retrying with fallback payload.');
         console.log('Fallback payload being sent to MercadoPago:', JSON.stringify(fallbackPreferenceData, null, 2));
         try {
+          fallbackPayloadForDebug = fallbackPreferenceData;
           result = await preferenceClient.create({ body: fallbackPreferenceData });
           console.log('Fallback preference created successfully for mobile device.');
         } catch (fallbackError) {
@@ -285,11 +300,12 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-  console.error('Error creating preference:', error);
-  logMercadoPagoError('Detailed Mercado Pago error info:', error);
+    console.error('Error creating preference:', error);
+    logMercadoPagoError('Detailed Mercado Pago error info:', error);
 
     let message = error instanceof Error ? error.message : 'Error interno del servidor';
     const extra: Record<string, unknown> = {};
+    const details = getMercadoPagoErrorDetails(error);
 
     if (typeof error === 'object' && error !== null) {
       const maybeResponse = (error as { response?: { status?: number; data?: unknown } }).response;
@@ -298,6 +314,22 @@ export async function POST(request: NextRequest) {
         extra.mercadoPagoData = maybeResponse.data;
         console.error('Mercado Pago response error:', maybeResponse.status, maybeResponse.data);
       }
+    }
+
+    if (debugMode) {
+      const debugInfo: Record<string, unknown> = {
+        details,
+        isMobileDevice,
+        fallbackAttempted,
+        primaryPayload: primaryPayloadForDebug,
+        fallbackPayload: fallbackPayloadForDebug,
+      };
+
+      if (error instanceof Error && error.stack) {
+        debugInfo.stack = error.stack.split('\n').slice(0, 15);
+      }
+
+      extra.debug = debugInfo;
     }
 
     return NextResponse.json({ error: message, ...extra }, { status: 500 });
