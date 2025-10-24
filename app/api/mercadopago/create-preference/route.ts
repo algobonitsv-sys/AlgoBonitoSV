@@ -290,9 +290,16 @@ export async function POST(request: NextRequest) {
 
     console.log('Preference created successfully:', result.id);
 
+    // For mobile devices, force web flow to avoid Mercado Pago app
+    let initPoint = result.init_point;
+    if (isMobileDevice && initPoint.includes('mercadopago.com')) {
+      const separator = initPoint.includes('?') ? '&' : '?';
+      initPoint = `${initPoint}${separator}flow=web`;
+    }
+
     return NextResponse.json({
       id: result.id,
-      init_point: result.init_point,
+      init_point: initPoint,
       sandbox_init_point: result.sandbox_init_point,
     });
 
