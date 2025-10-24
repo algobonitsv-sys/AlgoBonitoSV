@@ -50,10 +50,12 @@ function createMercadoPagoPreferenceClient() {
 }
 
 export async function POST(request: NextRequest) {
-  const debugMode =
-    process.env.NODE_ENV !== 'production' &&
-    (request.nextUrl.searchParams.get('debug') === 'true' ||
-      request.headers.get('x-debug-mode') === 'true');
+  const debugRequested =
+    request.nextUrl.searchParams.get('debug') === 'true' ||
+    request.headers.get('x-debug-mode') === 'true';
+
+  const allowDebugInProd = process.env.MERCADOPAGO_DEBUG_ALLOW_PROD === 'true';
+  const debugMode = debugRequested && (process.env.NODE_ENV !== 'production' || allowDebugInProd);
 
   let primaryPayloadForDebug: PreferenceRequest | null = null;
   let fallbackPayloadForDebug: PreferenceRequest | null = null;
