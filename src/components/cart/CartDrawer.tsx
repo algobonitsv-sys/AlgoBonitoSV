@@ -30,6 +30,26 @@ const EMOJI = {
   prayerHands: String.fromCodePoint(0x1F64F),
 };
 
+const encodeWhatsAppMessage = (text: string): string => {
+  let result = '';
+  const normalized = text.normalize('NFC');
+
+  for (const char of normalized) {
+    const code = char.codePointAt(0) ?? 0;
+    const isAlpha = (code >= 0x41 && code <= 0x5A) || (code >= 0x61 && code <= 0x7A);
+    const isDigit = code >= 0x30 && code <= 0x39;
+    const isUnreserved = char === '-' || char === '_' || char === '.' || char === '~';
+
+    if (isAlpha || isDigit || isUnreserved) {
+      result += char;
+    } else {
+      result += encodeURIComponent(char);
+    }
+  }
+
+  return result;
+};
+
 export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { items, removeItem, updateQuantity, clearCart, total, itemCount } = useCart();
   const [showCheckout, setShowCheckout] = useState(false);
@@ -176,7 +196,7 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
       message += `¡Espero su confirmación! ${EMOJI.prayerHands}`;
       
   // Abrir WhatsApp
-  const whatsappUrl = `https://api.whatsapp.com/send?phone=5493564358803&text=${encodeURIComponent(message)}`;
+  const whatsappUrl = `https://wa.me/5493564358803?text=${encodeWhatsAppMessage(message)}`;
       window.open(whatsappUrl, '_blank');
       
       // Limpiar carrito y cerrar
