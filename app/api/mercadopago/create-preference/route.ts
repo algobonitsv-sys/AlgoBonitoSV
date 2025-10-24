@@ -218,6 +218,13 @@ export async function POST(request: NextRequest) {
         }
       : null;
 
+    if (fallbackPreferenceData) {
+      console.log(
+        'Prepared fallback preference payload for mobile retry:',
+        JSON.stringify(fallbackPreferenceData, null, 2)
+      );
+    }
+
     const shouldEnableAutoReturn = Boolean(
       resolvedBackUrls.success &&
       resolvedBackUrls.success.startsWith('https://') &&
@@ -244,20 +251,24 @@ export async function POST(request: NextRequest) {
 
     console.log('Creating preference with data:', JSON.stringify(preferenceData, null, 2));
     console.log('Items being sent to MercadoPago:', JSON.stringify(preferenceItems, null, 2));
+    console.log('Preference metadata being sent:', JSON.stringify(preferenceData.metadata, null, 2));
 
     let result;
 
     try {
       result = await preferenceClient.create({ body: preferenceData });
     } catch (creationError) {
-      console.error('Primary preference creation failed:', getMercadoPagoErrorDetails(creationError));
+      logMercadoPagoError('Primary preference creation failed:', creationError);
+      console.error('Primary payload that caused failure:', JSON.stringify(preferenceData, null, 2));
       if (isMobileDevice && fallbackPreferenceData) {
         console.warn('Primary preference creation failed on mobile. Retrying with fallback payload.');
+        console.log('Fallback payload being sent to MercadoPago:', JSON.stringify(fallbackPreferenceData, null, 2));
         try {
           result = await preferenceClient.create({ body: fallbackPreferenceData });
           console.log('Fallback preference created successfully for mobile device.');
         } catch (fallbackError) {
-          console.error('Fallback preference creation also failed for mobile device.', getMercadoPagoErrorDetails(fallbackError));
+          logMercadoPagoError('Fallback preference creation also failed for mobile device.', fallbackError);
+          console.error('Fallback payload that caused failure:', JSON.stringify(fallbackPreferenceData, null, 2));
           throw fallbackError;
         }
       } else {
@@ -274,8 +285,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error creating preference:', error);
-    console.error('Detailed Mercado Pago error info:', getMercadoPagoErrorDetails(error));
+  console.error('Error creating preference:', error);
+  logMercadoPagoError('Detailed Mercado Pago error info:', error);
 
     let message = error instanceof Error ? error.message : 'Error interno del servidor';
     const extra: Record<string, unknown> = {};
@@ -313,6 +324,11 @@ function getMercadoPagoErrorDetails(error: unknown) {
   }
 
   return { message: String(error) };
+}
+
+function logMercadoPagoError(context: string, error: unknown) {
+  const details = getMercadoPagoErrorDetails(error);
+  console.error(context, JSON.stringify(details, null, 2));
 }
 
 const MOBILE_USER_AGENT_REGEX = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Windows Phone|Silk/i;
