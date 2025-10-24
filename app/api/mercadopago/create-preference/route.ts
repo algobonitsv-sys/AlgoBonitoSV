@@ -92,19 +92,23 @@ export async function POST(request: NextRequest) {
       return !idLower.includes('mercadopago_surcharge') && !titleLower.includes('recargo:');
     });
 
-    const mobileSafeItems = isMobileDevice
-      ? normalizedItems.map(applyMobileSafeTransform)
-      : normalizedItems;
+    const hasMultipleItems = normalizedItems.length > 1;
 
-    const shouldConsolidateItems = !isMobileDevice && normalizedItems.length > 1;
-    const preferenceItems = shouldConsolidateItems
+    const consolidatedItems = hasMultipleItems
       ? buildConsolidatedItems(normalizedItems, productItems, defaultCurrencyId)
-      : mobileSafeItems;
+      : null;
 
-    const mobileFallbackItems =
-      isMobileDevice && normalizedItems.length > 1
-        ? buildConsolidatedItems(normalizedItems, productItems, defaultCurrencyId).map(applyMobileSafeTransform)
-        : null;
+    const mobilePrimaryItems = consolidatedItems
+      ? consolidatedItems.map(applyMobileSafeTransform)
+      : normalizedItems.map(applyMobileSafeTransform);
+
+    const desktopPrimaryItems = consolidatedItems ?? normalizedItems;
+
+    const preferenceItems = isMobileDevice ? mobilePrimaryItems : desktopPrimaryItems;
+
+    const mobileFallbackItems = isMobileDevice
+      ? normalizedItems.map(applyMobileSafeTransform)
+      : null;
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? (process.env.NODE_ENV === 'development' ? 'http://localhost:9002' : 'https://tu-dominio.com');
 
@@ -158,6 +162,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const mobileItemsSummary = normalizedItems.map(item => ({
+      id: item.id,
+      title: truncateText(item.title, 60),
+      quantity: item.quantity,
+      unit_price: roundCurrency(item.unit_price),
+    }));
+
     const baseMetadata: Record<string, unknown> = {
       ...metadata,
       integration_type: 'web',
@@ -167,10 +178,18 @@ export async function POST(request: NextRequest) {
       device: isMobileDevice ? 'mobile' : 'desktop',
     };
 
-    const preferenceMetadata = {
+    if (isMobileDevice) {
+      baseMetadata.mobile_items_summary = mobileItemsSummary;
+    }
+
+    const preferenceMetadata: Record<string, unknown> = {
       ...baseMetadata,
-      consolidated: shouldConsolidateItems,
+      consolidated: isMobileDevice ? Boolean(consolidatedItems) : hasMultipleItems,
     };
+
+    if (isMobileDevice) {
+      preferenceMetadata.mobile_payload_strategy = consolidatedItems ? 'mobile_consolidated' : 'mobile_single';
+    }
 
     const preferenceData: PreferenceRequest = {
       items: preferenceItems,
@@ -186,15 +205,16 @@ export async function POST(request: NextRequest) {
       expiration_date_to: undefined,
     };
 
-    const fallbackPreferenceData = mobileFallbackItems
+    const fallbackPreferenceData = (isMobileDevice && hasMultipleItems)
       ? {
           ...preferenceData,
-          items: mobileFallbackItems,
+          items: mobileFallbackItems ?? mobilePrimaryItems,
           metadata: {
             ...baseMetadata,
-            consolidated: true,
-            mobile_retry_strategy: 'consolidated_fallback',
+            consolidated: false,
+            mobile_retry_strategy: 'split_items',
           },
+          binary_mode: true,
         }
       : null;
 
@@ -230,13 +250,14 @@ export async function POST(request: NextRequest) {
     try {
       result = await preferenceClient.create({ body: preferenceData });
     } catch (creationError) {
+      console.error('Primary preference creation failed:', getMercadoPagoErrorDetails(creationError));
       if (isMobileDevice && fallbackPreferenceData) {
         console.warn('Primary preference creation failed on mobile. Retrying with fallback payload.');
         try {
           result = await preferenceClient.create({ body: fallbackPreferenceData });
           console.log('Fallback preference created successfully for mobile device.');
         } catch (fallbackError) {
-          console.error('Fallback preference creation also failed for mobile device.');
+          console.error('Fallback preference creation also failed for mobile device.', getMercadoPagoErrorDetails(fallbackError));
           throw fallbackError;
         }
       } else {
@@ -254,6 +275,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error creating preference:', error);
+    console.error('Detailed Mercado Pago error info:', getMercadoPagoErrorDetails(error));
 
     let message = error instanceof Error ? error.message : 'Error interno del servidor';
     const extra: Record<string, unknown> = {};
@@ -269,6 +291,28 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: message, ...extra }, { status: 500 });
   }
+}
+
+function getMercadoPagoErrorDetails(error: unknown) {
+  if (typeof error === 'object' && error !== null) {
+    const err = error as {
+      name?: string;
+      message?: string;
+      stack?: string;
+      cause?: unknown;
+      response?: { status?: number; data?: unknown };
+    };
+
+    return {
+      name: err.name,
+      message: err.message,
+      status: err.response?.status,
+      data: err.response?.data,
+      cause: err.cause,
+    };
+  }
+
+  return { message: String(error) };
 }
 
 const MOBILE_USER_AGENT_REGEX = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Windows Phone|Silk/i;
