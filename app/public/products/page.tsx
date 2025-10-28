@@ -3,7 +3,6 @@
 import { useState, useEffect, Suspense } from 'react';
 import type { SVGProps } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Image from "next/image";
 import Link from "next/link";
 import { ProductsControlsClient } from "@/components/products/ProductsControlsClient";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -378,22 +377,16 @@ function ProductsContent() {
                                 
                                 return (
                                   <>
-                                    <Image
+                                    <img
                                       src={getValidImageUrl(product.cover_image)!}
                                       alt={product.name || 'Producto'}
-                                      width={453}
-                                      height={807}
                                       className={coverImageClass}
-                                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                                     />
                                     {hoverImageUrl && (
-                                      <Image
+                                      <img
                                         src={hoverImageUrl}
                                         alt={`${product.name} - vista alternativa`}
-                                        width={453}
-                                        height={807}
                                         className="w-full h-full object-cover absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                                        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                                       />
                                     )}
                                   </>
@@ -401,12 +394,10 @@ function ProductsContent() {
                               })()}
                               {isSoldOut && (
                                 <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-                                  <Image
+                                  <img
                                     src="/SOLDOUT.png"
                                     alt="Agotado"
-                                    width={320}
-                                    height={320}
-                                    className="object-contain"
+                                    className="object-contain w-20 h-20"
                                   />
                                 </div>
                               )}

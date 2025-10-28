@@ -110,7 +110,7 @@ export default function Hero() {
 
             return (
               <CarouselItem key={isCarouselImage ? (item as CarouselImage).id : index}>
-                <div className="relative aspect-video md:h-[80vh] w-full">
+                                <div className="relative aspect-video md:h-[80vh] w-full">
                   <Image
                     src={imageUrl}
                     alt={altText}
