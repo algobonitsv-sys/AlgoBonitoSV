@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Gem, ShieldCheck, Wrench } from 'lucide-react';
 import { api } from '@/lib/api/products';
@@ -152,11 +151,9 @@ export default function MaterialsPage() {
             
             return (
               <Card key={isAdminData ? (material as any).id : index} className="overflow-hidden border-none bg-primary/20">
-                <Image
+                <img
                   src={isAdminData ? (material as any).image_url : (material as any).image}
                   alt={material.title}
-                  width={500}
-                  height={300}
                   className="w-full h-48 object-cover"
                 />
                 <CardHeader>

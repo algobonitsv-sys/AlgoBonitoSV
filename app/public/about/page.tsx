@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from "next/image";
 import { CreditCard, Truck, Gem, ShieldCheck, Gift } from "lucide-react";
 import { api } from '@/lib/api/products';
 import type { AboutContent } from '@/types/database';
@@ -136,12 +135,9 @@ export default function AboutPage() {
           </div>
           <div className="order-1 md:order-2">
             {heroSection?.image_url && (
-              <Image 
+              <img 
                 src={heroSection.image_url}
                 alt={heroSection.title || 'Sofi - Fundadora de Algo Bonito SV'}
-                width={400}
-                height={500}
-                quality={100}
                 className="rounded-lg shadow-lg object-cover w-full aspect-[4/5]"
               />
             )}
@@ -156,22 +152,16 @@ export default function AboutPage() {
         <div className="grid md:grid-cols-2 gap-8 md:gap-16 items-center">
           <div className="order-2 md:order-1">
             {missionSection?.image_url && (
-              <Image 
+              <img 
                 src={missionSection.image_url}
                 alt="Fundadora de Algo Bonito SV"
-                width={600}
-                height={800}
-                quality={100}
                 className="rounded-lg shadow-lg object-cover aspect-[3/4] w-full"
               />
             )}
             {!missionSection?.image_url && (
-              <Image 
+              <img 
                 src="https://picsum.photos/600/800"
                 alt="Fundadora de Algo Bonito SV"
-                width={600}
-                height={800}
-                quality={100}
                 className="rounded-lg shadow-lg object-cover aspect-[3/4] w-full"
               />
             )}
@@ -205,12 +195,10 @@ export default function AboutPage() {
       <div className="space-y-0 mt-12 md:mt-16">
         {/* Shipping Section */}
         <section className="relative py-16 md:py-24 overflow-hidden mt-8 md:mt-12">
-          <Image 
+          <img 
             src={shippingSection?.background_image_url || "https://picsum.photos/1200/400?v=60"}
             alt="Mapa de envíos"
-            fill
-            quality={100}
-            className="object-cover"
+            className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-black/70" />
           <div className="container relative text-white text-center z-10 px-4 md:px-6">
@@ -246,12 +234,10 @@ export default function AboutPage() {
 
         {/* Payment Methods Section */}
         <section className="relative py-16 md:py-24 overflow-hidden mt-8 md:mt-12">
-          <Image 
+          <img 
             src={paymentSection?.background_image_url || "https://picsum.photos/1200/400?v=61"}
             alt="Métodos de pago seguros"
-            fill
-            quality={100}
-            className="object-cover"
+            className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-primary/85" />
           <div className="container relative text-primary-foreground text-center z-10 px-4 md:px-6">
@@ -274,12 +260,10 @@ export default function AboutPage() {
 
         {/* Returns Section */}
         <section className="relative py-16 md:py-24 overflow-hidden mt-8 md:mt-12 mb-16 md:mb-24">
-          <Image 
+          <img 
             src={returnsSection?.background_image_url || "https://picsum.photos/1200/400?v=62"}
             alt="Empaque de regalo"
-            fill
-            quality={100}
-            className="object-cover"
+            className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-black/70" />
           <div className="container relative text-white text-center z-10 px-4 md:px-6">
