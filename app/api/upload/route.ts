@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     // Subir según el tipo
     console.log('🚀 /api/upload: Starting R2 upload process...');
     let result;
-    if (folder === 'products') {
+    if (folder === 'products' || folder?.startsWith('products/')) {
       console.log('📂 /api/upload: Using product upload method');
       // Para productos, necesitamos convertir de vuelta a File-like object
       const fileLike = new File([new Uint8Array(fileBuffer)], file.name, { type: file.type });
