@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import {
@@ -111,22 +110,16 @@ return (
 <div className="aspect-[9/16] overflow-hidden relative">
 {product.cover_image ? (
 <>
-<Image
+<img
 src={product.cover_image}
 alt={product.name}
-width={900}
-height={1600}
 className="w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-0"
-priority={false}
 />
 {product.hover_image && (
-<Image
+<img
 src={product.hover_image}
 alt={`${product.name} - Vista alternativa`}
-width={900}
-height={1600}
 className="w-full h-full object-cover absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-priority={false}
 />
 )}
 </>
@@ -137,12 +130,10 @@ priority={false}
 )}
 {isSoldOut && (
 <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-<Image
+<img
 src="/SOLDOUT.png"
 alt="Agotado"
-width={280}
-height={280}
-className="object-contain"
+className="object-contain w-20 h-20"
 />
 </div>
 )}

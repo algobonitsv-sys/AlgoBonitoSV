@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -209,29 +208,22 @@ export default function AllProducts() {
                   <Card className="group overflow-hidden transition-shadow duration-300 border-none bg-background shadow-none rounded-none h-full flex flex-col">
                   <CardContent className="p-0 flex-grow">
                     <div className="aspect-[9/16] overflow-hidden relative h-full">
-                      <Image
+                      <img
                         src={getImageUrl(product.cover_image)}
                         alt={product.name}
-                        width={900}
-                        height={1600}
                         className="w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-0"
                       />
-                      <Image
+                      <img
                         src={getImageUrl(product.hover_image || product.cover_image)}
                         alt={`${product.name} (hover)`}
-                        width={900}
-                        height={1600}
                         className="w-full h-full object-cover absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                       />
                       {isSoldOut && (
                         <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-                          <Image
+                          <img
                             src="/SOLDOUT.png"
                             alt="Agotado"
-                            width={320}
-                            height={320}
-                            className="object-contain"
-                            priority={false}
+                            className="object-contain w-20 h-20"
                           />
                         </div>
                       )}

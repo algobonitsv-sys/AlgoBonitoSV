@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { Separator } from '@/components/ui/separator';
@@ -94,7 +93,7 @@ async function RelatedProducts({ currentProductId }: { currentProductId: string 
           return (
             <a key={r.id} href={`/public/products/${slug}`} className="group block">
               <div className="relative aspect-[9/16] overflow-hidden bg-muted ring-1 ring-border/40 max-w-[200px] mx-auto">
-                <Image src={image} alt={r.name} fill className="object-cover transition-all duration-500 group-hover:scale-105" />
+                <img src={image} alt={r.name} className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105" />
               </div>
               <div className="pt-3 text-center">
                 <p className="text-sm font-medium leading-tight line-clamp-1">{r.name}</p>

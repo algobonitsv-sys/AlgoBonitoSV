@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -266,30 +265,24 @@ function SearchPageContent() {
                     <Card className="group overflow-hidden transition-shadow duration-300 border-none bg-background shadow-none rounded-none">
                       <CardContent className="p-0">
                         <div className="aspect-[9/16] overflow-hidden relative">
-                          <Image
+                          <img
                             src={getImageUrl(product.cover_image)}
                             alt={product.name}
-                            width={400}
-                            height={600}
                             className="w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-0"
                           />
                           {product.hover_image && (
-                            <Image
+                            <img
                               src={getImageUrl(product.hover_image)}
                               alt={`${product.name} (hover)`}
-                              width={400}
-                              height={600}
                               className="w-full h-full object-cover absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                             />
                           )}
                           {isSoldOut && (
                             <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-                              <Image
+                              <img
                                 src="/SOLDOUT.png"
                                 alt="Agotado"
-                                width={280}
-                                height={280}
-                                className="object-contain"
+                                className="object-contain w-20 h-20"
                               />
                             </div>
                           )}
