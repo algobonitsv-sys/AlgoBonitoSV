@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { api } from '@/lib/api/products';
 import type { CustomerTestimonial } from '@/types/database';
@@ -128,11 +127,9 @@ export default function CustomerGallery() {
                 <Card className="overflow-hidden border-none shadow-lg rounded-lg">
                   <CardContent className="p-0">
                     {image.hasRealImage && image.src ? (
-                      <Image
+                      <img
                         src={image.src}
                         alt={image.alt}
-                        width={400}
-                        height={800}
                         data-ai-hint={image.dataAiHint}
                         className="w-full h-auto object-cover"
                         onError={(e) => {
